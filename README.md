@@ -1,4 +1,4 @@
-# Graydient Workflow Engineering Toolchain
+# Fluxdon's Graydient Workflow Engineering Toolchain (not officially supported by graydient)
 
 This repository contains the complete, unified toolchain for authoring, linting, packaging, and staging ComfyUI workflows on **Graydient SaaS** ephemeral GPU runners. It bundles programmatic workflow building APIs, local pre-flight validation rules, a verified model weights registry, and agent skills to prevent quota-burning errors.
 

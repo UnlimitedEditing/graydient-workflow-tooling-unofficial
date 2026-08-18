@@ -1,0 +1,79 @@
+{
+  "whisper-large-v3": [
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/model.bin",
+      "destination": "whisper/large-v3/model.bin"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/config.json",
+      "destination": "whisper/large-v3/config.json"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/tokenizer.json",
+      "destination": "whisper/large-v3/tokenizer.json"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/vocabulary.json",
+      "destination": "whisper/large-v3/vocabulary.json"
+    }
+  ],
+  "audioldm-l-full": [
+    {
+      "url": "https://huggingface.co/cvssp/audioldm-l-full/resolve/main/unet/diffusion_pytorch_model.bin",
+      "destination": "audioldm-l-full/unet/diffusion_pytorch_model.bin"
+    },
+    {
+      "url": "https://huggingface.co/cvssp/audioldm-l-full/resolve/main/vae/diffusion_pytorch_model.bin",
+      "destination": "audioldm-l-full/vae/diffusion_pytorch_model.bin"
+    },
+    {
+      "url": "https://huggingface.co/cvssp/audioldm-l-full/resolve/main/vocoder/diffusion_pytorch_model.bin",
+      "destination": "audioldm-l-full/vocoder/diffusion_pytorch_model.bin"
+    }
+  ],
+  "higgs-v3-tts": [
+    {
+      "url": "https://huggingface.co/Saganaki22/Higgs-Audio-v3-TTS/resolve/main/model.safetensors",
+      "destination": "tts/higgs-v3/model.safetensors"
+    }
+  ],
+  "ltx-2.5-i2v": [
+    {
+      "_note": "CORRECTED entry -- the previous 'ltx-video-2.5' entry pointed at Lightricks/LTX-Video's old 2b checkpoint, which is NOT LTX-2.5 and was never actually used by any workflow in this project. These are the real, confirmed-working URLs from gen_ltx2.5_i2v.py.",
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+      "destination": "diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors",
+      "destination": "vae/ltx-2.5-video-vae-bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
+      "destination": "vae/ltx-2.5-audio-vae-bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "destination": "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e2b_it_bf16.safetensors",
+      "destination": "text_encoders/gemma4_e2b_it_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+      "destination": "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+    }
+  ],
+  "triposg-3d": [
+    {
+      "url": "https://huggingface.co/VAST-AI/TripoSG/resolve/main/model.safetensors",
+      "destination": "triposg/model.safetensors"
+    }
+  ],
+  "sam2-large": [
+    {
+      "url": "https://huggingface.co/facebook/sam2-hiera-large/resolve/main/sam2_hiera_large.pt",
+      "destination": "sams/sam2_hiera_large.pt"
+    }
+  ]
+}

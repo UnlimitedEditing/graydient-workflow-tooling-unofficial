@@ -1,0 +1,194 @@
+{
+  "_readme": "Verified ComfyUI node input/output signatures, keyed by class_type. Populated only from nodes actually confirmed against real source (never guessed) during real gen_*.py builds. The linter cross-references field_mapping/API-graph node_input_name values against this DB: unknown class_type -> INFO (unverified, confirm before spending quota); known class_type + unknown input name -> ERROR. Add an entry here the moment a node's signature is confirmed against source, even if the confirmation happened the hard way (a real Graydient job failure).",
+  "LTXVSeparateAVLatent": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"av_latent": "LATENT"},
+    "outputs": ["video_latent", "audio_latent"],
+    "note": "Confirmed the hard way: a real job failed with 'Required input is missing: av_latent' after this script guessed 'samples'."
+  },
+  "LTXVAudioVAEDecode": {
+    "source": "comfy_extras/nodes_lt_audio.py",
+    "inputs": {"samples": "LATENT", "audio_vae": "VAE"},
+    "outputs": ["AUDIO"],
+    "note": "Confirmed the hard way: a real job failed with 'Required input is missing: audio_vae' after this script guessed 'vae'."
+  },
+  "LTXVAudioVAEEncode": {
+    "source": "comfy_extras/nodes_lt_audio.py",
+    "inputs": {"audio": "AUDIO", "audio_vae": "VAE"},
+    "outputs": ["LATENT"],
+    "note": "Mirrors LTXVAudioVAEDecode reversed. Encodes real reference audio into the audio_latent slot -- required for genuine audio-sync conditioning (see the-encoding-mask-lock-mechanism note in KI-007). Subclasses core VAEEncodeAudio."
+  },
+  "LTXVEmptyLatentAudio": {
+    "source": "comfy_extras/nodes_lt_audio.py",
+    "inputs": {"frames_number": "INT", "frame_rate": "FLOAT (accepts INT via MultiType)", "batch_size": "INT", "audio_vae": "VAE"},
+    "outputs": ["LATENT"],
+    "note": "Produces a SILENT placeholder audio latent -- using this instead of LTXVAudioVAEEncode means the model has nothing real to condition motion on, even if a reference audio file is loaded elsewhere in the graph for duration measurement or final muxing. This was a real root-cause bug: audio played correctly in the output but video motion was audio-unrelated."
+  },
+  "LTXVConcatAVLatent": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"video_latent": "LATENT", "audio_latent": "LATENT"},
+    "outputs": ["LATENT"],
+    "note": "Confirmed the hard way: this script's first pass guessed 'latent_a'/'latent_b'."
+  },
+  "LTXVImgToVideoInplace": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"vae": "VAE", "image": "IMAGE", "latent": "LATENT", "strength": "FLOAT (widget)", "bypass": "BOOLEAN"},
+    "outputs": ["LATENT"],
+    "note": "Confirmed the hard way: this script's first pass guessed 'extend' instead of 'bypass'. The noise_mask this node produces internally is `1.0 - strength` -- this IS the actual audio/image conditioning-lock mechanism (see SetLatentNoiseMask entry)."
+  },
+  "LTXVDualCFGGuider": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"model": "MODEL", "positive": "CONDITIONING", "negative": "CONDITIONING", "video_cfg": "FLOAT (widget)", "audio_cfg": "FLOAT (widget)"},
+    "outputs": ["GUIDER"],
+    "note": "Confirmed the hard way: this script's first pass guessed 'cfg_pos'/'cfg_neg'. Both official LTX-2.5/2.3 templates use video_cfg=1, audio_cfg=1 for the distilled checkpoint -- CFG has weak effect on distilled models, don't expect strong steering from raising these."
+  },
+  "LTXVConditioning": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"positive": "CONDITIONING", "negative": "CONDITIONING", "frame_rate": "FLOAT (widget)"},
+    "outputs": ["positive", "negative"],
+    "note": "frame_rate here must match the ACTUAL generation frame_rate used elsewhere in the graph (EmptyLTXVLatentVideo/CreateVideo/etc) -- a mismatch would desync the model's internal audio-video frame correspondence, though this was checked and ruled out as the cause of a real choppy-sync bug (the actual cause was a silent-placeholder audio_latent, see LTXVEmptyLatentAudio)."
+  },
+  "LTXVPreprocess": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"image": "IMAGE", "img_compression": "INT (widget)"},
+    "outputs": ["IMAGE"],
+    "note": "Confirmed the hard way: this script's first pass guessed 'crf' instead of 'img_compression'."
+  },
+  "LTXVCropGuides": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"positive": "CONDITIONING", "negative": "CONDITIONING", "latent": "LATENT"},
+    "outputs": ["positive", "negative", "latent"],
+    "note": "CONFIRMED NO-OP when no keyframe guides are present (execute() returns positive/negative/latent unchanged if num_keyframes==0) -- correctly omit this node entirely for plain image+audio-to-video with no keyframe guide images, it adds nothing. Present in the official LTX-2.3 ia2v template but absent from LTX-2.5's own official i2v template for this reason."
+  },
+  "LTXVLatentUpsampler": {
+    "source": "comfy_extras/nodes_lt_upsampler.py",
+    "inputs": {"samples": "LATENT", "upscale_model": "LATENT_UPSCALE_MODEL", "vae": "VAE"},
+    "outputs": ["LATENT"],
+    "note": "The 2x latent spatial upscale step between a low-res base pass and a high-res refine pass. LTX-2.5's own official i2v template is natively two-pass with this node -- do not assume single-pass is the 'normal' LTX-2.5 architecture."
+  },
+  "LatentUpscaleModelLoader": {
+    "source": "comfy_extras/nodes_hunyuan.py",
+    "inputs": {"model_name": "COMBO (widget)"},
+    "outputs": ["LATENT_UPSCALE_MODEL"],
+    "note": "SURPRISING FILE LOCATION -- confirmed the hard way this lives in nodes_hunyuan.py, NOT an LTXV-specific file; it's a generic latent-upscale-model loader shared across model families. folder_paths key is 'latent_upscale_models' (confirmed against folder_paths.py), not 'upscale_models' or 'checkpoints' -- easy to get wrong by analogy to LTX-specific naming."
+  },
+  "TrimAudioDuration": {
+    "source": "comfy_extras/nodes_audio.py",
+    "inputs": {"audio": "AUDIO", "start_index": "FLOAT (widget)", "duration": "FLOAT (widget)"},
+    "outputs": ["AUDIO"],
+    "note": "Flat widget/link inputs, no dot-prefixed sub-fields. Trims BEFORE encoding via LTXVAudioVAEEncode -- the official LTX-2.3 ia2v template does this trim step; a version of this workflow that skipped it (encoded untrimmed audio) still worked but wasn't confirmed to produce as tight a sync as the trimmed version."
+  },
+  "SetLatentNoiseMask": {
+    "source": "comfy_extras/nodes.py",
+    "inputs": {"samples": "LATENT", "mask": "MASK"},
+    "outputs": ["LATENT"],
+    "note": "THE ACTUAL AUDIO-SYNC MECHANISM for LTX's joint AV diffusion, confirmed by reading LTXVImgToVideoInplace's own strength->mask formula (conditioning_latent_frames_mask = 1.0 - strength) in source. Locking the audio latent's noise mask to zero (via a SolidMask value=0) tells the sampler 'this is fixed conditioning, don't touch it' for the whole base-pass run -- this is what makes the model actually attend to the real audio content rather than just having it present in the graph. Simply wiring LTXVAudioVAEEncode's output into LTXVConcatAVLatent without this lock is a weaker/unconfirmed form of conditioning."
+  },
+  "SolidMask": {
+    "source": "comfy_extras/nodes_mask.py",
+    "inputs": {"value": "FLOAT (widget)", "width": "INT (widget)", "height": "INT (widget)"},
+    "outputs": ["MASK"],
+    "note": "value=0 for the SetLatentNoiseMask lock pattern above (0 = 'fixed, don't touch' per the 1.0-strength formula)."
+  },
+  "ComfyMathExpression": {
+    "source": "comfy_extras/nodes_math.py",
+    "inputs": {"expression": "STRING (widget)", "values.a": "FLOAT (Autogrow group field, NOT bare 'a')", "values.b": "FLOAT (Autogrow group field, NOT bare 'b')"},
+    "outputs": ["FLOAT", "INT", "BOOL"],
+    "note": "Confirmed the hard way: this script's first pass guessed a bare 'a' key instead of the Autogrow-group 'values.a'. Also confirmed a real bug where the downstream wiring read the FLOAT output (slot 0) instead of the INT output (slot 1) for a value later used as a frame count -- frame counts need the INT output, not FLOAT."
+  },
+  "TextGenerateLTX2Prompt": {
+    "source": "ComfyUI core (LLM prompt-enhancer node used by official LTX-2.5 templates) -- confirmed directly from a real official template's saved workflow JSON (node 380 in the LTX-2.5 i2v template), not guessed",
+    "inputs": {
+      "clip": "CLIP (required link)",
+      "image": "IMAGE (optional link)",
+      "video": "IMAGE (optional link)",
+      "audio": "AUDIO (optional link)",
+      "prompt": "STRING (widget, NOT 'text')",
+      "max_length": "INT (widget, NOT 'max_new_tokens')",
+      "sampling_mode": "COMFY_DYNAMICCOMBO_V3 (widget)",
+      "sampling_mode.temperature": "FLOAT (Autogrow-style dotted sub-field)",
+      "sampling_mode.top_k": "INT (dotted sub-field)",
+      "sampling_mode.top_p": "FLOAT (dotted sub-field)",
+      "sampling_mode.min_p": "FLOAT (dotted sub-field)",
+      "sampling_mode.repetition_penalty": "FLOAT (dotted sub-field)",
+      "sampling_mode.seed": "INT (dotted sub-field)",
+      "sampling_mode.presence_penalty": "FLOAT (dotted sub-field, optional/shape 7)",
+      "thinking": "BOOLEAN (widget, optional/shape 7)",
+      "use_default_template": "BOOLEAN (widget, optional/shape 7)"
+    },
+    "outputs": ["generated_text"],
+    "note": "Confirmed the hard way in one direction, then corrected in the other: an early version of this script invented 'text'/'max_new_tokens'/'seed_mode'/'control_after_generate'/'keep_loaded'/'verbose', none of which exist -- but a first pass at THIS schema entry then swung too far the other way and only recorded the 4 wrong old fields, which would have wrongly flagged the current, correct usage as an error. Lesson for whoever maintains this file: when writing a schema entry from memory of 'what we fixed', go re-read the actual source/confirmed dump again rather than trusting your own recollection of the fix."
+  },
+  "ComfySwitchNode": {
+    "source": "ComfyUI core",
+    "inputs": {"on_false": "any type", "on_true": "any type", "switch": "BOOLEAN (widget)"},
+    "outputs": ["output"],
+    "note": "Confirmed the hard way: this script's first pass guessed 'value_if_false'/'value_if_true'."
+  },
+  "LoadAudio": {
+    "source": "comfy_extras/nodes_audio.py (ComfyUI built-in)",
+    "inputs": {"audio": "COMBO (widget, filename from a live os.listdir() scan of input/ at graph-load time)"},
+    "outputs": ["AUDIO"],
+    "note": "DO NOT use directly for any Graydient-field-mapped audio input. Graydient's init_audio/init_audio_url/init_audio_filename fields are confirmed to resolve inconsistently across submission paths -- sometimes a pre-staged filename (this node would work), sometimes a real http(s) URL, sometimes a mangled/delimiter-stripped Telegram file reference (this node would crash on both). Use the custom 'Load Audio Any' node instead (see KI-007 section 2)."
+  },
+  "EmptyLTXVLatentVideo": {
+    "source": "comfy_extras/nodes_lt.py",
+    "inputs": {"width": "INT (widget)", "height": "INT (widget)", "length": "INT (widget/link)", "batch_size": "INT (widget)"},
+    "outputs": ["LATENT"],
+    "note": "width/height must be exact multiples of the model's spatial compression step (32 in practice) -- e.g. 704 works cleanly (352 at half-res for a two-pass base pass, itself divisible by 32); 720 (both official templates' own default) does not divide as cleanly at half-res. Both were observed to run without erroring, so this is a precision preference, not a confirmed hard requirement."
+  },
+  "CreateVideo": {
+    "source": "ComfyUI core (comfy_extras/nodes_video.py or similar -- confirmed working via real successful jobs, not yet read directly for this DB entry)",
+    "inputs": {"images": "IMAGE", "audio": "AUDIO (optional)", "fps": "FLOAT/INT (widget)"},
+    "outputs": ["VIDEO"],
+    "note": "Muxes generated frames with an audio track. IMPORTANT LESSON (not a wiring bug, a design bug): wiring this node's `audio` input to the model's OWN re-decoded audio latent (via LTXVAudioVAEDecode) instead of the real reference audio produces a video where the delivered audio is the model's hallucinated sound, not the user's actual reference clip -- confirmed by a real job where correct-sounding-but-wrong audio played over the video. For workflows where audio fidelity to the original reference matters, mux the raw/trimmed reference audio here, not a VAE roundtrip of it."
+  },
+  "Load Audio Any": {
+    "source": "github.com/UnlimitedEditing/unlimitededting-comfy-audio-utils (this org's own fork, load_audio_any.py) -- logic ported from this org's proven ComfyUI-HiggsV3Glue (HiggsV3VoicePreset)",
+    "inputs": {"audio_source": "STRING (widget)", "audio_source_alt": "STRING (widget)", "audio_source_filename": "STRING (widget)"},
+    "outputs": ["audio"],
+    "note": "Three inputs, checked in order, first non-empty wins -- map Graydient's init_audio_url/init_audio/init_audio_filename local_fields to these three slots respectively, since it's unconfirmed which one a given Graydient submission path actually populates. Each slot independently resolves as: real http(s) URL (download), a mangled/delimiter-stripped Telegram file reference (regex-reconstructed to a real URL, see KI-007 section 2), or a bare local filename in ComfyUI's input/ directory. Decodes via an ffmpeg subprocess, NOT torchaudio.load() -- torchaudio.load() routes through torchcodec's AudioDecoder on recent versions, confirmed broken on at least some Graydient instances ('_AudioDecoder() takes no arguments')."
+  },
+  "Audio Duration": {
+    "source": "github.com/UnlimitedEditing/unlimitededting-comfy-audio-utils (forked from scofano/comfy-audio-duration; note the NODE_CLASS_MAPPINGS key has a literal space and is NOT the Python class name AudioDurationNode)",
+    "inputs": {"audio_path": "STRING (widget, required)", "audio": "AUDIO (optional link)"},
+    "outputs": ["seconds_int", "seconds_float", "minutes_int", "minutes_float", "temp_wav_path"],
+    "note": "seconds_float is output index 1, not 0 (seconds_int is 0). Used to auto-derive video length/duration from a real reference audio file's actual measured length rather than a user-specified constant."
+  },
+  "LoadImage": {
+    "source": "ComfyUI built-in (nodes.py)",
+    "inputs": {"image": "COMBO (widget, filename from input/ directory)"},
+    "outputs": ["IMAGE", "MASK"],
+    "note": "SAFE for Graydient's image1 field specifically -- confirmed the hard way that image1 resolves to a filename Graydient pre-stages into input/ BEFORE the job runs (e.g. 'image1__<hash>.png'), not a URL. This is the opposite of the general 'never pass a URL to LoadImage, use LoadImageFromURL' guidance -- image1 genuinely is filename-based, confirmed by a real job failure when LoadImageFromURL was used instead ('Invalid URL image1__<hash>.png: No scheme supplied')."
+  },
+  "LoadVideoFromURLAuto": {
+    "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'filename' input added commit 39e1be8)",
+    "inputs": {"url": "STRING (widget)", "max_frames": "INT (widget)", "fps": "FLOAT (widget)", "max_side": "INT (widget)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_video_filename triplet member)"},
+    "outputs": ["IMAGE"],
+    "note": "Confirmed working end-to-end on real Graydient jobs (subtitle-burn-in workflow, gen_subtitles.py), including a run with the 'filename' input present in the graph. Unlike TripoSGLoadVideoFromURL (forces a fixed width/height, distorting non-matching-aspect sources), this ffprobes the real source dimensions and scales preserving aspect, capped to max_side, rounded to even pixels for h264. Wire slot1-style downstream style params off frames.shape rather than piping width/height through the graph -- this node deliberately has no width/height OUTPUT, since BurnSubtitlesFromTimeline reads frame dims directly from the IMAGE tensor. KI-003 §3.2: Graydient's init_<type>_* is a {bool,filename,url} triplet and it's unconfirmed which of filename/url a given submission path populates -- map both."
+  },
+  "BurnSubtitlesFromTimeline": {
+    "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'speed' input added commit 554da56)",
+    "inputs": {"frames": "IMAGE (link)", "lyrics_json": "STRING (link, from TranscribeAudioFromURL's lyrics_json output)", "fps": "FLOAT (widget, MUST match the fps used in the upstream video-loader widget, e.g. LoadVideoFromURLAuto -- no fps output/link exists between them, keep both literals in sync in the gen_*.py)", "font_family": "COMBO widget: sans|serif|mono|condensed", "font_scale": "FLOAT (widget)", "text_color": "STRING (widget, hex e.g. #FFFFFF)", "style": "COMBO widget: outline|box|shadow", "speed": "FLOAT (widget, 1.0-4.0). 1.0 = no-op (natural Whisper sentence-length captions). >1.0 splits each lyric entry's words into chunks of round(9/speed) words, using per-word timestamps -- requires TranscribeAudioFromURL's lyrics_json entries to carry a 'words' list (added same session); entries without it pass through unchanged, so old/cached lyrics_json silently ignores speed>1 instead of erroring."},
+    "outputs": ["IMAGE"],
+    "note": "Confirmed working end-to-end on a real Graydient job with the 'speed' input present in the graph (default speed=1.0, the no-op path -- higher speed values that actually exercise the rechunking logic have NOT been separately confirmed on a real job, only via local review of the rechunk function). Widget indices when frames+lyrics_json are both wired as links: fps=0, font_family=1, font_scale=2, text_color=3, style=4, speed=5 (linked inputs don't occupy widgets_values slots). Fonts come from matplotlib's bundled DejaVu ttf files (matplotlib.get_data_path()/fonts/ttf) -- 'matplotlib' must be in pip requirements even though it's not used for anything else in the graph."
+  },
+  "TranscribeAudioFromURL": {
+    "source": "ComfyUI-TripoSG/nodes.py",
+    "inputs": {"url": "STRING (widget)", "model_size": "COMBO widget: large-v3|medium|small|base", "language": "STRING (widget, empty = auto-detect)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"},
+    "outputs": ["IMAGE (lyrics_card)", "STRING (lyrics_json)"],
+    "note": "Confirmed working with a video URL (not just an audio URL) passed directly to 'url' -- faster-whisper decodes the audio track straight out of the video container, no separate audio-extraction step needed for transcription. lyrics_json is output index 1, a JSON string with a 'timeline' list of {start,end,text,type} entries (type is 'lyric' or 'instrumental'); 'lyric' entries also carry a 'words' list of {start,end,text} (added same session, NOT yet confirmed on a real job -- only the pre-existing segment-level fields were confirmed) for BurnSubtitlesFromTimeline's speed-based rechunking. concept_mapping for the whisper weights MUST be re-derived per model_size via the real HF API file listing (huggingface.co/api/models/Systran/faster-whisper-<size>) -- faster-whisper-small ships vocabulary.txt and NO preprocessor_config.json, while faster-whisper-large-v3 ships vocabulary.json AND preprocessor_config.json. Copying large-v3's staged filenames for 'small' produced ctranslate2 error 'Cannot load the vocabulary from the model directory' on a real job this session; buried in KI-007 graveyard as a separate anti-pattern entry. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
+  },
+  "LoadAudioFromURLStereo": {
+    "source": "ComfyUI-TripoSG/nodes.py",
+    "inputs": {"url": "STRING (widget)", "sample_rate": "INT (widget)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"},
+    "outputs": ["AUDIO"],
+    "note": "Confirmed working with a video URL (not just an audio URL) -- decodes via an ffmpeg subprocess against whatever container the URL points to, so the same init_video_url can feed this node to extract the original audio track for re-muxing into a subtitle-burn or other video-in/video-out workflow's output, no separate audio field mapping needed. BUG FOUND AND FIXED same session: the original version had NO local-filename fallback at all (bare urllib.request.urlopen(url), which raises 'unknown url type' on a filename) -- would have crashed outright on any submission that populated init_video_filename instead of init_video_url. Now resolves http(s) vs local exactly like TranscribeAudioFromURL/LoadImageFromURL. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
+  },
+  "VHS_VideoCombine": {
+    "source": "ComfyUI-VideoHelperSuite (github.com/Kosinkadink/ComfyUI-VideoHelperSuite)",
+    "inputs": {"images": "IMAGE (link)", "audio": "AUDIO (link, optional -- omit to produce silent video)", "frame_rate": "INT/FLOAT (widget, MUST match the fps actually used to decode/generate the images, no auto-detection)", "loop_count": "INT (widget)", "filename_prefix": "STRING (widget)", "format": "COMBO widget e.g. video/h264-mp4", "pix_fmt": "COMBO widget e.g. yuv420p", "crf": "INT (widget)", "save_metadata": "BOOLEAN (widget)", "trim_to_audio": "BOOLEAN (widget, trims VIDEO length to match audio length -- leave False when the video's own frame count is already the authoritative length, e.g. capped by max_frames)", "pingpong": "BOOLEAN (widget)", "save_output": "BOOLEAN (widget)"},
+    "outputs": ["VHS_FILENAMES"],
+    "note": "Confirmed working for video-in/video-out audio muxing: wiring LoadAudioFromURLStereo's AUDIO output directly into this node's audio input produces a correctly synced h264 mp4 on a real Graydient job (subtitle-burn-in workflow), reusing the same pattern already proven in gen_bernini_v1.py's v2v pipeline. IMPORTANT, CONFIRMED BOTH BY READING SOURCE AND BY A REAL JOB (same session): when audio is supplied, this node writes THREE files per run -- a first-frame PNG for metadata, a video-only intermediate mp4, and the final audio-muxed '<prefix>-audio.mp4' (the one the node's own 'file' variable ends up pointing at; root-caused by reading videohelpersuite/nodes.py combine_video() directly). Graydient's output-picker does NOT reliably prefer the node's declared final output when multiple candidate files exist in the output dir -- confirmed the hard way: it returned the PNG instead of the mp4 on one real job, then the correct mp4 on a retry of the identical workflow. FIX, CONFIRMED WORKING on a real job after applying it: set two workflow-level extra flags (NOT node widgets -- read via the hidden EXTRA_PNGINFO input as extra_pnginfo['workflow']['extra'][...]) in the submitted standard-format workflow's top-level 'extra' dict: 'VHS_MetadataImage': false suppresses the PNG, 'VHS_KeepIntermediate': false deletes the video-only intermediate, leaving only the final -audio.mp4 as the sole candidate file. See gen_subtitles.py's standard['extra'] for the reference implementation. This is a reusable fix for ANY Graydient workflow using VHS_VideoCombine with an audio input, not specific to subtitles."
+  }
+}

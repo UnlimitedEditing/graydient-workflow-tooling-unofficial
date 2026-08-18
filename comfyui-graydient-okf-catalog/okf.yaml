@@ -1,0 +1,48 @@
+schema_version: "1.0.0"
+catalog:
+  id: "comfyui-graydient-okf-catalog"
+  name: "ComfyUI & Graydient SaaS Workflow Engineering OKF Knowledge Catalog"
+  description: "Comprehensive Open Knowledge Format (OKF) catalog for authoring, decoupling, staging, and deploying ComfyUI workflows on Graydient SaaS."
+  version: "1.0.0"
+  license: "MIT"
+  authors:
+    - "DeepMind Advanced Agentic Coding Team"
+    - "ComfyUI Workflow Engineering Team"
+  repository: "https://github.com/UnlimitedEditing/comfyui-graydient-okf-catalog"
+  tags:
+    - comfyui
+    - graydient
+    - backup-restore
+    - concept_mapping
+    - field_mapping
+    - custom-nodes
+    - audio-generation
+    - okf
+items:
+  - id: "KI-001"
+    file: "catalog/KI-001-architecture-overview.md"
+    title: "Dual-Workflow JSON Architecture & Deployment Cycle"
+  - id: "KI-002"
+    file: "catalog/KI-002-concept-mapping-staging.md"
+    title: "Model Staging & Offline Custom Node Loading Rules"
+  - id: "KI-003"
+    file: "catalog/KI-003-field-mapping-slots.md"
+    title: "Field Mapping Specification & Widget Parameter Indexing"
+  - id: "KI-004"
+    file: "catalog/KI-004-decoupled-node-patterns.md"
+    title: "Custom Node Decoupling: ModelLoader + Sampler Architecture"
+  - id: "KI-005"
+    file: "catalog/KI-005-saas-execution-constraints.md"
+    title: "SaaS Execution Constraints, VRAM & Timeout Budgets"
+  - id: "KI-006"
+    file: "catalog/KI-006-audio-generation-standards.md"
+    title: "Audio Generation Standards & Polyphase Resampling"
+  - id: "KI-007"
+    file: "catalog/KI-007-runtime-constraints-and-graveyard.md"
+    title: "Runtime Constraints & Graveyard (Banned Packages, VHS Non-deterministic output fix, Load Audio Any)"
+  - id: "KI-008"
+    file: "catalog/KI-008-concept-mapping-registry.md"
+    title: "Concept Mapping Model Weights Registry (Whisper, AudioLDM, Higgs, LTX, TripoSG, SAM3)"
+  - id: "KI-009"
+    file: "catalog/KI-009-intent-vs-vehicle-pivot-protocol.md"
+    title: "Intent-vs-Vehicle Pivot Protocol & Planning Directives"

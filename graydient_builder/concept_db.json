@@ -1,4 +1,10 @@
 {
+  "audiosr": [
+    {
+      "url": "https://huggingface.co/drbaph/AudioSR/resolve/main/AudioSR/audiosr_basic_fp32.safetensors",
+      "destination": "AudioSR/audiosr_basic_fp32.safetensors"
+    }
+  ],
   "whisper-large-v3": [
     {
       "url": "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/model.bin",
@@ -74,6 +80,176 @@
     {
       "url": "https://huggingface.co/facebook/sam2-hiera-large/resolve/main/sam2_hiera_large.pt",
       "destination": "sams/sam2_hiera_large.pt"
+    }
+  ],
+  "hunyuanworld-mirror": [
+    {
+      "url": "https://huggingface.co/tencent/HunyuanWorld-Mirror/resolve/main/model.safetensors",
+      "destination": "HunyuanWorld-Mirror/HunyuanWorld-Mirror.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/tencent/HunyuanWorld-Mirror/resolve/main/config.json",
+      "destination": "HunyuanWorld-Mirror/config.json"
+    }
+  ],
+  "audio2face-3d-v2.3-mark": [
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/model.json",
+      "destination": "audio2face/mark-v2.3/model.json"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/network.onnx",
+      "destination": "audio2face/mark-v2.3/network.onnx"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/network_info.json",
+      "destination": "audio2face/mark-v2.3/network_info.json"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/model_config.json",
+      "destination": "audio2face/mark-v2.3/model_config.json"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/model_data.npz",
+      "destination": "audio2face/mark-v2.3/model_data.npz"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/implicit_emo_db.npz",
+      "destination": "audio2face/mark-v2.3/implicit_emo_db.npz"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/bs_skin.npz",
+      "destination": "audio2face/mark-v2.3/bs_skin.npz"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/bs_skin_config.json",
+      "destination": "audio2face/mark-v2.3/bs_skin_config.json"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/bs_tongue.npz",
+      "destination": "audio2face/mark-v2.3/bs_tongue.npz"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/bs_tongue_config.json",
+      "destination": "audio2face/mark-v2.3/bs_tongue_config.json"
+    },
+    {
+      "url": "https://huggingface.co/nvidia/Audio2Face-3D-v2.3-Mark/resolve/main/trt_info.json",
+      "destination": "audio2face/mark-v2.3/trt_info.json"
+    }
+  ],
+  "whisper-medium": [
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-medium/resolve/main/model.bin",
+      "destination": "whisper/medium/model.bin"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-medium/resolve/main/config.json",
+      "destination": "whisper/medium/config.json"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-medium/resolve/main/tokenizer.json",
+      "destination": "whisper/medium/tokenizer.json"
+    },
+    {
+      "url": "https://huggingface.co/Systran/faster-whisper-medium/resolve/main/vocabulary.txt",
+      "destination": "whisper/medium/vocabulary.txt"
+    }
+  ],
+  "ollama-qwen3-14b": [
+    {
+      "url": "https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:78b3b822087d5199783c8203553a5a92ce5eb7b683a5a81003f8efea9b399d74",
+      "destination": "ollama/blobs/sha256-78b3b822087d5199783c8203553a5a92ce5eb7b683a5a81003f8efea9b399d74"
+    },
+    {
+      "url": "https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e",
+      "destination": "ollama/blobs/sha256-a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e"
+    },
+    {
+      "url": "https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4",
+      "destination": "ollama/blobs/sha256-ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4"
+    },
+    {
+      "url": "https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+      "destination": "ollama/blobs/sha256-d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12"
+    },
+    {
+      "url": "https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb",
+      "destination": "ollama/blobs/sha256-cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb"
+    }
+  ],
+  "ollama-0.34.2-linux": [
+    {
+      "url": "https://github.com/ollama/ollama/releases/download/v0.34.2/ollama-linux-amd64.tar.zst",
+      "destination": "rigstudio/ollama/ollama-linux-amd64-v0.34.2.tar.zst"
+    }
+  ],
+  "ltx-2.5-pinkcherry-t2v": [
+    {
+      "_note": "Confirmed live (pinkcherry-ltx25, 2026-10-02). UNDISTILLED dev finetune (42GB bf16) - requires the distilled LoRA at 1.0. Source repo public (HEAD 302). Destination renamed from the HF filename 'potatoes.safetensor' (no trailing s) to a .safetensors name.",
+      "url": "https://huggingface.co/Jacob121294/PinkCherry_NSFW_LTX25/resolve/main/potatoes.safetensor",
+      "destination": "diffusion_models/pinkcherry_ltx25_dev.safetensors"
+    },
+    {
+      "_note": "Official distilled LoRA rank 450 (8.9GB). Lightricks/LTX-2.5 is gated ('auto') -> 401 for Graydient; use the ungated comfyicu mirror (HEAD 302, identical name/size).",
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/loras/ltx-2.5-22b-distilled-lora-450-bf16.safetensors",
+      "destination": "loras/ltx-2.5-22b-distilled-lora-450-bf16.safetensors"
+    },
+    {
+      "_note": "'conv' video VAE variant (1.45GB), in the official repo and used by RedGraft; mirror HEAD 302.",
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-conv-bf16.safetensors",
+      "destination": "vae/ltx-2.5-video-vae-conv-bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
+      "destination": "vae/ltx-2.5-audio-vae-bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+      "destination": "text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e2b_it_bf16.safetensors",
+      "destination": "text_encoders/gemma4_e2b_it_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyicu/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+      "destination": "latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+    }
+  ],
+  "worldstereo-light-memory-dmd": [
+    {
+      "url": "https://huggingface.co/MIUProject/VNCCS_WorldStereoLight/resolve/main/models/vnccs-worldstereo-memory-dmd-int4.safetensors",
+      "destination": "WorldStereoLight/vnccs-worldstereo-memory-dmd-int4.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/MIUProject/VNCCS_WorldStereoLight/resolve/main/models/vnccs-worldstereo-memory-dmd-int4.json",
+      "destination": "WorldStereoLight/vnccs-worldstereo-memory-dmd-int4.json"
+    },
+    {
+      "url": "https://huggingface.co/MIUProject/VNCCS_WorldStereoLight/resolve/main/clip/WorldStereo_umt5-xxl-encoder-fp8.safetensors",
+      "destination": "clip/WorldStereo_umt5-xxl-encoder-fp8.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/MIUProject/VNCCS_WorldStereoLight/resolve/main/vae/WorldStereo_wan_2.1_vae.safetensors",
+      "destination": "vae/WorldStereo_wan_2.1_vae.safetensors"
+    }
+  ],
+  "worldmirror-v2": [
+    {
+      "url": "https://huggingface.co/tencent/HY-World-2.0/resolve/main/HY-WorldMirror-2.0/model.safetensors",
+      "destination": "WorldMirror-V2/HY-WorldMirror-2.0/model.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/tencent/HY-World-2.0/resolve/main/HY-WorldMirror-2.0/config.json",
+      "destination": "WorldMirror-V2/HY-WorldMirror-2.0/config.json"
+    }
+  ],
+  "ltx-2.5-ripple": [
+    {
+      "_note": "LTX Ripple (WepeNerd) FFAF IC-LoRA, 654443392 bytes, ungated (HF API gated:false; curl -sIL 302->200, X-Linked-Size 654443392, 2026-10-07). CONFIRMED staged and used by a real job (ripple-ltx25 v3, render 39yNVD). Used with the ltx-2.5-i2v base files (distilled int8 transformer, gemma4-12b text encoder, audio VAE) plus the CONV video VAE listed under ltx-2.5-pinkcherry-t2v (ltx-2.5-video-vae-conv-bf16.safetensors). No distill LoRA, no upscaler, no prompt-enhancer encoder needed.",
+      "url": "https://huggingface.co/WepeNerd/LTX-Ripple/resolve/main/LTX25_Ripple_v11.safetensors",
+      "destination": "loras/LTX25_Ripple_v11.safetensors"
     }
   ]
 }

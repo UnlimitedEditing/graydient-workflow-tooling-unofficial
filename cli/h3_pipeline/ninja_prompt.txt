@@ -1,0 +1,37 @@
+/workflow /run:sprite-actions-h3 /size:512x512 /length:240 /image1:ninja_idle /image2:ninja_run /image3:ninja_jump /image4:ninja_slash <motion-repairv2-h3:0.9> Create one continuous, coherent 2D game asset animation following the 4 supplied guide images in strict chronological order.
+
+The guide images are fixed visual states on the timeline. Each guide establishes what the scene must look like at that point. Generate natural continuous motion BETWEEN these states rather than treating the images as independent shots.
+
+TIMELINE
+
+0.0 — GUIDE 1
+Arrive naturally at the visual state established by Guide 1.
+
+0.0–3.3 — TRANSITION 1
+The character transitions smoothly towards the next guide state.
+
+3.3 — GUIDE 2
+Arrive naturally at the visual state established by Guide 2.
+
+3.3–6.7 — TRANSITION 2
+The character transitions smoothly towards the next guide state.
+
+6.7 — GUIDE 3
+Arrive naturally at the visual state established by Guide 3.
+
+6.7–10.0 — TRANSITION 3
+The character transitions smoothly towards the next guide state.
+
+10.0 — GUIDE 4
+Arrive naturally at the visual state established by Guide 4.
+
+IMPORTANT:
+Guide 4 is NOT the ending frame.
+Do not freeze. Do not hold as a still image.
+
+CONTINUITY
+Treat all guides as different moments within the SAME continuous scene.
+Maintain exact character identity, wardrobe, proportions, and environment. Do not reset characters between guides.
+
+CAMERA
+Locked tripod shot. Camera movement must remain physically continuous.

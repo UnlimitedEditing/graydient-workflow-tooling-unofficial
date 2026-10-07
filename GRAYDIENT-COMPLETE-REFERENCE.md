@@ -32,11 +32,18 @@ file for Graydient knowledge, read this one.
      guaranteed, especially for large multi-file downloads. Treat it as "worth adding,
      don't rely on it alone" — pair it with a node that auto-downloads on cache miss
      rather than assuming pre-staging always worked.
-  2. **Timeout budget.** §1/§6 say "~300 s public tier." A separate empirical
-     measurement (this project's CLAUDE.md, ny4-g machines) says ~380–400 s. These may
-     be different tiers or machine classes — don't assume either number without
-     checking which machine class/tier a workflow is likely to land on. Budget to the
-     more conservative ~300 s when you don't know the tier.
+  2. **Timeout budget — RESOLVED 2026-10-04 (Jacob):** ComfyUI **run time is limited to
+     ~180 s** (some grace). The clock starts when ComfyUI starts; repo clones, `requirements.pip`,
+     `concept_mapping` downloads and first-time machine startup (up to ~2000 s) are **not**
+     counted. The earlier "~300 s public tier", "~380–400 s" and "~277 s-confirmed" figures
+     in this doc and in CLAUDE.md were observed upper bounds, not budgets — wherever they still
+     appear below, read them as "the job eventually got killed somewhere around here", and
+     plan to **180 s, targeting ≤ 150 s**. Confirmed by `worldstereo-recon-v1` (R20164194),
+     which logged `SavePLY SUCCESS` and then timed out with no `Prompt executed` line.
+     The clock includes ComfyUI's own startup (~15–30 s) *plus* the log's `Prompt executed in N
+     seconds`: `worldstereo-recon-v1` (R20164820) logged N = 168.65 s with no errors yet was
+     flagged `timed_out` and delivered no files. Aim for N ≤ ~120 s. The result's `elapsed`
+     (500–639 s for these jobs) also includes pip/clones/downloads and is not the number.
 
 ---
 
@@ -51,7 +58,7 @@ Cloud ComfyUI execution platform. Spins up ephemeral GPU servers on demand.
   assume the very next job reflects it — retry if it doesn't.
 - Pip packages are installed fresh every run from the workflow config
 - Files written to `/datapool/` DO persist across runs
-- Public timeout: ~300 seconds from ComfyUI start. Pro tier is longer.
+- **Run-time limit: ~180 s of ComfyUI run time (+ some grace)**, counted from ComfyUI start. Startup work (clones, pip, `concept_mapping`, first-time machine setup up to ~2000 s) is not counted — see §0 item 2. (Older text here said "~300 s public tier"; that was an observed upper bound.)
 - DynamicVRAM (`comfy-aimdo`) is enabled on all instances — models can overflow VRAM into system RAM
 
 ---
@@ -313,7 +320,7 @@ media triplet's fields actually gets populated for a given submission path).
 | `length` | Integer → node widget (frame count) |
 | `fps` | Integer → node widget |
 | `size`, `cfg`, `controlguidance`, `strength` | premapped fields — use instead of a generic slot when the control genuinely is one of these |
-| `slot1` … `slot9` | Generic INT / FLOAT / STRING — **all nine work**, not just slot1/slot2 |
+| `slot1` … `slot8` | **Eight** generic slots (there is NO slot9 — CORRECTED 2026-10-04 by Jacob; earlier text here said nine). **`slot4` … `slot8` accept NUMBERS ONLY** (INT/FLOAT); only `slot1` … `slot3` accept strings. (Earlier text here said all nine take strings; it was wrong — consistent with the pixel-turnaround note that typed strings in slot4 were rejected.) To offer a string-valued choice on slots 4-9, make the slot a numeric `PrimitiveInt`, turn it into a BOOL with `ComfyMathExpression` (`round(a) == N`, BOOL is output slot 2) and pick a branch with a lazy `ComfySwitchNode` (proven in `gen_pixel_turnaround_qwen21.py`; see `gen_worldstereo_recon_v2.py` slot9). One slot can be mapped to several nodes if a switched branch needs the same value. |
 | `init_image_bool` / `init_image_filename` / `init_image_url` (+ `image1`…`image9`) | Media triplet for images. `_url` downloads; `_filename` is a pre-staged local `input/` file; `_bool` flags presence. Map at least `_filename` and `_url` into the node (two widgets, first-non-empty-wins) — don't assume `_url` alone covers every submission path. |
 | `init_video_bool` / `init_video_filename` / `init_video_url` (+ `video1`…`video9`) | Same triplet pattern, for video. |
 | `init_audio_bool` / `init_audio_filename` / `init_audio_url` (+ `audio1`…`audio9`) | Same triplet pattern, for audio. |
@@ -420,17 +427,24 @@ use only pre-loaded models or models that auto-download inside the node code.
 
 ### Timeout budget
 
-~300 seconds from ComfyUI start. Total budget includes:
+**~180 s of ComfyUI run time (some grace)** — corrected 2026-10-04, see §0 item 2.
+The clock starts when ComfyUI starts. **Not counted** (happen before it):
 - GitHub node clone (~15–30 s per repo)
-- Pip install (~10–30 s depending on package count)
-- Model download (if not pre-loaded — can consume entire budget for large models)
-- Model loading into VRAM (~10–20 s)
-- Inference (N steps × T seconds/step)
-- VAE decode / encode (~15–35 s for video)
+- Pip install (10–30 s for a short list; minutes for a long one)
+- `concept_mapping` model downloads
+- First-time machine startup (up to ~2000 s)
 
-**Target inference ≤ 200 s** to leave headroom. At risk: any configuration that
-downloads large models (>5 GB) at run time, or spills >3 GB of activations to
-DynamicVRAM RAM.
+**Counted** (everything after ComfyUI is up):
+- ComfyUI startup to `got prompt` (~15 s lean, up to ~80 s with heavy node packs)
+- Any model download *inside a node* at run time (can consume the entire budget)
+- Model loading into VRAM (~10–35 s per large model)
+- Inference (N steps × T seconds/step)
+- VAE encode/decode (~15–35 s for video)
+- **Post-processing, saving and export** (upsampling, point clouds, PLY/mesh export, PNG packing)
+
+**Planning target ≤ 150 s total.** At risk: any configuration that downloads large models
+at run time, spills >3 GB of activations to DynamicVRAM RAM, or does heavy work after
+inference. **Budget = ComfyUI startup (~15–30 s) + `Prompt executed in N seconds` ≤ ~150 s, so N ≤ ~120 s.** `N` alone under 180 s is not enough (R20164820: N = 168.65 s, timed out). Never use the result's `elapsed`.
 
 ### pip requirements rules
 
@@ -479,6 +493,8 @@ Valid frame counts: 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 
 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 129
 
 ### 7c. Budget tables
+
+> **Note (2026-10-04):** the "Status" column below was judged against the old ~300 s assumption. The real limit is ~180 s of run time (§0 item 2), so shift each verdict down by roughly one row: anything marked ⚠ here is a likely ✗, and a "~195 s" row is already over. Also remember load/VAE/post-processing time is *on top of* these inference totals.
 
 **720p (1280×720) — 80×45 = 3600 spatial patches — Q8_0 UNET:**
 
@@ -1000,7 +1016,7 @@ of `"cuda"` where the node's widget allows arbitrary text.
 → Download only persisted on the class from the first run.
 → Only fix: use pre-loaded models or accept non-deterministic availability.
 
-**Timeout at ~492 s with fast model**
+**Timeout at ~492 s with fast model** *(older observation; the real limit is ~180 s of run time — see §0 item 2 — so a job can time out far earlier than this)*
 → Too many tokens. Check frame count. 5090 at 1080p/129f ≈ 400–500 s for diffusion alone.
 
 **`torch.OutOfMemoryError` + 10 MB CUDA free on fresh server**
@@ -1022,7 +1038,7 @@ log path to confirm you're looking at the right run.
 
 **3D: TripoSG model download times out**
 → The ~10 GB model downloads fresh every run (no pre-staging available). On slow
-instances this can exhaust the 300 s budget. Cold runs may need to be retried.
+instances this can exhaust the run-time budget (~180 s; an in-node download counts against it, unlike `concept_mapping`). Cold runs may need to be retried.
 
 **3D: Vertex colours missing from exported file**
 → STL does not store colour. Use GLB, PLY, or 3MF if colours must be preserved.
@@ -1651,7 +1667,7 @@ implementation: `HIGGS-CLONE-HANDOFF.md` §0 and §6.
   sm_120) — CUDA kernels compiled for sm_90a (Hopper) only. Falls back gracefully to
   BF16 sequential offload. Check for Blackwell torchao wheels when available.
 - **Step budget on 5090 (32GB BF16 sequential)**: ~53s warmup + ~6s/step. Stay ≤25
-  steps to fit in ~277s-confirmed timeout.
+  steps to fit in ~277s-confirmed timeout *(older observation — the stated limit is ~180 s of run time, §0 item 2; re-check this step count against 180 s)*.
 - **enable_model_cpu_offload vs enable_sequential_cpu_offload**: model offload moves
   entire sub-models (faster, needs each sub-model to fit in VRAM); sequential offload
   moves layer-by-layer (slower, most memory efficient). INT8 would unlock model offload

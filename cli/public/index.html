@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RenderFlow Studio — Graydient Kanban & Pipeline Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">RenderFlow</span>
+            <span class="brand-badge">Graydient Hub</span>
+          </div>
+        </div>
+
+        <div class="pipeline-indicator" id="pipelineIndicator">
+          <span class="pulse-dot"></span>
+          <span id="activeRenderStatus">Ready for renders</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="stats-pills">
+          <div class="stat-pill" title="Total jobs in queue">
+            <span class="stat-label">Queue</span>
+            <span class="stat-val" id="queueCount">0</span>
+          </div>
+          <div class="stat-pill" title="Images awaiting animation review">
+            <span class="stat-label">Review</span>
+            <span class="stat-val" id="reviewCount">0</span>
+          </div>
+          <div class="stat-pill" title="Finished renders">
+            <span class="stat-label">Finished</span>
+            <span class="stat-val" id="doneCount">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Tunnel Button -->
+        <button class="btn btn-tunnel" id="btnTunnel" title="Remote Mobile Access Tunnel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+          <span id="tunnelBtnText">Tunnel</span>
+          <span class="tunnel-status-dot" id="tunnelStatusDot"></span>
+        </button>
+
+        <!-- Prompt Library / Scrapbook Button -->
+        <button class="btn btn-secondary" id="btnOpenPrompts" title="View Prompts & Content Descriptions">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <line x1="9" y1="7" x2="15" y2="7"></line>
+            <line x1="9" y1="11" x2="15" y2="11"></line>
+          </svg>
+          <span>Prompt Library</span>
+        </button>
+
+        <!-- Export & Collate Dropdown Button -->
+        <div class="dropdown">
+          <button class="btn btn-secondary" id="btnExportMenu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Collate & Export</span>
+          </button>
+          <div class="dropdown-menu" id="exportDropdown">
+            <button class="dropdown-item" id="btnTriggerCompileReel">
+              <span class="dropdown-icon">🎬</span>
+              <div>
+                <strong>Compile Video Reel (FFmpeg)</strong>
+                <small>Stitch finished animations into one montage MP4</small>
+              </div>
+            </button>
+            <button class="dropdown-item" id="btnExportZip">
+              <span class="dropdown-icon">📦</span>
+              <div>
+                <strong>Export All Media & Prompts (ZIP)</strong>
+                <small>Full archive with .txt prompt sidecars & manifest</small>
+              </div>
+            </button>
+            <button class="dropdown-item" id="btnExportDescriptions">
+              <span class="dropdown-icon">📝</span>
+              <div>
+                <strong>Copy Content Descriptions</strong>
+                <small>Clean caption list for social / YouTube descriptions</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- + New Render / Chained Pipeline Button -->
+        <button class="btn btn-primary" id="btnNewRender">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Render / Chain</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Kanban Board -->
+    <main class="kanban-board" id="kanbanBoard">
+      <!-- Column 1: Prompt Library & Backlog -->
+      <section class="kanban-col col-backlog" data-col="backlog">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">💡</span>
+            <h2>Prompt Backlog</h2>
+            <span class="col-badge" id="badge-backlog">0</span>
+          </div>
+          <button class="btn-icon" id="btnQuickAddBacklog" title="Add prompt to backlog">+</button>
+        </div>
+        <div class="cards-container" id="cards-backlog"></div>
+      </section>
+
+      <!-- Column 2: Render Queue -->
+      <section class="kanban-col col-queued" data-col="queued">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">⏳</span>
+            <h2>Render Queue</h2>
+            <span class="col-badge" id="badge-queued">0</span>
+          </div>
+          <div class="col-actions">
+            <span class="drag-hint">Drag to reorder</span>
+          </div>
+        </div>
+        <div class="cards-container" id="cards-queued"></div>
+      </section>
+
+      <!-- Column 3: In Progress / Rendering -->
+      <section class="kanban-col col-rendering" data-col="rendering">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">⚙️</span>
+            <h2>Rendering</h2>
+            <span class="col-badge" id="badge-rendering">0</span>
+          </div>
+        </div>
+        <div class="cards-container" id="cards-rendering"></div>
+      </section>
+
+      <!-- Column 4: Image Review & Staging -->
+      <section class="kanban-col col-review" data-col="review">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">🖼️</span>
+            <h2>Image Review</h2>
+            <span class="col-badge" id="badge-review">0</span>
+          </div>
+          <span class="col-tip">1-Click Animate to Omni-Russ</span>
+        </div>
+        <div class="cards-container" id="cards-review"></div>
+      </section>
+
+      <!-- Column 5: Animating (Omni-Russ Video) -->
+      <section class="kanban-col col-animating" data-col="animating">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">🎬</span>
+            <h2>Animating</h2>
+            <span class="col-badge" id="badge-animating">0</span>
+          </div>
+        </div>
+        <div class="cards-container" id="cards-animating"></div>
+      </section>
+
+      <!-- Column 6: Finished Library -->
+      <section class="kanban-col col-done" data-col="done">
+        <div class="col-header">
+          <div class="col-title-group">
+            <span class="col-icon">✨</span>
+            <h2>Finished Library</h2>
+            <span class="col-badge" id="badge-done">0</span>
+          </div>
+          <button class="btn btn-sm btn-ghost" id="btnSelectAllDone" title="Select all for Reel">Select All</button>
+        </div>
+        <div class="cards-container" id="cards-done"></div>
+      </section>
+    </main>
+
+    <!-- Modal: New Render / Chained Pipeline -->
+    <div class="modal-backdrop" id="modalNewRender">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">✨</span>
+            <h3>Queue Render or Chain Pipeline</h3>
+          </div>
+          <button class="modal-close" data-close="modalNewRender">&times;</button>
+        </div>
+
+        <div class="modal-tabs">
+          <button class="tab-btn active" data-tab="tab-chain">🔗 Chained Pipeline (Image ➔ Omni-Russ)</button>
+          <button class="tab-btn" data-tab="tab-quick">⚡ Telegram Slash Command</button>
+          <button class="tab-btn" data-tab="tab-skill">🧠 Omni-Russ / Skill Direct</button>
+          <button class="tab-btn" data-tab="tab-batch">📋 Batch Import Prompts</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Tab 1: Chained Pipeline -->
+          <div class="tab-pane active" id="tab-chain">
+            <p class="tab-description">
+              Generate an image first, then automatically feed that rendered image with a motion prompt into <strong>Omni-Russ</strong> to generate the animation!
+            </p>
+
+            <div class="chain-steps-box">
+              <div class="chain-step-card">
+                <div class="step-badge">Step 1: Text-to-Image (First Frame)</div>
+                <div class="form-group">
+                  <label>Image Prompt</label>
+                  <textarea id="chainStep1Prompt" rows="3" placeholder="e.g. A gothic vampire queen sitting on an ornate obsidian throne, crimson eyes glowing with ancient power, candlelight cathedral"></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>First Frame Method</label>
+                    <select id="chainStep1Method">
+                      <option value="skill:anima-v2" selected>Skill: anima-v2 (Default / Uncensored)</option>
+                      <option value="skill:krea2">Skill: krea2 (Hyper-aesthetic)</option>
+                      <option value="workflow:anima-wai">Workflow: anima-wai (Direct)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="width: 140px;">
+                    <label>Batch Count</label>
+                    <select id="chainStep1Images">
+                      <option value="6" selected>/images:6 (6 Images)</option>
+                      <option value="4">/images:4 (4 Images)</option>
+                      <option value="2">/images:2 (2 Images)</option>
+                      <option value="1">/images:1 (1 Image)</option>
+                      <option value="8">/images:8 (8 Images)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="width: 150px;">
+                    <label>Resolution</label>
+                    <select id="chainStep1Size">
+                      <option value="1024x704" selected>/size:1024x704</option>
+                      <option value="704x1024">/size:704x1024 (Tall)</option>
+                      <option value="1280x736">/size:1280x736 (Wide)</option>
+                      <option value="1024x1024">/size:1024x1024 (Square)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chain-arrow">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <polyline points="19 12 12 19 5 12"></polyline>
+                </svg>
+                <span>Fan-out: Feed each resulting image to Omni-Russ</span>
+              </div>
+
+              <div class="chain-step-card highlight">
+                <div class="step-badge purple">Step 2: Video Animation via Omni-Russ</div>
+                <div class="form-row" style="align-items:center;justify-content:space-between;margin-bottom:6px;">
+                  <div class="mode-toggles">
+                    <label class="radio-label">
+                      <input type="radio" name="chainRenderMode" value="motion" checked id="radioModeMotion">
+                      <span>Standard Motion (Uniform fan-out)</span>
+                    </label>
+                    <label class="radio-label" style="margin-left:14px;">
+                      <input type="radio" name="chainRenderMode" value="dialogue" id="radioModeDialogue">
+                      <span>💬 Dialogue Mode (Unique dialogue per image)</span>
+                    </label>
+                  </div>
+                  <span class="badge-mini">/fps:24 /size:1024x704 /length:144</span>
+                </div>
+
+                <div class="form-group">
+                  <label id="lblStep2Prompt">Base Motion & Soundscape Prompt</label>
+                  <textarea id="chainStep2Prompt" rows="3" placeholder="integrated_multimodal_description: cinematic slow push-in shot, subtle organic movement, soft atmospheric wind&#10;overall_soundscape: ambient room tone, gentle breeze"></textarea>
+                </div>
+
+                <!-- Dialogue box (shown in dialogue mode) -->
+                <div class="form-group" id="dialogueBoxContainer" style="display:none;">
+                  <label style="color:var(--accent-pink);">
+                    Dialogue Lines (One line per image — automatically appended in "quotes" to each result)
+                  </label>
+                  <textarea id="chainDialogueLines" rows="6" placeholder="&quot;I never thought we would actually reach this sanctum.&quot;&#10;&quot;Did you hear that sound in the shadows?&quot;&#10;&quot;Keep your voice down, they are listening.&quot;&#10;&quot;The ancient prophecy was true after all.&quot;&#10;&quot;Look at the throne... she is waking up.&quot;&#10;&quot;We need to leave before the gates seal.&quot;"></textarea>
+                  <small style="color:var(--text-subtle);">Each of the 6 images will be prompted with the base scene + its corresponding dialogue line in quotes at the end.</small>
+                </div>
+
+                <div class="prompt-presets">
+                  <span class="preset-label">Quick Presets:</span>
+                  <button type="button" class="btn-preset" data-target="chainStep2Prompt" data-preset="integrated_multimodal_description: cinematic slow push-in shot, subtle breathing motion, realistic eye contact&#10;overall_soundscape: ambient room tone, soft atmospheric hum">Slow Push-In</button>
+                  <button type="button" class="btn-preset" data-target="chainStep2Prompt" data-preset="integrated_multimodal_description: cinematic close-up of character speaking facing camera, realistic mouth animation, natural head tilts&#10;overall_soundscape: crisp voice, quiet ambient room">Speaking Close-Up</button>
+                  <button type="button" class="btn-preset" data-target="chainStep2Prompt" data-preset="integrated_multimodal_description: dramatic camera orbit around subject, lighting shifts softly across face, wind blowing hair&#10;overall_soundscape: deep ambient drone, gentle breeze">Dramatic Orbit</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button class="btn btn-secondary" id="btnSaveChainToBacklog">Save to Backlog</button>
+              <button class="btn btn-primary" id="btnSubmitChain">🚀 Queue Chained Pipeline (Batch of 6)</button>
+            </div>
+          </div>
+
+          <!-- Tab 2: Raw Telegram / Quick Command -->
+          <div class="tab-pane" id="tab-quick">
+            <p class="tab-description">
+              Send the exact slash-command syntax you use on Telegram. Forwarded untouched directly to Graydient's Telegram-compatible backend!
+            </p>
+            <div class="form-group">
+              <label>Telegram Command String</label>
+              <textarea id="rawTelegramInput" rows="4" placeholder="e.g. /wf /run:video-wan22 cinematic camera movement of a neon tiger running /length:97 /fps:24"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Tags</label>
+                <input type="text" id="rawTelegramTags" placeholder="video, tiger, neon">
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" id="btnSaveTelegramToBacklog">Save to Backlog</button>
+              <button class="btn btn-primary" id="btnSubmitTelegram">🚀 Queue Render</button>
+            </div>
+          </div>
+
+          <!-- Tab 3: Omni-Russ / Skill Direct -->
+          <div class="tab-pane" id="tab-skill">
+            <p class="tab-description">
+              Invoke Graydient skills directly. Uses <strong>omni-russ</strong> by default for rich multimodal MiniMax H3 timeline generation.
+            </p>
+            <div class="form-group">
+              <label>Skill</label>
+              <select id="directSkillSelect">
+                <option value="omni-russ" selected>omni-russ (Omni Russ — MiniMax H3 Video & Audio)</option>
+                <option value="minimax-i2v">minimax-i2v (Image to Video)</option>
+                <option value="smooth-image2vid">smooth-image2vid (Smooth Image to Video)</option>
+                <option value="animate-ltx25">animate-ltx25 (LTX 2.5 Animation)</option>
+                <option value="loop-pic">loop-pic (Idle Loop)</option>
+                <option value="krea2">krea2</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Prompt</label>
+              <textarea id="directSkillPrompt" rows="4" placeholder="integrated_multimodal_description: cinematic shot of a rainy street corner, neon signs reflecting in puddles&#10;overall_soundscape: ambient rain falling on asphalt"></textarea>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" id="btnSaveSkillToBacklog">Save to Backlog</button>
+              <button class="btn btn-primary" id="btnSubmitSkill">🚀 Queue Skill</button>
+            </div>
+          </div>
+
+          <!-- Tab 4: Batch Import Prompts -->
+          <div class="tab-pane" id="tab-batch">
+            <p class="tab-description">
+              Paste a collection of prompts (one per line). Ideal for queueing multiple ideas at once or pasting from Telegram chat exports!
+            </p>
+            <div class="form-group">
+              <label>Prompts (One per line)</label>
+              <textarea id="batchPromptsInput" rows="8" placeholder="a cyberpunk hacker typing on holographic terminal /run:sdxl&#10;a mechanical owl in a clockwork forest /run:sdxl&#10;an astronaut discovering ancient alien monolith on mars /run:sdxl"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Destination</label>
+                <select id="batchDestination">
+                  <option value="queued">Directly to Render Queue</option>
+                  <option value="backlog">Save to Prompt Backlog</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label>Auto-Chain to Omni-Russ Animation?</label>
+                <select id="batchAutoChain">
+                  <option value="no">No (Image only)</option>
+                  <option value="yes">Yes (Auto-chain all to Omni-Russ)</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-primary" id="btnSubmitBatch">🚀 Import & Queue Prompts</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: 1-Click Animate Image with Omni-Russ -->
+    <div class="modal-backdrop" id="modalAnimateImage">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🎬</span>
+            <h3>Animate Image with Omni-Russ</h3>
+          </div>
+          <button class="modal-close" data-close="modalAnimateImage">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="animate-preview-row">
+            <div class="animate-thumbs-strip" id="animateThumbsStrip">
+              <img id="animatePreviewImg" src="" alt="Source Image">
+            </div>
+            <div class="animate-meta-box">
+              <h4 id="animateSourceTitle">Image Title</h4>
+              <p id="animateSourceDesc" class="text-muted"></p>
+              <div id="animateBatchBadge" class="badge-mini" style="margin-top:6px;display:none;">Batch of 6 Images</div>
+            </div>
+          </div>
+
+          <div class="form-row" style="align-items:center;justify-content:space-between;">
+            <div class="mode-toggles">
+              <label class="radio-label">
+                <input type="radio" name="animateModalMode" value="motion" checked id="radioAnimMotion">
+                <span>Standard Motion</span>
+              </label>
+              <label class="radio-label" style="margin-left:14px;">
+                <input type="radio" name="animateModalMode" value="dialogue" id="radioAnimDialogue">
+                <span>💬 Dialogue Mode</span>
+              </label>
+            </div>
+            <span class="badge-mini">/fps:24 /size:1024x704 /length:144</span>
+          </div>
+
+          <div class="form-group">
+            <label>Motion & Soundscape Prompt</label>
+            <textarea id="animatePromptInput" rows="3" placeholder="integrated_multimodal_description: cinematic slow zoom, organic subtle motion, natural lighting&#10;overall_soundscape: ambient environmental sounds"></textarea>
+          </div>
+
+          <!-- Dialogue Lines Box for Animate Modal -->
+          <div class="form-group" id="animateModalDialogueContainer" style="display:none;">
+            <label style="color:var(--accent-pink);">
+              Dialogue Lines (One per image — appended in quotes at the end of each render)
+            </label>
+            <textarea id="animateModalDialogueLines" rows="6" placeholder="&quot;Line for Image 1&quot;&#10;&quot;Line for Image 2&quot;&#10;&quot;Line for Image 3&quot;&#10;&quot;Line for Image 4&quot;&#10;&quot;Line for Image 5&quot;&#10;&quot;Line for Image 6&quot;"></textarea>
+          </div>
+
+          <div class="prompt-presets">
+            <span class="preset-label">Quick Motions:</span>
+            <button type="button" class="btn-preset" data-target="animatePromptInput" data-preset="integrated_multimodal_description: cinematic camera slowly pans right, organic subtle movement&#10;overall_soundscape: ambient room tone and soft wind">Slow Pan</button>
+            <button type="button" class="btn-preset" data-target="animatePromptInput" data-preset="integrated_multimodal_description: dynamic slow motion push-in shot, lighting shimmers subtly&#10;overall_soundscape: cinematic ambient swell">Slow Push-In</button>
+            <button type="button" class="btn-preset" data-target="animatePromptInput" data-preset="integrated_multimodal_description: character speaking directly facing camera, natural mouth movement and head tilts&#10;overall_soundscape: clear dialogue, quiet room">Speaking</button>
+            <button type="button" class="btn-preset" data-target="animatePromptInput" data-preset="integrated_multimodal_description: gentle breathing motion, wind blowing hair and clothes, blinking eyes&#10;overall_soundscape: gentle breeze, realistic ambient sound">Organic Life / Wind</button>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" data-close="modalAnimateImage">Cancel</button>
+            <button class="btn btn-primary" id="btnConfirmAnimate">🚀 Start Animation (Omni-Russ)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Compile Reel (FFmpeg) -->
+    <div class="modal-backdrop" id="modalCompileReel">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🎬</span>
+            <h3>Compile Video Reel (FFmpeg)</h3>
+          </div>
+          <button class="modal-close" data-close="modalCompileReel">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="tab-description">
+            FFmpeg will stitch your selected animations together into a single continuous montage MP4 reel, preserving sound and optimal quality.
+          </p>
+
+          <div id="reelClipsSummary" class="reel-clips-summary">
+            <strong>Selected Animations:</strong> <span id="reelClipCount">0 clips</span>
+          </div>
+
+          <div id="reelResultContainer" class="reel-result-box" style="display: none;">
+            <div class="success-banner">🎉 Reel Compiled Successfully!</div>
+            <video id="reelVideoPlayer" controls playsinline class="reel-video"></video>
+            <div class="reel-download-actions">
+              <a id="btnDownloadReel" href="#" download class="btn btn-primary">⬇️ Download Reel MP4</a>
+            </div>
+          </div>
+
+          <div class="modal-actions" id="reelCompileActions">
+            <button class="btn btn-secondary" data-close="modalCompileReel">Cancel</button>
+            <button class="btn btn-primary" id="btnExecuteReelCompile">⚡ Compile Reel Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Cloudflare Remote Access Tunnel -->
+    <div class="modal-backdrop" id="modalTunnel">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🌐</span>
+            <h3>Remote Access Tunnel (Cloudflare)</h3>
+          </div>
+          <button class="modal-close" data-close="modalTunnel">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="tab-description">
+            Control your render queue, trigger Omni-Russ animations, and review finished renders from anywhere using your phone or laptop!
+          </p>
+
+          <div class="tunnel-card" id="tunnelCard">
+            <div class="tunnel-status-row">
+              <span class="status-indicator" id="tunnelIndicatorState"></span>
+              <strong id="tunnelStateTitle">Tunnel Inactive</strong>
+            </div>
+
+            <div id="tunnelActiveContent" style="display: none;">
+              <div class="tunnel-url-box">
+                <input type="text" id="tunnelUrlDisplay" readonly>
+                <button class="btn btn-sm btn-primary" id="btnCopyTunnelUrl">Copy Link</button>
+              </div>
+
+              <!-- Embedded QR Code -->
+              <div class="qr-container">
+                <canvas id="tunnelQrCanvas" width="200" height="200"></canvas>
+                <span class="qr-caption">📱 Scan with your phone camera to manage on the go</span>
+              </div>
+            </div>
+
+            <div class="tunnel-actions">
+              <button class="btn btn-primary" id="btnToggleTunnel">Start Cloudflare Tunnel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer / Modal: Prompt Library & Content Descriptions -->
+    <div class="modal-backdrop" id="modalPromptsLibrary">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">📋</span>
+            <h3>Prompt Library & Content Descriptions</h3>
+          </div>
+          <div class="header-tools">
+            <button class="btn btn-sm btn-secondary" id="btnCopyAllDescriptions">Copy All Clean Captions</button>
+            <button class="modal-close" data-close="modalPromptsLibrary">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="search-bar-row">
+            <input type="text" id="promptSearchInput" placeholder="🔍 Search prompts, tags, or content descriptions...">
+          </div>
+          <div class="prompts-list" id="promptsLibraryList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "graydient-cli",
+  "version": "0.1.0",
+  "description": "Standalone CLI for Graydient.ai — used by ForgeExpress and any other app/script/coding-agent on this machine",
+  "author": "Jacob Combrink",
+  "type": "module",
+  "bin": {
+    "graydient": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "ui": "node dist/index.js ui",
+    "workspace": "node dist/index.js ui"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "playwright-core": "^1.63.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

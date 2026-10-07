@@ -60,22 +60,26 @@ independently re-derived or job-tested this session — treat the *names* below 
 authoritative, but re-verify actual runtime behavior (which of a triplet's three
 fields a given submission path populates) against a real job before depending on it.
 
-### 3.1 Generic instruction slots — `slot1` through `slot9`
+### 3.1 Generic instruction slots — `slot1` through `slot8`
 Text/numeric/dropdown controls that don't fit one of the premapped fields below
 (`length`, `fps`, `size`, `cfg`, `controlguidance`, `strength`, `guidance`, and a few
-more rarely used) all go here. **All nine work**, not just slot1-3 — the KI-003 v1.0.0
-table undersold this and caused unnecessary hedging in at least one session (the
-subtitle-burn-in workflow avoided slot4/slot5 out of caution that turned out to be
-unfounded).
+more rarely used) all go here. **There are eight slots, `slot1`..`slot8`; there is no
+`slot9`** (a mapping to `slot9`+ never receives a value; the linter flags it as
+`SLOT_DOES_NOT_EXIST`). `slot1`..`slot3` accept strings; **`slot4`..`slot8` accept
+numbers only** (INT/FLOAT) from users. A non-numeric *default* on slot4+ still works,
+but a user cannot type a different string, so a string choice there should be a
+numeric slot driving a lazy `ComfySwitchNode` (see KI-007 sec 23). Slot values cannot
+contain `/` (the options parser splits on it). An older revision of this file said all
+nine slots took any value; that was wrong.
 
-### 3.2 Media transport fields — one triplet per media type, `1` through `9`
+### 3.2 Media transport fields — one triplet per media type, `1` through `8`
 Each media type gets its own numbered family, each entry being a `{bool, filename,
 url}` triplet:
 
-- `init_image_bool` / `init_image_filename` / `init_image_url` (and `image1`...`image9`
+- `init_image_bool` / `init_image_filename` / `init_image_url` (and `image1`...`image8`
   for additional images)
-- `init_video_bool` / `init_video_filename` / `init_video_url` (and `video1`...`video9`)
-- `init_audio_bool` / `init_audio_filename` / `init_audio_url` (and `audio1`...`audio9`)
+- `init_video_bool` / `init_video_filename` / `init_video_url` (and `video1`...`video8`)
+- `init_audio_bool` / `init_audio_filename` / `init_audio_url` (and `audio1`...`audio8`)
 
 `_bool` flags whether that media slot is populated at all; `_filename` is a local
 ComfyUI `input/` directory filename (pre-staged upload); `_url` is a fetchable

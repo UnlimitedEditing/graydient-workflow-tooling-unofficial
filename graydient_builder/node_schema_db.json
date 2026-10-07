@@ -1,100 +1,314 @@
 {
   "_readme": "Verified ComfyUI node input/output signatures, keyed by class_type. Populated only from nodes actually confirmed against real source (never guessed) during real gen_*.py builds. The linter cross-references field_mapping/API-graph node_input_name values against this DB: unknown class_type -> INFO (unverified, confirm before spending quota); known class_type + unknown input name -> ERROR. Add an entry here the moment a node's signature is confirmed against source, even if the confirmation happened the hard way (a real Graydient job failure).",
+  "AudioCleanupLoadVideoAudioFromURL": {
+    "source": "UnlimitedEditing/ComfyUI-AudioCleanupGlue -- confirmed via two real completed Graydient jobs: GraydientWorkflow-detin-v12-BACKUP-20260820.json (avg_elapsed 94.5s) and GraydientWorkflow-audio-superres-v2.json (gen_audio_superres.py, 2026-08-20, ran cleanly through node import + audio hand-off to a downstream node).",
+    "inputs": {
+      "url": "STRING (widget, accepts a video OR audio URL -- decodes via ffmpeg subprocess against whatever container it points to)",
+      "sample_rate": "INT (widget)"
+    },
+    "outputs": [
+      "audio",
+      "source_path"
+    ],
+    "note": "source_path (STRING) is the ORIGINAL file's own local path, passed through unmodified -- feed it straight to AudioCleanupRemux's source_path input to remux processed audio back onto the original video/audio file at the container level, with no frame decode/re-encode. FIELD-MAPPING QUIRK, reproduced (not 'corrected') from the detin-v12 reference job: field_mapping maps init_video_url/init_video_filename to node_input_index=1 even though 'url' is this node's index-0 widget in widgets_values [url, sample_rate]. Unexplained in the reference file but the job worked anyway -- node_input_name is what actually patches workflow_2 at runtime, so node_input_index is very likely cosmetic (only affects the standard-format UI widgets_values patch). Not worth deviating from a proven-working value on a guess."
+  },
+  "AudioCleanupRemux": {
+    "source": "UnlimitedEditing/ComfyUI-AudioCleanupGlue -- confirmed via GraydientWorkflow-detin-v12-BACKUP-20260820.json, a real completed Graydient job (avg_elapsed 94.5s, peak_vram 547MB).",
+    "inputs": {
+      "audio": "AUDIO",
+      "source_path": "STRING (link, from AudioCleanupLoadVideoAudioFromURL's source_path output)",
+      "filename_prefix": "STRING (widget)"
+    },
+    "outputs": [
+      "file_path"
+    ],
+    "note": "Muxes the given audio directly onto the ORIGINAL file at source_path at the container level (e.g. ffmpeg -c copy) -- the video stream itself is never decoded, resampled, or re-encoded. This is the confirmed-working alternative to decode-all-frames-then-recombine (LoadVideoFromURLAuto + CreateVideo/SaveVideo) for any workflow that only needs to change a video's audio track."
+  },
+  "AudioSR": {
+    "source": "Saganaki22/ComfyUI-AudioSR, vasr_node.py (INPUT_TYPES/RETURN_TYPES read directly from source) -- confirmed working via a real Graydient job, GraydientWorkflow-audio-superres-v2.json (gen_audio_superres.py, 2026-08-20, ny9-g0, RTX 4090 24GB): node imported, model loaded via concept_mapping, DDIM sampling ran cleanly across multiple chunks with no errors.",
+    "inputs": {
+      "audio": "AUDIO (link)",
+      "ddim_steps": "INT (widget, 10-500, default 50)",
+      "guidance_scale": "FLOAT (widget, 1.0-20.0, default 3.5)",
+      "seed": "INT (widget, 0-0xFFFFFFFF)",
+      "model": "COMBO STRING (widget, options populated by a LIVE os.listdir()-style scan of ComfyUI/models/AudioSR/ at graph-load time -- same anti-pattern class as the built-in LoadAudio node's own combo. CONFIRMED resolves correctly when concept_mapping pre-stages the weight file into that exact directory before ComfyUI starts, e.g. destination 'AudioSR/audiosr_basic_fp32.safetensors' from drbaph/AudioSR on HuggingFace -- no 'value not in list' error on the confirming job.)",
+      "chunk_size": "FLOAT (widget, seconds, 2.56-30.0, default 15.0)",
+      "overlap": "FLOAT (widget, seconds, 0.0-5.0)",
+      "unload_model": "BOOLEAN (widget)",
+      "show_spectrogram": "BOOLEAN (widget)",
+      "attention_backend": "COMBO: sdpa|sageattn|eager (widget)",
+      "dtype": "COMBO: fp32|fp16|bf16 (widget)",
+      "use_torch_compile": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "audio",
+      "spectrogram"
+    ],
+    "note": "PIP REQUIREMENTS GOTCHA, confirmed the hard way: this repo's own requirements.txt (torch/torchaudio/torchvision, soundfile/librosa/scipy/torchlibrosa, transformers/huggingface_hub/einops/timm/safetensors, matplotlib, numpy/pyyaml/progressbar2/tqdm/ftfy, unidecode/phonemizer/chardet) is MISSING pandas -- versatile_audio_super_resolution's CLAP data-loading module (audiosr/clap/training/data.py) imports pandas directly, and its absence caused a full custom-node import failure (ModuleNotFoundError: No module named 'pandas') on the first real job attempt. Always install pandas alongside the rest of this repo's own requirements.txt, not just what upstream declares. REAL STEP-TIME DATA (no formula existed before this job): ~26-27s per DDIM chunk at ddim_steps=25 on an RTX 4090 24GB. Long audio is chunked PER CHANNEL, confirmed: a 15.07s stereo clip -> 2 chunks x 2 channels = 4 chunks total, ~105-110s of sampling alone for that clip length (not counting startup/model-load/remux) -- total diffusion time scales with clip length via chunk count, not a fixed cost. spectrogram output (IMAGE) is unused/unconnected in this project's workflows; show_spectrogram defaults False here to skip generating it."
+  },
+  "CLIPTextEncode": {
+    "source": "comfy-core nodes_conditioning.py",
+    "inputs": {
+      "clip": "CLIP",
+      "text": "STRING (widget)"
+    },
+    "outputs": [
+      "CONDITIONING"
+    ],
+    "note": "Standard ComfyUI positive/negative prompt text conditioning encoder."
+  },
+  "PrimitiveInt": {
+    "source": "comfy-core primitive node",
+    "inputs": {
+      "value": "INT (widget)"
+    },
+    "outputs": [
+      "INT"
+    ],
+    "note": "Standard integer primitive."
+  },
+  "RandomNoise": {
+    "source": "comfy-core nodes_sampling.py",
+    "inputs": {
+      "noise_seed": "INT (widget)",
+      "mode": "COMBO (widget; randomize|fixed)"
+    },
+    "outputs": [
+      "NOISE"
+    ],
+    "note": "Standard random noise generator for SamplerCustomAdvanced."
+  },
+  "LTXVAudioOnlyModel": {
+    "source": "Lightricks/ComfyUI-LTXVideo (audio_only.py)",
+    "inputs": {
+      "model": "MODEL"
+    },
+    "outputs": [
+      "model"
+    ],
+    "note": "Sets run_vx, a2v_cross_attn, and v2a_cross_attn to False, stripping video cross-attention for pure text-to-audio generation."
+  },
+  "LTXVAudioOnlyEmptyVideoLatent": {
+    "source": "Lightricks/ComfyUI-LTXVideo (audio_only.py)",
+    "inputs": {},
+    "outputs": [
+      "latent"
+    ],
+    "note": "Passes a minimal 64x64 single-frame dummy video latent matrix required by the joint AV model layout."
+  },
   "LTXVSeparateAVLatent": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"av_latent": "LATENT"},
-    "outputs": ["video_latent", "audio_latent"],
+    "inputs": {
+      "av_latent": "LATENT"
+    },
+    "outputs": [
+      "video_latent",
+      "audio_latent"
+    ],
     "note": "Confirmed the hard way: a real job failed with 'Required input is missing: av_latent' after this script guessed 'samples'."
   },
   "LTXVAudioVAEDecode": {
     "source": "comfy_extras/nodes_lt_audio.py",
-    "inputs": {"samples": "LATENT", "audio_vae": "VAE"},
-    "outputs": ["AUDIO"],
+    "inputs": {
+      "samples": "LATENT",
+      "audio_vae": "VAE"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
     "note": "Confirmed the hard way: a real job failed with 'Required input is missing: audio_vae' after this script guessed 'vae'."
+  },
+  "SaveAudio": {
+    "source": "comfy_extras/nodes_audio.py",
+    "inputs": {
+      "audio": "AUDIO",
+      "filename_prefix": "STRING (widget)"
+    },
+    "outputs": [],
+    "note": "Saves an AUDIO stream to disk as WAV (or container format) with the given filename_prefix."
+  },
+  "SaveAudioAdvanced": {
+    "source": "comfy-core nodes_audio.py",
+    "inputs": {
+      "audio": "AUDIO",
+      "filename_prefix": "STRING (widget)",
+      "format": "COMBO: flac|mp3|opus (widget)",
+      "quality": "COMBO: V0|128k|192k|256k|320k (widget)"
+    },
+    "outputs": ["audio"],
+    "note": "Standard ComfyUI advanced audio export node with configurable format (flac, mp3, opus) and high-bitrate quality (320k)."
   },
   "LTXVAudioVAEEncode": {
     "source": "comfy_extras/nodes_lt_audio.py",
-    "inputs": {"audio": "AUDIO", "audio_vae": "VAE"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "audio": "AUDIO",
+      "audio_vae": "VAE"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "Mirrors LTXVAudioVAEDecode reversed. Encodes real reference audio into the audio_latent slot -- required for genuine audio-sync conditioning (see the-encoding-mask-lock-mechanism note in KI-007). Subclasses core VAEEncodeAudio."
   },
   "LTXVEmptyLatentAudio": {
     "source": "comfy_extras/nodes_lt_audio.py",
-    "inputs": {"frames_number": "INT", "frame_rate": "FLOAT (accepts INT via MultiType)", "batch_size": "INT", "audio_vae": "VAE"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "frames_number": "INT",
+      "frame_rate": "FLOAT (accepts INT via MultiType)",
+      "batch_size": "INT",
+      "audio_vae": "VAE"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "Produces a SILENT placeholder audio latent -- using this instead of LTXVAudioVAEEncode means the model has nothing real to condition motion on, even if a reference audio file is loaded elsewhere in the graph for duration measurement or final muxing. This was a real root-cause bug: audio played correctly in the output but video motion was audio-unrelated."
   },
   "LTXVConcatAVLatent": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"video_latent": "LATENT", "audio_latent": "LATENT"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "video_latent": "LATENT",
+      "audio_latent": "LATENT"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "Confirmed the hard way: this script's first pass guessed 'latent_a'/'latent_b'."
   },
   "LTXVImgToVideoInplace": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"vae": "VAE", "image": "IMAGE", "latent": "LATENT", "strength": "FLOAT (widget)", "bypass": "BOOLEAN"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "vae": "VAE",
+      "image": "IMAGE",
+      "latent": "LATENT",
+      "strength": "FLOAT (widget)",
+      "bypass": "BOOLEAN"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "Confirmed the hard way: this script's first pass guessed 'extend' instead of 'bypass'. The noise_mask this node produces internally is `1.0 - strength` -- this IS the actual audio/image conditioning-lock mechanism (see SetLatentNoiseMask entry)."
   },
   "LTXVDualCFGGuider": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"model": "MODEL", "positive": "CONDITIONING", "negative": "CONDITIONING", "video_cfg": "FLOAT (widget)", "audio_cfg": "FLOAT (widget)"},
-    "outputs": ["GUIDER"],
+    "inputs": {
+      "model": "MODEL",
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "video_cfg": "FLOAT (widget)",
+      "audio_cfg": "FLOAT (widget)"
+    },
+    "outputs": [
+      "GUIDER"
+    ],
     "note": "Confirmed the hard way: this script's first pass guessed 'cfg_pos'/'cfg_neg'. Both official LTX-2.5/2.3 templates use video_cfg=1, audio_cfg=1 for the distilled checkpoint -- CFG has weak effect on distilled models, don't expect strong steering from raising these."
   },
   "LTXVConditioning": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"positive": "CONDITIONING", "negative": "CONDITIONING", "frame_rate": "FLOAT (widget)"},
-    "outputs": ["positive", "negative"],
+    "inputs": {
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "frame_rate": "FLOAT (widget)"
+    },
+    "outputs": [
+      "positive",
+      "negative"
+    ],
     "note": "frame_rate here must match the ACTUAL generation frame_rate used elsewhere in the graph (EmptyLTXVLatentVideo/CreateVideo/etc) -- a mismatch would desync the model's internal audio-video frame correspondence, though this was checked and ruled out as the cause of a real choppy-sync bug (the actual cause was a silent-placeholder audio_latent, see LTXVEmptyLatentAudio)."
   },
   "LTXVPreprocess": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"image": "IMAGE", "img_compression": "INT (widget)"},
-    "outputs": ["IMAGE"],
+    "inputs": {
+      "image": "IMAGE",
+      "img_compression": "INT (widget)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
     "note": "Confirmed the hard way: this script's first pass guessed 'crf' instead of 'img_compression'."
   },
   "LTXVCropGuides": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"positive": "CONDITIONING", "negative": "CONDITIONING", "latent": "LATENT"},
-    "outputs": ["positive", "negative", "latent"],
+    "inputs": {
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "latent": "LATENT"
+    },
+    "outputs": [
+      "positive",
+      "negative",
+      "latent"
+    ],
     "note": "CONFIRMED NO-OP when no keyframe guides are present (execute() returns positive/negative/latent unchanged if num_keyframes==0) -- correctly omit this node entirely for plain image+audio-to-video with no keyframe guide images, it adds nothing. Present in the official LTX-2.3 ia2v template but absent from LTX-2.5's own official i2v template for this reason."
   },
   "LTXVLatentUpsampler": {
     "source": "comfy_extras/nodes_lt_upsampler.py",
-    "inputs": {"samples": "LATENT", "upscale_model": "LATENT_UPSCALE_MODEL", "vae": "VAE"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "samples": "LATENT",
+      "upscale_model": "LATENT_UPSCALE_MODEL",
+      "vae": "VAE"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "The 2x latent spatial upscale step between a low-res base pass and a high-res refine pass. LTX-2.5's own official i2v template is natively two-pass with this node -- do not assume single-pass is the 'normal' LTX-2.5 architecture."
   },
   "LatentUpscaleModelLoader": {
     "source": "comfy_extras/nodes_hunyuan.py",
-    "inputs": {"model_name": "COMBO (widget)"},
-    "outputs": ["LATENT_UPSCALE_MODEL"],
+    "inputs": {
+      "model_name": "COMBO (widget)"
+    },
+    "outputs": [
+      "LATENT_UPSCALE_MODEL"
+    ],
     "note": "SURPRISING FILE LOCATION -- confirmed the hard way this lives in nodes_hunyuan.py, NOT an LTXV-specific file; it's a generic latent-upscale-model loader shared across model families. folder_paths key is 'latent_upscale_models' (confirmed against folder_paths.py), not 'upscale_models' or 'checkpoints' -- easy to get wrong by analogy to LTX-specific naming."
   },
   "TrimAudioDuration": {
     "source": "comfy_extras/nodes_audio.py",
-    "inputs": {"audio": "AUDIO", "start_index": "FLOAT (widget)", "duration": "FLOAT (widget)"},
-    "outputs": ["AUDIO"],
+    "inputs": {
+      "audio": "AUDIO",
+      "start_index": "FLOAT (widget)",
+      "duration": "FLOAT (widget)"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
     "note": "Flat widget/link inputs, no dot-prefixed sub-fields. Trims BEFORE encoding via LTXVAudioVAEEncode -- the official LTX-2.3 ia2v template does this trim step; a version of this workflow that skipped it (encoded untrimmed audio) still worked but wasn't confirmed to produce as tight a sync as the trimmed version."
   },
   "SetLatentNoiseMask": {
     "source": "comfy_extras/nodes.py",
-    "inputs": {"samples": "LATENT", "mask": "MASK"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "samples": "LATENT",
+      "mask": "MASK"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "THE ACTUAL AUDIO-SYNC MECHANISM for LTX's joint AV diffusion, confirmed by reading LTXVImgToVideoInplace's own strength->mask formula (conditioning_latent_frames_mask = 1.0 - strength) in source. Locking the audio latent's noise mask to zero (via a SolidMask value=0) tells the sampler 'this is fixed conditioning, don't touch it' for the whole base-pass run -- this is what makes the model actually attend to the real audio content rather than just having it present in the graph. Simply wiring LTXVAudioVAEEncode's output into LTXVConcatAVLatent without this lock is a weaker/unconfirmed form of conditioning."
   },
   "SolidMask": {
     "source": "comfy_extras/nodes_mask.py",
-    "inputs": {"value": "FLOAT (widget)", "width": "INT (widget)", "height": "INT (widget)"},
-    "outputs": ["MASK"],
+    "inputs": {
+      "value": "FLOAT (widget)",
+      "width": "INT (widget)",
+      "height": "INT (widget)"
+    },
+    "outputs": [
+      "MASK"
+    ],
     "note": "value=0 for the SetLatentNoiseMask lock pattern above (0 = 'fixed, don't touch' per the 1.0-strength formula)."
   },
   "ComfyMathExpression": {
     "source": "comfy_extras/nodes_math.py",
-    "inputs": {"expression": "STRING (widget)", "values.a": "FLOAT (Autogrow group field, NOT bare 'a')", "values.b": "FLOAT (Autogrow group field, NOT bare 'b')"},
-    "outputs": ["FLOAT", "INT", "BOOL"],
-    "note": "Confirmed the hard way: this script's first pass guessed a bare 'a' key instead of the Autogrow-group 'values.a'. Also confirmed a real bug where the downstream wiring read the FLOAT output (slot 0) instead of the INT output (slot 1) for a value later used as a frame count -- frame counts need the INT output, not FLOAT."
+    "inputs": {
+      "expression": "STRING (widget)",
+      "values.a": "FLOAT (Autogrow group field, NOT bare 'a')",
+      "values.b": "FLOAT (Autogrow group field, NOT bare 'b')"
+    },
+    "outputs": [
+      "FLOAT",
+      "INT",
+      "BOOL"
+    ],
+    "note": "Confirmed the hard way: this script's first pass guessed a bare 'a' key instead of the Autogrow-group 'values.a'. Also confirmed a real bug where the downstream wiring read the FLOAT output (slot 0) instead of the INT output (slot 1) for a value later used as a frame count -- frame counts need the INT output, not FLOAT. | LTX-2.5 official t2v wiring (read from the template, ran live in pinkcherry-ltx25): expression 'a' on values.a=fps -> output[0] FLOAT feeds LTXVConditioning.frame_rate and CreateVideo.fps; output[1] INT feeds LTXVEmptyLatentAudio.frame_rate (typed 'FLOAT,INT')."
   },
   "TextGenerateLTX2Prompt": {
     "source": "ComfyUI core (LLM prompt-enhancer node used by official LTX-2.5 templates) -- confirmed directly from a real official template's saved workflow JSON (node 380 in the LTX-2.5 i2v template), not guessed",
@@ -116,79 +330,872 @@
       "thinking": "BOOLEAN (widget, optional/shape 7)",
       "use_default_template": "BOOLEAN (widget, optional/shape 7)"
     },
-    "outputs": ["generated_text"],
+    "outputs": [
+      "generated_text"
+    ],
     "note": "Confirmed the hard way in one direction, then corrected in the other: an early version of this script invented 'text'/'max_new_tokens'/'seed_mode'/'control_after_generate'/'keep_loaded'/'verbose', none of which exist -- but a first pass at THIS schema entry then swung too far the other way and only recorded the 4 wrong old fields, which would have wrongly flagged the current, correct usage as an error. Lesson for whoever maintains this file: when writing a schema entry from memory of 'what we fixed', go re-read the actual source/confirmed dump again rather than trusting your own recollection of the fix."
   },
   "ComfySwitchNode": {
     "source": "ComfyUI core",
-    "inputs": {"on_false": "any type", "on_true": "any type", "switch": "BOOLEAN (widget)"},
-    "outputs": ["output"],
+    "inputs": {
+      "on_false": "any type",
+      "on_true": "any type",
+      "switch": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "output"
+    ],
     "note": "Confirmed the hard way: this script's first pass guessed 'value_if_false'/'value_if_true'."
   },
   "LoadAudio": {
     "source": "comfy_extras/nodes_audio.py (ComfyUI built-in)",
-    "inputs": {"audio": "COMBO (widget, filename from a live os.listdir() scan of input/ at graph-load time)"},
-    "outputs": ["AUDIO"],
+    "inputs": {
+      "audio": "COMBO (widget, filename from a live os.listdir() scan of input/ at graph-load time)"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
     "note": "DO NOT use directly for any Graydient-field-mapped audio input. Graydient's init_audio/init_audio_url/init_audio_filename fields are confirmed to resolve inconsistently across submission paths -- sometimes a pre-staged filename (this node would work), sometimes a real http(s) URL, sometimes a mangled/delimiter-stripped Telegram file reference (this node would crash on both). Use the custom 'Load Audio Any' node instead (see KI-007 section 2)."
   },
   "EmptyLTXVLatentVideo": {
     "source": "comfy_extras/nodes_lt.py",
-    "inputs": {"width": "INT (widget)", "height": "INT (widget)", "length": "INT (widget/link)", "batch_size": "INT (widget)"},
-    "outputs": ["LATENT"],
+    "inputs": {
+      "width": "INT (widget)",
+      "height": "INT (widget)",
+      "length": "INT (widget/link)",
+      "batch_size": "INT (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
     "note": "width/height must be exact multiples of the model's spatial compression step (32 in practice) -- e.g. 704 works cleanly (352 at half-res for a two-pass base pass, itself divisible by 32); 720 (both official templates' own default) does not divide as cleanly at half-res. Both were observed to run without erroring, so this is a precision preference, not a confirmed hard requirement."
   },
   "CreateVideo": {
     "source": "ComfyUI core (comfy_extras/nodes_video.py or similar -- confirmed working via real successful jobs, not yet read directly for this DB entry)",
-    "inputs": {"images": "IMAGE", "audio": "AUDIO (optional)", "fps": "FLOAT/INT (widget)"},
-    "outputs": ["VIDEO"],
-    "note": "Muxes generated frames with an audio track. IMPORTANT LESSON (not a wiring bug, a design bug): wiring this node's `audio` input to the model's OWN re-decoded audio latent (via LTXVAudioVAEDecode) instead of the real reference audio produces a video where the delivered audio is the model's hallucinated sound, not the user's actual reference clip -- confirmed by a real job where correct-sounding-but-wrong audio played over the video. For workflows where audio fidelity to the original reference matters, mux the raw/trimmed reference audio here, not a VAE roundtrip of it."
+    "inputs": {
+      "images": "IMAGE",
+      "audio": "AUDIO (optional)",
+      "fps": "FLOAT/INT (widget)",
+      "bit_depth": "INT (widget, optional; official template default 8)"
+    },
+    "outputs": [
+      "VIDEO"
+    ],
+    "note": "Muxes generated frames with an audio track. IMPORTANT LESSON (not a wiring bug, a design bug): wiring this node's `audio` input to the model's OWN re-decoded audio latent (via LTXVAudioVAEDecode) instead of the real reference audio produces a video where the delivered audio is the model's hallucinated sound, not the user's actual reference clip -- confirmed by a real job where correct-sounding-but-wrong audio played over the video. For workflows where audio fidelity to the original reference matters, mux the raw/trimmed reference audio here, not a VAE roundtrip of it. | Re-verified from the official LTX-2.5 t2v template + a live job: fps is a FLOAT socket, so feed it ComfyMathExpression output[0] (FLOAT); bit_depth exists as an optional widget."
   },
   "Load Audio Any": {
     "source": "github.com/UnlimitedEditing/unlimitededting-comfy-audio-utils (this org's own fork, load_audio_any.py) -- logic ported from this org's proven ComfyUI-HiggsV3Glue (HiggsV3VoicePreset)",
-    "inputs": {"audio_source": "STRING (widget)", "audio_source_alt": "STRING (widget)", "audio_source_filename": "STRING (widget)"},
-    "outputs": ["audio"],
+    "inputs": {
+      "audio_source": "STRING (widget)",
+      "audio_source_alt": "STRING (widget)",
+      "audio_source_filename": "STRING (widget)"
+    },
+    "outputs": [
+      "audio"
+    ],
     "note": "Three inputs, checked in order, first non-empty wins -- map Graydient's init_audio_url/init_audio/init_audio_filename local_fields to these three slots respectively, since it's unconfirmed which one a given Graydient submission path actually populates. Each slot independently resolves as: real http(s) URL (download), a mangled/delimiter-stripped Telegram file reference (regex-reconstructed to a real URL, see KI-007 section 2), or a bare local filename in ComfyUI's input/ directory. Decodes via an ffmpeg subprocess, NOT torchaudio.load() -- torchaudio.load() routes through torchcodec's AudioDecoder on recent versions, confirmed broken on at least some Graydient instances ('_AudioDecoder() takes no arguments')."
   },
   "Audio Duration": {
     "source": "github.com/UnlimitedEditing/unlimitededting-comfy-audio-utils (forked from scofano/comfy-audio-duration; note the NODE_CLASS_MAPPINGS key has a literal space and is NOT the Python class name AudioDurationNode)",
-    "inputs": {"audio_path": "STRING (widget, required)", "audio": "AUDIO (optional link)"},
-    "outputs": ["seconds_int", "seconds_float", "minutes_int", "minutes_float", "temp_wav_path"],
+    "inputs": {
+      "audio_path": "STRING (widget, required)",
+      "audio": "AUDIO (optional link)"
+    },
+    "outputs": [
+      "seconds_int",
+      "seconds_float",
+      "minutes_int",
+      "minutes_float",
+      "temp_wav_path"
+    ],
     "note": "seconds_float is output index 1, not 0 (seconds_int is 0). Used to auto-derive video length/duration from a real reference audio file's actual measured length rather than a user-specified constant."
   },
   "LoadImage": {
     "source": "ComfyUI built-in (nodes.py)",
-    "inputs": {"image": "COMBO (widget, filename from input/ directory)"},
-    "outputs": ["IMAGE", "MASK"],
+    "inputs": {
+      "image": "COMBO (widget, filename from input/ directory)"
+    },
+    "outputs": [
+      "IMAGE",
+      "MASK"
+    ],
     "note": "SAFE for Graydient's image1 field specifically -- confirmed the hard way that image1 resolves to a filename Graydient pre-stages into input/ BEFORE the job runs (e.g. 'image1__<hash>.png'), not a URL. This is the opposite of the general 'never pass a URL to LoadImage, use LoadImageFromURL' guidance -- image1 genuinely is filename-based, confirmed by a real job failure when LoadImageFromURL was used instead ('Invalid URL image1__<hash>.png: No scheme supplied')."
   },
   "LoadVideoFromURLAuto": {
     "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'filename' input added commit 39e1be8)",
-    "inputs": {"url": "STRING (widget)", "max_frames": "INT (widget)", "fps": "FLOAT (widget)", "max_side": "INT (widget)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_video_filename triplet member)"},
-    "outputs": ["IMAGE"],
+    "inputs": {
+      "url": "STRING (widget)",
+      "max_frames": "INT (widget)",
+      "fps": "FLOAT (widget)",
+      "max_side": "INT (widget)",
+      "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_video_filename triplet member)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
     "note": "Confirmed working end-to-end on real Graydient jobs (subtitle-burn-in workflow, gen_subtitles.py), including a run with the 'filename' input present in the graph. Unlike TripoSGLoadVideoFromURL (forces a fixed width/height, distorting non-matching-aspect sources), this ffprobes the real source dimensions and scales preserving aspect, capped to max_side, rounded to even pixels for h264. Wire slot1-style downstream style params off frames.shape rather than piping width/height through the graph -- this node deliberately has no width/height OUTPUT, since BurnSubtitlesFromTimeline reads frame dims directly from the IMAGE tensor. KI-003 §3.2: Graydient's init_<type>_* is a {bool,filename,url} triplet and it's unconfirmed which of filename/url a given submission path populates -- map both."
   },
   "BurnSubtitlesFromTimeline": {
     "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'speed' input added commit 554da56)",
-    "inputs": {"frames": "IMAGE (link)", "lyrics_json": "STRING (link, from TranscribeAudioFromURL's lyrics_json output)", "fps": "FLOAT (widget, MUST match the fps used in the upstream video-loader widget, e.g. LoadVideoFromURLAuto -- no fps output/link exists between them, keep both literals in sync in the gen_*.py)", "font_family": "COMBO widget: sans|serif|mono|condensed", "font_scale": "FLOAT (widget)", "text_color": "STRING (widget, hex e.g. #FFFFFF)", "style": "COMBO widget: outline|box|shadow", "speed": "FLOAT (widget, 1.0-4.0). 1.0 = no-op (natural Whisper sentence-length captions). >1.0 splits each lyric entry's words into chunks of round(9/speed) words, using per-word timestamps -- requires TranscribeAudioFromURL's lyrics_json entries to carry a 'words' list (added same session); entries without it pass through unchanged, so old/cached lyrics_json silently ignores speed>1 instead of erroring."},
-    "outputs": ["IMAGE"],
+    "inputs": {
+      "frames": "IMAGE (link)",
+      "lyrics_json": "STRING (link, from TranscribeAudioFromURL's lyrics_json output)",
+      "fps": "FLOAT (widget, MUST match the fps used in the upstream video-loader widget, e.g. LoadVideoFromURLAuto -- no fps output/link exists between them, keep both literals in sync in the gen_*.py)",
+      "font_family": "COMBO widget: sans|serif|mono|condensed",
+      "font_scale": "FLOAT (widget)",
+      "text_color": "STRING (widget, hex e.g. #FFFFFF)",
+      "style": "COMBO widget: outline|box|shadow",
+      "speed": "FLOAT (widget, 1.0-4.0). 1.0 = no-op (natural Whisper sentence-length captions). >1.0 splits each lyric entry's words into chunks of round(9/speed) words, using per-word timestamps -- requires TranscribeAudioFromURL's lyrics_json entries to carry a 'words' list (added same session); entries without it pass through unchanged, so old/cached lyrics_json silently ignores speed>1 instead of erroring."
+    },
+    "outputs": [
+      "IMAGE"
+    ],
     "note": "Confirmed working end-to-end on a real Graydient job with the 'speed' input present in the graph (default speed=1.0, the no-op path -- higher speed values that actually exercise the rechunking logic have NOT been separately confirmed on a real job, only via local review of the rechunk function). Widget indices when frames+lyrics_json are both wired as links: fps=0, font_family=1, font_scale=2, text_color=3, style=4, speed=5 (linked inputs don't occupy widgets_values slots). Fonts come from matplotlib's bundled DejaVu ttf files (matplotlib.get_data_path()/fonts/ttf) -- 'matplotlib' must be in pip requirements even though it's not used for anything else in the graph."
   },
   "TranscribeAudioFromURL": {
     "source": "ComfyUI-TripoSG/nodes.py",
-    "inputs": {"url": "STRING (widget)", "model_size": "COMBO widget: large-v3|medium|small|base", "language": "STRING (widget, empty = auto-detect)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"},
-    "outputs": ["IMAGE (lyrics_card)", "STRING (lyrics_json)"],
+    "inputs": {
+      "url": "STRING (widget)",
+      "model_size": "COMBO widget: large-v3|medium|small|base",
+      "language": "STRING (widget, empty = auto-detect)",
+      "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"
+    },
+    "outputs": [
+      "IMAGE (lyrics_card)",
+      "STRING (lyrics_json)"
+    ],
     "note": "Confirmed working with a video URL (not just an audio URL) passed directly to 'url' -- faster-whisper decodes the audio track straight out of the video container, no separate audio-extraction step needed for transcription. lyrics_json is output index 1, a JSON string with a 'timeline' list of {start,end,text,type} entries (type is 'lyric' or 'instrumental'); 'lyric' entries also carry a 'words' list of {start,end,text} (added same session, NOT yet confirmed on a real job -- only the pre-existing segment-level fields were confirmed) for BurnSubtitlesFromTimeline's speed-based rechunking. concept_mapping for the whisper weights MUST be re-derived per model_size via the real HF API file listing (huggingface.co/api/models/Systran/faster-whisper-<size>) -- faster-whisper-small ships vocabulary.txt and NO preprocessor_config.json, while faster-whisper-large-v3 ships vocabulary.json AND preprocessor_config.json. Copying large-v3's staged filenames for 'small' produced ctranslate2 error 'Cannot load the vocabulary from the model directory' on a real job this session; buried in KI-007 graveyard as a separate anti-pattern entry. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
   },
   "LoadAudioFromURLStereo": {
     "source": "ComfyUI-TripoSG/nodes.py",
-    "inputs": {"url": "STRING (widget)", "sample_rate": "INT (widget)", "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"},
-    "outputs": ["AUDIO"],
+    "inputs": {
+      "url": "STRING (widget)",
+      "sample_rate": "INT (widget)",
+      "filename": "STRING (optional widget, appended last -- first-non-empty-wins against 'url', for Graydient's init_<type>_filename triplet member; present in the graph on a confirmed-working real job, though the actual submission that job used populated 'url' not 'filename', so the filename-branch itself is still only confirmed by code reading, not a real job that exercised it)"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
     "note": "Confirmed working with a video URL (not just an audio URL) -- decodes via an ffmpeg subprocess against whatever container the URL points to, so the same init_video_url can feed this node to extract the original audio track for re-muxing into a subtitle-burn or other video-in/video-out workflow's output, no separate audio field mapping needed. BUG FOUND AND FIXED same session: the original version had NO local-filename fallback at all (bare urllib.request.urlopen(url), which raises 'unknown url type' on a filename) -- would have crashed outright on any submission that populated init_video_filename instead of init_video_url. Now resolves http(s) vs local exactly like TranscribeAudioFromURL/LoadImageFromURL. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
   },
   "VHS_VideoCombine": {
     "source": "ComfyUI-VideoHelperSuite (github.com/Kosinkadink/ComfyUI-VideoHelperSuite)",
-    "inputs": {"images": "IMAGE (link)", "audio": "AUDIO (link, optional -- omit to produce silent video)", "frame_rate": "INT/FLOAT (widget, MUST match the fps actually used to decode/generate the images, no auto-detection)", "loop_count": "INT (widget)", "filename_prefix": "STRING (widget)", "format": "COMBO widget e.g. video/h264-mp4", "pix_fmt": "COMBO widget e.g. yuv420p", "crf": "INT (widget)", "save_metadata": "BOOLEAN (widget)", "trim_to_audio": "BOOLEAN (widget, trims VIDEO length to match audio length -- leave False when the video's own frame count is already the authoritative length, e.g. capped by max_frames)", "pingpong": "BOOLEAN (widget)", "save_output": "BOOLEAN (widget)"},
-    "outputs": ["VHS_FILENAMES"],
+    "inputs": {
+      "images": "IMAGE (link)",
+      "audio": "AUDIO (link, optional -- omit to produce silent video)",
+      "frame_rate": "INT/FLOAT (widget, MUST match the fps actually used to decode/generate the images, no auto-detection)",
+      "loop_count": "INT (widget)",
+      "filename_prefix": "STRING (widget)",
+      "format": "COMBO widget e.g. video/h264-mp4",
+      "pix_fmt": "COMBO widget e.g. yuv420p",
+      "crf": "INT (widget)",
+      "save_metadata": "BOOLEAN (widget)",
+      "trim_to_audio": "BOOLEAN (widget, trims VIDEO length to match audio length -- leave False when the video's own frame count is already the authoritative length, e.g. capped by max_frames)",
+      "pingpong": "BOOLEAN (widget)",
+      "save_output": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "VHS_FILENAMES"
+    ],
     "note": "Confirmed working for video-in/video-out audio muxing: wiring LoadAudioFromURLStereo's AUDIO output directly into this node's audio input produces a correctly synced h264 mp4 on a real Graydient job (subtitle-burn-in workflow), reusing the same pattern already proven in gen_bernini_v1.py's v2v pipeline. IMPORTANT, CONFIRMED BOTH BY READING SOURCE AND BY A REAL JOB (same session): when audio is supplied, this node writes THREE files per run -- a first-frame PNG for metadata, a video-only intermediate mp4, and the final audio-muxed '<prefix>-audio.mp4' (the one the node's own 'file' variable ends up pointing at; root-caused by reading videohelpersuite/nodes.py combine_video() directly). Graydient's output-picker does NOT reliably prefer the node's declared final output when multiple candidate files exist in the output dir -- confirmed the hard way: it returned the PNG instead of the mp4 on one real job, then the correct mp4 on a retry of the identical workflow. FIX, CONFIRMED WORKING on a real job after applying it: set two workflow-level extra flags (NOT node widgets -- read via the hidden EXTRA_PNGINFO input as extra_pnginfo['workflow']['extra'][...]) in the submitted standard-format workflow's top-level 'extra' dict: 'VHS_MetadataImage': false suppresses the PNG, 'VHS_KeepIntermediate': false deletes the video-only intermediate, leaving only the final -audio.mp4 as the sole candidate file. See gen_subtitles.py's standard['extra'] for the reference implementation. This is a reusable fix for ANY Graydient workflow using VHS_VideoCombine with an audio input, not specific to subtitles."
+  },
+  "Hy3DLoadImageFromURL": {
+    "source": "UnlimitedEditing/ComfyUI-Hunyuan3D nodes.py -- confirmed via real Graydient jobs across the hunyuanworld-mirror-v1 sessions (2026-08-31 through 2026-09-01), including a live traceback that revealed the fix below.",
+    "inputs": {
+      "url": "STRING (widget). NOT always a real http(s) URL despite the name and the node's own field -- see note."
+    },
+    "outputs": [
+      "IMAGE",
+      "MASK"
+    ],
+    "note": "Empty url -> constant white 512x512 placeholder + fully-transparent mask (the blank-slot signature Hy3DBatchImagesSkippingBlanks detects). CONFIRMED LIVE (2026-09-01): when this node is fed by one of Graydient's numbered image1..image9 field_mapping slots (as opposed to init_image_url), the value that actually arrives is NOT the URL submitted -- Graydient downloads it server-side and hands over a generated filename already staged into ComfyUI's input/ directory instead, e.g. 'image6__4aa48107e2f2a30c7ace932d0988c895.png'. A bare fetch attempt on that string throws requests.exceptions.MissingSchema. Fixed by making the node try folder_paths.get_input_directory()/<value> when the value doesn't start with http(s):// -- both the init_image_url slot (real URL) and the numbered slots (staged filename) now work through the same node."
+  },
+  "Hy3DBatchImagesSkippingBlanks": {
+    "source": "UnlimitedEditing/ComfyUI-Hunyuan3D nodes.py -- bug confirmed via a real Graydient job traceback (2026-09-01); the fix itself has NOT yet been confirmed by a subsequent successful job (later submissions hit an unrelated Graydient ComfyUI-Launcher infra failure before reaching this node again).",
+    "inputs": {
+      "image1": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image2": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image3": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image4": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image5": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image6": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image7": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image8": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image9": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1.",
+      "image10": "IMAGE (optional link). A full batch tensor from one Hy3DLoadImageFromURL, usually B=1."
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Drops frames matching the blank-placeholder signature (np.allclose to 1.0), then torch.cat's the rest -- which requires every surviving frame to share H/W exactly. CONFIRMED LIVE (2026-09-01): 9 real sample photos of the same scene (not all identical resolution -- ordinary phone photos) hit 'Expected size 704 but got size 752 for tensor number 1' here, since the node did no resizing before concatenating. UNCONFIRMED FIX applied same session: scale-to-cover + center-crop each mismatched frame to the first real frame's resolution before concatenating (not a plain stretch -- would distort per-photo aspect ratio, which matters since the model reads perspective/parallax cues from these images). Re-verify against a real job before relying on this being fixed."
+  },
+  "LoadHunyuanWorldMirrorModel": {
+    "source": "UnlimitedEditing/ComfyUI-HunyuanWorld-Mirror-v2 nodes.py (fork of cedarconnor/ComfyUI-HunyuanWorld-Mirror) + utils/inference.py -- input schema confirmed via direct source read (2026-09-03, WorldMirror 2.0 swap). The v1 fields/behavior below were confirmed via multiple real Graydient jobs (2026-08-31 through 2026-09-01); the v2 loading path itself (WorldMirror 2.0 checkpoint, new 'subfolder' input) has NOT yet been confirmed working end-to-end on a real job -- verify before trusting this as settled, same as any SCHEMA_UNVERIFIED_NODE entry.",
+    "inputs": {
+      "model_name": "STRING (widget). Default changed 2026-09-03 from 'tencent/HunyuanWorld-Mirror' (now legacy per Tencent's own HY-World-2.0 model zoo) to 'tencent/HY-World-2.0' -- a multi-model repo; WorldMirror 2.0's files live under a subfolder, not the repo root.",
+      "subfolder": "STRING (widget, ADDED 2026-09-03). Subfolder inside model_name holding config.json + model.safetensors. Default 'HY-WorldMirror-2.0', matching HY-World-2.0's own repo layout (HY-Pano-2.0 lives in the same repo, different subfolder).",
+      "device": "STRING (widget), e.g. 'cuda'",
+      "precision": "STRING (widget), e.g. 'bf16' -- default changed from 'fp16' to 'bf16' 2026-09-01 to match Tencent's own official demo (huggingface.co/spaces/tencent/HunyuanWorld-Mirror app.py, which uses bf16/fp32-fallback and never fp16). fp16's smaller dynamic range is a plausible source of corrupted outlier Gaussians on uncertain predictions.",
+      "force_reload": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "HWMIRROR_MODEL"
+    ],
+    "note": "WorldMirror 2.0 swap (2026-09-03): this is a real architecture change, not just new weights -- v2's config.json sets fixed_patch_embed=true against the WorldMirror class's own constructor default of False, plus new kwargs (enable_depth_mask, condition_strategy) absent from v1. The old loader's habit of calling bare `WorldMirror()` and trusting constructor defaults would silently build the wrong architecture against v2 weights. The loader (_resolve_wm2_model_dir in utils/inference.py) now: (1) checks models/HunyuanWorld-Mirror/{subfolder}/ locally first (concept_mapping's destination) regardless of model_name, (2) loads config.json and builds WorldMirror(**config) -- not a bare constructor call, (3) loads model.safetensors via a selective/shape-checked state dict merge, matching Tencent's own reference loader (hyworld2/worldrecon/pipeline.py, WorldMirrorPipeline.from_pretrained) rather than a from-scratch reimplementation. Falls back to snapshot_download(repo_id=model_name, allow_patterns=[f'{subfolder}/*']) if concept_mapping's pre-stage isn't present (confirmed best-effort/non-guaranteed across Graydient machine classes, GRAYDIENT-COMPLETE-REFERENCE.md). Still requires `gsplat` importable at load time even though its rasterization function is optional at load -- GaussianSplatRenderer is imported at module level by worldmirror.py regardless (same as v1)."
+  },
+  "HWMInference": {
+    "source": "UnlimitedEditing/ComfyUI-HunyuanWorld-Mirror-v2 nodes.py -- confirmed via source read and a real completed Graydient job (167k+ Gaussians, correct depth/normals/points3d/poses/intrinsics/gaussians for a multi-image batch).",
+    "inputs": {
+      "model": "HWMIRROR_MODEL (link)",
+      "images": "IMAGE (link) -- a single batched tensor, already preprocessed to a common size (see PreprocessImagesForHWM/Hy3DBatchImagesSkippingBlanks upstream)",
+      "seed": "INT (widget, index 0)",
+      "batch_size": "INT (widget, index 1)"
+    },
+    "outputs": [
+      "DEPTH",
+      "NORMALS",
+      "POINTS3D",
+      "POSES",
+      "INTRINSICS",
+      "GAUSSIANS",
+      "CONFIDENCE",
+      "CONFIDENCE",
+      "CONFIDENCE"
+    ],
+    "note": "Output order matters for field_mapping/link wiring: depth(0), normals(1), points3d(2), camera_poses(3), camera_intrinsics(4), gaussians(5), depth_conf(6), normals_conf(7), pts3d_conf(8). All are parallel outputs of ONE forward pass -- not separate reconstruction stages that combine, so there is no 'more complete' 3D method being skipped by only consuming the gaussians output. CONFIRMED LIVE BUG then fix (2026-09-02): src/models/utils/rotation.py's quat_to_rotmat/rotmat_to_quat (used by camera_utils.py to decode this node's own cam_head output into camera_poses, in the DEFAULT no-prior path -- worldmirror.py forward() lines ~176-181, not just when supplying a pose prior) were a from-scratch reimplementation using scalar-first (w,x,y,z) quaternion order. Diffed directly against Tencent's official demo (huggingface.co/spaces/tencent/HunyuanWorld-Mirror, src/models/utils/rotation.py): its quat_to_rotmat expects scalar-LAST (x,y,z,w) -- confirmed via that file's own docstring ('Quaternion Order: XYZW or say ijkr, scalar-last'). This silently corrupted camera_poses on every single inference run (including single-image, since the model still predicts+decodes a pose even with 1 frame), which corrupts where every point3d/gaussian gets placed in world space -- this was the actual root cause of severe geometric corruption previously misattributed to sample quality/image count/precision. Fixed by replacing with Tencent's official implementation verbatim (same function names, camera_utils.py unchanged). Verified via scipy reference rotation math (5/5 random rotations) and two independent real-Graydient-job renders (splat3: multi-image, splat4: single-image) both showing coherent recognizable geometry/text where before there was only an amorphous streaky blob -- see D:\\tripostl\\comfyui-graydient-okf-catalog\\catalog\\KI-007-runtime-constraints-and-graveyard.md for the full narrative."
+  },
+  "Save3DGaussians": {
+    "source": "UnlimitedEditing/ComfyUI-HunyuanWorld-Mirror-v2 nodes.py + utils/export.py -- root cause confirmed via source read, fix confirmed via a real Graydient job (correct structured 3D geometry rendered in 3DGenStudio's Splat Viewer, replacing what had been one giant featureless blob).",
+    "inputs": {
+      "gaussians": "GAUSSIANS (link)",
+      "filepath": "STRING (widget)",
+      "include_sh": "BOOLEAN (widget)",
+      "filter_scale_percentile": "FLOAT (widget)",
+      "normalize_colors": "BOOLEAN (widget)",
+      "subsample_factor": "INT (widget)"
+    },
+    "outputs": [
+      "filepath"
+    ],
+    "note": "CONFIRMED LIVE BUG then fix (2026-09-01): utils/export.py's save_gaussian_ply() was writing scale_0-2 and opacity as plain linear/already-activated values instead of the log-space scale / logit-space opacity every standard 3DGS PLY viewer (gaussian-splats-3d, drei's <Splat>, supersplat, the original INRIA viewer) expects and undoes via exp()/sigmoid() on load -- confirmed by reading gaussian-splats-3d's own parser source. A real scale of ~0.002 (proportionate to a scene spanning ~1-2 world units) was getting re-exponentiated to ~1.0 by those viewers -- roughly the size of the entire scene, for every splat. f_dc_0-2 had the matching issue (plain [0,1] color instead of the SH DC coefficient (color-0.5)/SH_C0). Fixed at the export.py source; also mirrored into the repo's own bundled web/index.html preview viewer so it doesn't regress against its own exporter's output. If reading a PLY this node produced BEFORE this fix (or from any other pre-fix HunyuanWorld-Mirror fork), the raw scale_0-2 values will be small positive numbers (not log-space, not negative) -- that mismatch is the tell. NOTE (2026-09-01): this node does NOT get depth/normal edge masking -- the model's own internal prune_gs voxel-merge (src/models/models/rasterization.py, enable_prune=True by default) dedupes/reorders exported Gaussians away from a per-pixel grid before this node pack ever sees them, so a per-pixel edge mask can't be aligned back onto them. Tencent's own official demo doesn't edge-mask splats either -- only points3d (see HWMSavePointCloud below)."
+  },
+  "HWMSavePointCloud": {
+    "source": "UnlimitedEditing/ComfyUI-HunyuanWorld-Mirror-v2 nodes.py (SavePointCloud class, registered as HWMSavePointCloud) + utils/export.py + utils/edge_mask.py -- edge-mask feature added 2026-09-01, ported verbatim from Tencent's official demo (huggingface.co/spaces/tencent/HunyuanWorld-Mirror app.py + src/utils/geometry.py, fetched directly).",
+    "inputs": {
+      "points3d": "POINTS3D (link)",
+      "filepath": "STRING (widget)",
+      "format": "STRING (widget, combo: ply/obj/xyz)",
+      "confidence_threshold": "FLOAT (widget)",
+      "subsample_factor": "INT (widget)",
+      "colors": "IMAGE (optional link)",
+      "normals": "NORMALS (optional link) -- required (along with depth) for apply_edge_mask",
+      "confidence": "* (optional link)",
+      "depth": "DEPTH (optional link, added 2026-09-01) -- required (along with normals) for apply_edge_mask",
+      "apply_edge_mask": "BOOLEAN (optional widget, added 2026-09-01, default True)",
+      "edge_normal_threshold": "FLOAT (optional widget, added 2026-09-01, default 5.0 -- degrees, matches official demo default)",
+      "edge_depth_threshold": "FLOAT (optional widget, added 2026-09-01, default 0.03 -- relative tolerance, matches official demo default)"
+    },
+    "outputs": [
+      "filepath"
+    ],
+    "note": "Edge masking removes 'flying pixel' points at depth/normal discontinuities (silhouette edges, where triangulation is unreliable) before PLY export -- only applies to format='ply' (same as the pre-existing confidence_threshold filtering, both flow through save_point_cloud_ply). Only meaningful path for edge masking in this node pack -- see the note on Save3DGaussians above for why it can't be done on the splat export instead. Requires BOTH depth and normals connected; silently skipped (with a console warning) if either is missing, or if depth's frame count doesn't match normals' frame count."
+  },
+  "RigStudioA2FProbe": {
+    "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_a2f.py (read this session) -- confirmed by a real completed Graydient job: render 39o388, workflow rigstudio-a2f-probe (gen_rigstudio_a2f_probe.py v1), 2026-09-24, RTX 4090, ok=true, node total 103 s.",
+    "inputs": {
+      "hardware_compat": "BOOLEAN (widget, default True -> Ampere+ hardware-compatible TensorRT engine)",
+      "note": "STRING (widget, free text copied into the report; field_mapping prompt -> note, node_input_index 1)"
+    },
+    "outputs": [
+      "report_data",
+      "engine_path"
+    ],
+    "note": "async node. report_data = JSON report as a 4-byte-BE-length + UTF-8 RGB data image (feed SaveImage); engine_path = STRING path of the built engine (feed MeshSmuggleGate -> SmuggleMeshAsImage to get it out). If the build fails it returns a placeholder text-file path instead of '' so the smuggle branch cannot sink the report."
+  },
+  "MeshSmuggleGate": {
+    "source": "UnlimitedEditing/Meshsmuggler __init__.py (read this session) -- used live in render 39o388 (rigstudio-a2f-probe) and gen_hunyuan3d_mv.py.",
+    "inputs": {
+      "glb_path": "STRING (forceInput socket -- must be LINKED, not a widget value)",
+      "enable": "INT 0|1 (widget; 0 = pass-through off, 1 = pass the path on)"
+    },
+    "outputs": [
+      "glb_path"
+    ],
+    "note": "Named 'glb' but path-agnostic. Map a slot to enable to switch smuggling on/off per job."
+  },
+  "SmuggleMeshAsImage": {
+    "source": "UnlimitedEditing/Meshsmuggler __init__.py (read this session) -- confirmed live: render 39o388 smuggled an 89.8 MB TensorRT engine (binary, not a mesh) out as multiple PNGs, reassembled locally with unsmuggle_mesh.py, CRC verified.",
+    "inputs": {
+      "glb_path": "STRING (forceInput socket -- link from MeshSmuggleGate or any STRING path output)",
+      "filename_prefix": "STRING (widget, e.g. 'rigstudio/a2f_engine')",
+      "compress": "BOOLEAN (widget, gzip before encoding)",
+      "max_dimension": "INT (widget, 64..16384 step 64; 2048 -> ~12.5 MB per PNG, larger files split into chunks)"
+    },
+    "outputs": [
+      "png_paths"
+    ],
+    "note": "Output node that writes its own PNGs and IS collected by Graydient (unlike other custom save nodes). Works for any binary file (GLB, PLY, TensorRT engine) -- the M3DS container is format-agnostic. Decode with Meshsmuggler/unsmuggle_mesh.py <all chunk PNGs> -o out."
+  },
+  "RigStudioDirect": {
+    "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_sheet.py (written + read this session) -- confirmed by a real completed Graydient job: render ZVe419, workflow rig-direct (gen_rigstudio_direct.py v1, id 3814), 2026-09-30, RTX 4090, 223 s on 188 s audio, 36/36 lines parsed.",
+    "inputs": {
+      "audio_url": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "media_url": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "media_filename": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "brief": "STRING (multiline widget; map prompt_positive)",
+      "llm": "COMBO ['qwen3:14b', 'none']",
+      "seed": "INT widget 0..2^31-1",
+      "whisper_model": "COMBO ['medium', 'large-v3', 'small']"
+    },
+    "outputs": [
+      "sheet_json",
+      "card",
+      "summary"
+    ],
+    "note": "widgets_values order = input order above (audio_url 0, media_url 1, media_filename 2, brief 3, llm 4, seed 5, whisper_model 6). Runs Ollama 0.34.2 + qwen3:14b from concept-staged files (see KI-007 §16). Live log showed init_image_url arriving as the real URL AND init_image_filename as a staged 'init_image__<hash>.ogg' for the SAME file -- the node dedupes by content kind (first sheet / first audio wins)."
+  },
+  "RigStudioSaveSheet": {
+    "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_sheet.py -- confirmed live: render ZVe419 returned the sheet PNG and it decoded byte-exact locally (analysis/sheet.py loads) and was accepted by rig-perform (render ndxPNV).",
+    "inputs": {
+      "sheet_json": "STRING (forceInput socket -- link RigStudioDirect.sheet_json)",
+      "filename_prefix": "STRING widget"
+    },
+    "outputs": [],
+    "note": "OUTPUT_NODE writing an M3DS PNG itself (ui images entry); Graydient collected it alongside a stock SaveImage card, supports_img2vid=false. Same container as Meshsmuggler / YuE2 score PNGs."
+  },
+  "RigStudioPerform": {
+    "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_sheet.py -- confirmed by a real completed Graydient job: render ndxPNV, workflow rig-perform (gen_rigstudio_perform.py v1, id 3813), 2026-09-30, 204 s, 5650 frames, audio checksum matched the sheet.",
+    "inputs": {
+      "sheet_url": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "media_url": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "media_filename": "STRING widget. Inputs are sorted by CONTENT, not by field: a PNG is a direction sheet, anything else is audio. Accepts http(s) URL, Graydient-staged input/ filename, or mangled Telegram reference.",
+      "engine_url": "STRING widget ('' = published a2f-engine-v1, 'build' = build in-job; URLs can't pass via slots)",
+      "seed_override": "INT widget -1..2^31-1 (-1 = the sheet's seed; deliberately NOT field-mapped to `seed`)"
+    },
+    "outputs": [
+      "track_data",
+      "summary"
+    ],
+    "note": "widgets_values order = input order above. A sheet sent through init_image_url arrived as the real PNG URL (pixels intact, M3DS CRC passed) -- the image field is a working channel for data PNGs on the API path."
+  },
+  "UNETLoader": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "unet_name": "COMBO (widget)",
+      "weight_dtype": "COMBO (widget; 'default' = checkpoint dtype, 'fp8_e4m3fn' casts on load)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "Live log confirmed weight_dtype takes effect: with 'fp8_e4m3fn' on the 42GB bf16 PinkCherry dev checkpoint the job logged 'model weight dtype torch.float8_e4m3fn, manual cast: torch.bfloat16'. The fp8 cast + rank-256 distill LoRA looked faded/soft; switching to 'default' (bf16) + the official rank-450 LoRA + conv video VAE was reported 'much better' (three changes together, not isolated)."
+  },
+  "CLIPLoader": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "clip_name": "COMBO (widget)",
+      "type": "COMBO (widget; 'ltxv' for LTX-2.5 Gemma encoders)",
+      "device": "COMBO (widget, optional; 'default')"
+    },
+    "outputs": [
+      "CLIP"
+    ],
+    "note": "Two instances in the LTX-2.5 t2v graph: the main Gemma 4 12B int8 encoder (conditioning) and the small gemma4_e2b_it_bf16 encoder used only by TextGenerateLTX2Prompt."
+  },
+  "VAELoader": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "vae_name": "COMBO (widget)"
+    },
+    "outputs": [
+      "VAE"
+    ],
+    "note": "LTX-2.5 uses two: the video VAE and the audio VAE (LTXVEmptyLatentAudio/LTXVAudioVAEDecode take the audio one). Both a stock video VAE (ltx-2.5-video-vae-bf16) and a 'conv' variant (ltx-2.5-video-vae-conv-bf16, 1.45GB, same repo/mirror) exist; PinkCherry t2v ran on both."
+  },
+  "LoraLoaderModelOnly": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "model": "MODEL",
+      "lora_name": "COMBO (widget)",
+      "strength_model": "FLOAT (widget)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "Used to apply the LTX-2.5 distilled LoRA at strength 1.0 on top of the undistilled dev finetune; the live log showed the patches attaching ('LTXAV ... 1660 patches attached'). The LoRA file must exist under models/loras (stage via concept_mapping)."
+  },
+  "easy loraStack": {
+    "source": "yolain/ComfyUI-Easy-Use; input keys copied from a real Graydient export's API workflow (omni-refmod-h3) and ran live in pinkcherry-ltx25",
+    "inputs": {
+      "toggle": "BOOLEAN (widget)",
+      "mode": "STRING (widget; 'simple')",
+      "num_loras": "INT (widget)",
+      "lora_1_name": "COMBO (widget; default 'None')",
+      "lora_1_strength": "FLOAT (widget)",
+      "lora_1_model_strength": "FLOAT (widget)",
+      "lora_1_clip_strength": "FLOAT (widget)",
+      "lora_2_name": "COMBO (widget; default 'None')",
+      "lora_2_strength": "FLOAT (widget)",
+      "lora_2_model_strength": "FLOAT (widget)",
+      "lora_2_clip_strength": "FLOAT (widget)",
+      "lora_3_name": "COMBO (widget; default 'None')",
+      "lora_3_strength": "FLOAT (widget)",
+      "lora_3_model_strength": "FLOAT (widget)",
+      "lora_3_clip_strength": "FLOAT (widget)",
+      "lora_4_name": "COMBO (widget; default 'None')",
+      "lora_4_strength": "FLOAT (widget)",
+      "lora_4_model_strength": "FLOAT (widget)",
+      "lora_4_clip_strength": "FLOAT (widget)",
+      "lora_5_name": "COMBO (widget; default 'None')",
+      "lora_5_strength": "FLOAT (widget)",
+      "lora_5_model_strength": "FLOAT (widget)",
+      "lora_5_clip_strength": "FLOAT (widget)",
+      "lora_6_name": "COMBO (widget; default 'None')",
+      "lora_6_strength": "FLOAT (widget)",
+      "lora_6_model_strength": "FLOAT (widget)",
+      "lora_6_clip_strength": "FLOAT (widget)",
+      "lora_7_name": "COMBO (widget; default 'None')",
+      "lora_7_strength": "FLOAT (widget)",
+      "lora_7_model_strength": "FLOAT (widget)",
+      "lora_7_clip_strength": "FLOAT (widget)",
+      "lora_8_name": "COMBO (widget; default 'None')",
+      "lora_8_strength": "FLOAT (widget)",
+      "lora_8_model_strength": "FLOAT (widget)",
+      "lora_8_clip_strength": "FLOAT (widget)",
+      "lora_9_name": "COMBO (widget; default 'None')",
+      "lora_9_strength": "FLOAT (widget)",
+      "lora_9_model_strength": "FLOAT (widget)",
+      "lora_9_clip_strength": "FLOAT (widget)",
+      "lora_10_name": "COMBO (widget; default 'None')",
+      "lora_10_strength": "FLOAT (widget)",
+      "lora_10_model_strength": "FLOAT (widget)",
+      "lora_10_clip_strength": "FLOAT (widget)"
+    },
+    "outputs": [
+      "LORA_STACK"
+    ],
+    "note": "Slots 1-10 exist in the real export (43 input keys total; num_loras selects how many are active). class_type is 'easy loraStack' (lowercase, with a space), not 'EasyLoraStack' -- the 'EasyLoraStack' spelling only appears inside concept_mapping field_mapping strings ('<id>-EasyLoraStack.12-lora_1_name' / '.39-lora_1_strength'; 34/14, 15/17, 27/25, 33/2 for slots 2-5 -- Graydient's fixed suffix convention, identical across the live Ltx2/H3 workflows read). Dynamic-LoRA concepts use type 'local', allow_dynamic true, dynamic_family 'Ltx2' (LTX) or 'H3'."
+  },
+  "easy loraStackApply": {
+    "source": "yolain/ComfyUI-Easy-Use; keys from a real Graydient export and ran live in pinkcherry-ltx25",
+    "inputs": {
+      "lora_stack": "LORA_STACK",
+      "model": "MODEL",
+      "optional_clip": "CLIP (optional)"
+    },
+    "outputs": [
+      "MODEL",
+      "CLIP"
+    ],
+    "note": "Model-only use (optional_clip omitted) worked for LTX2.5; feed output slot 0 to the guiders."
+  },
+  "VAEDecodeTiled": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "samples": "LATENT",
+      "vae": "VAE",
+      "tile_size": "INT (widget)",
+      "overlap": "INT (widget)",
+      "temporal_size": "INT (widget)",
+      "temporal_overlap": "INT (widget)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Official LTX-2.5 template uses tile 768 / overlap 64 / temporal 4096 / temporal_overlap 32; the first live pinkcherry run (107s) used temporal_size 64 and completed."
+  },
+  "ManualSigmas": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "sigmas": "STRING (widget, comma-separated)"
+    },
+    "outputs": [
+      "SIGMAS"
+    ],
+    "note": "Distilled LTX-2.5 schedules, taken verbatim from the official template: base '1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0' (8 steps), refine '0.85, 0.7250, 0.4219, 0.0' (3 steps). Also used for the undistilled dev finetune once the distilled LoRA is applied at 1.0 (PinkCherry) -- completed live."
+  },
+  "KSamplerSelect": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "sampler_name": "COMBO (widget; 'euler_ancestral' for LTX-2.5 distilled)"
+    },
+    "outputs": [
+      "SAMPLER"
+    ],
+    "note": "Both passes use euler_ancestral in the official template."
+  },
+  "SamplerCustomAdvanced": {
+    "source": "comfy-core node signature; keys used verbatim by gen_pinkcherry_ltx25.py (t2v), which completed a real Graydient job (pinkcherry-ltx25, 2026-10-02, RTX 5090, 107s) and whose widget names/types were also read directly from the official LTX-2.5 Text-to-Video template JSON",
+    "inputs": {
+      "noise": "NOISE",
+      "guider": "GUIDER",
+      "sampler": "SAMPLER",
+      "sigmas": "SIGMAS",
+      "latent_image": "LATENT"
+    },
+    "outputs": [
+      "output",
+      "denoised_output"
+    ],
+    "note": "LTX-2.5 passes a LTXVConcatAVLatent as latent_image and splits output[0] with LTXVSeparateAVLatent."
+  },
+  "VNCCS_LoadWorldStereoLightModel": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_stereo.py (source read) + a real completed Graydient job (2026-10-04, tls-pro-ny1-g0, 109.8s, 4-step DMD, 768x448, length=9)",
+    "inputs": {
+      "model": "COMBO (required): 'Camera Light INT4' | 'Memory DMD Light INT4'",
+      "offload_mode": "COMBO (optional): sequential_cpu_offload | model_cpu_offload | none (workflow default is sequential_cpu_offload; model_cpu_offload worked on a 5090)",
+      "device": "COMBO (optional): cuda | cpu"
+    },
+    "outputs": [
+      "model"
+    ],
+    "note": "Loads MIUProject/VNCCS_WorldStereoLight int4 single-transformer checkpoints. Loader checks {models}/WorldStereoLight/<file>, {models}/clip/WorldStereo_umt5-xxl-encoder-fp8.safetensors and {models}/vae/WorldStereo_wan_2.1_vae.safetensors BEFORE downloading, so concept_mapping with those exact destinations fully pre-stages the 15GB. Still downloads at runtime (small, ~10s): hanshanxue/WorldStereo config.json, Wan2.1-I2V-14B-480P aux (1.2GB: scheduler/tokenizer/image_encoder/processor) and Ruicheng/moge-2-vitl-normal. Whole pipeline load = ~9s on a 5090."
+  },
+  "VNCCS_CameraTrajectoryBuilder": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_stereo.py (source read) + a real completed Graydient job (2026-10-04, tls-pro-ny1-g0, 109.8s, 4-step DMD, 768x448, length=9)",
+    "inputs": {
+      "preset": "COMBO: circular|stereo_orbit|forward_orbit|forward_lookaround|forward|zoom_in|zoom_out|left_right|up_down|aerial|custom ('circular' needs PyTorch3D)",
+      "num_frames": "INT 1-21 = FINAL generated frames; conditioning frames = (n-1)*4+1",
+      "radius": "FLOAT 0.1-10",
+      "speed": "FLOAT 0.001-1",
+      "elevation_deg": "FLOAT -90..90",
+      "median_depth": "FLOAT 0.1-100",
+      "fov_deg": "FLOAT 10-150",
+      "image_width": "INT 64-2048 step 64",
+      "image_height": "INT 64-2048 step 64",
+      "custom_json": "STRING (used when preset=custom)"
+    },
+    "outputs": [
+      "trajectory"
+    ],
+    "note": "All inputs optional. num_frames is the field to map to Graydient 'length'. Widget order in the standard format: preset,num_frames,radius,speed,elevation_deg,median_depth,fov_deg,image_width,image_height,custom_json."
+  },
+  "VNCCS_WorldStereoGenerate": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_stereo.py (source read) + a real completed Graydient job (2026-10-04, tls-pro-ny1-g0, 109.8s, 4-step DMD, 768x448, length=9)",
+    "inputs": {
+      "model": "WORLDSTEREO_MODEL (link, required)",
+      "image": "IMAGE (link, required; a single image works - base_camera_poses/intrinsics are optional)",
+      "trajectory": "CAMERA_TRAJECTORY (link, required)",
+      "prompt": "STRING",
+      "num_inference_steps": "INT 0-100 (0 = auto: 4 for DMD/turbo, else 20)",
+      "guidance_scale": "FLOAT 1-20 (ignored for DMD)",
+      "seed": "INT -1..2^31-1",
+      "negative_prompt": "STRING",
+      "cache_conditioning": "BOOLEAN",
+      "latent_condition_mode": "COMBO auto|full_vae|first_frame_only",
+      "render_vae_mode": "COMBO auto|full|keyframes",
+      "conditioning_frame_mode": "COMBO auto|full|keyframes",
+      "vae_memory_mode": "COMBO auto|off|tiled|sliced|tiled+sliced",
+      "crop_generated_edges": "BOOLEAN",
+      "worldmirror_sequence_mode": "COMBO stereo_only|prepend_source_highres",
+      "generated_upscale_mode": "COMBO bicubic|seedvr2",
+      "seedvr2_seed": "INT",
+      "seedvr2_resolution": "INT",
+      "seedvr2_max_resolution": "INT",
+      "video_view_filter": "COMBO all_views|zero_pitch_only",
+      "edge_crop_percent": "FLOAT 0-30",
+      "base_camera_poses": "TENSOR (optional)",
+      "base_camera_intrinsics": "TENSOR (optional)"
+    },
+    "outputs": [
+      "video_frames",
+      "camera_poses",
+      "camera_intrinsics"
+    ],
+    "note": "CONFIRMED LIVE: at 768x448, length=9 (33 conditioning frames), memory-dmd int4, model_cpu_offload on RTX 5090: 4 steps = 31s (step 1 = 20.8s incl. offload warmup, steps 2-4 ~3.5-4s each); whole job 109.8s. Missing PyTorch3D is harmless - the node falls back to its own torch point renderer and fallback camera presets (only 'circular' is lost). Unused tuning inputs (SeedVR2, crop) are optional."
+  },
+  "VNCCS_LoadWorldMirrorV2Model": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_mirror_v2.py + world_mirror_v1.py (source read) + a real completed Graydient job (R20164xxx 'v9oKd0', 2026-10-04, RTX 4090, 7 frames @576x320, Prompt executed in 143.61s, output delivered)",
+    "inputs": {
+      "device": "COMBO (optional): cuda | cpu",
+      "precision": "COMBO (optional): bf16 | fp8 | float32 (bf16 confirmed live)"
+    },
+    "outputs": [
+      "model"
+    ],
+    "note": "Checks models/WorldMirror-V2/HY-WorldMirror-2.0/{model.safetensors,config.json} BEFORE snapshot_download (tencent/HY-World-2.0, 5.05GB), so concept_mapping with those destinations pre-stages it ('Cached model' in the log). REQUIRES an importable gsplat just to load: the model module imports gsplat.rendering at module scope (KI-007 sec 22)."
+  },
+  "VNCCS_WorldMirrorV2_3D": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_mirror_v2.py + world_mirror_v1.py (source read) + a real completed Graydient job (R20164xxx 'v9oKd0', 2026-10-04, RTX 4090, 7 frames @576x320, Prompt executed in 143.61s, output delivered)",
+    "inputs": {
+      "model": "WORLDMIRROR_MODEL (link, required)",
+      "images": "IMAGE (link, required; WorldStereo frames work)",
+      "target_size": "INT 252-4096 step 14 (default 518; longest side px; 434 confirmed live)",
+      "offload_scheme": "COMBO none | model_cpu_offload",
+      "low_vram_mode": "BOOLEAN (default True = depth_only heads, frame chunks 1, MLP chunk 8192)",
+      "apply_sky_mask": "BOOLEAN",
+      "debug_log": "BOOLEAN",
+      "enable_splat_upsample": "BOOLEAN (default True: dense splats backprojected from depth)",
+      "splat_upsample_scale": "FLOAT 0.0001-0.05",
+      "splat_upsample_scale_mode": "COMBO constant | depth_adaptive | footprint_adaptive | hybrid_adaptive",
+      "splat_upsample_depth_scale_strength": "FLOAT",
+      "splat_upsample_depth_scale_max": "FLOAT",
+      "splat_upsample_voxel_prune": "BOOLEAN (default True; removed only ~19k of 1.16M splats live, so off is fine)",
+      "splat_upsample_voxel_size": "FLOAT",
+      "splat_upsample_max_points": "INT 0-50,000,000 (default 9,000,000; 250k used live)",
+      "splat_upsample_cap_far_bias": "FLOAT",
+      "splat_camera_source": "COMBO camera_inputs | predicted",
+      "camera_intrinsics": "TENSOR (optional; from VNCCS_WorldStereoGenerate.camera_intrinsics)",
+      "camera_poses": "TENSOR (optional; from VNCCS_WorldStereoGenerate.camera_poses)",
+      "depth_prior": "IMAGE (optional)"
+    },
+    "outputs": [
+      "ply_data",
+      "depth_maps",
+      "normal_maps",
+      "camera_poses",
+      "camera_intrinsics",
+      "raw_splats",
+      "filter_mask",
+      "gs_filter_mask"
+    ],
+    "note": "Registered name VNCCS_WorldMirrorV2_3D is the *_Clean* class (nodes/world_mirror_v2.py ~line 2700), NOT the similarly named base class defined earlier in the file with use_gsplat/confidence_percentile/etc. -- read the class NODE_CLASS_MAPPINGS points at. Clean hard-codes use_gsplat=True and, with default low_vram_mode, never rasterizes. The raw splat count scales with frame size and view count (7 views @ 576x320 -> 901k raw; 9 views -> 1.16M), so cap with splat_upsample_max_points."
+  },
+  "VNCCS_SavePLY": {
+    "source": "AHEKOT/ComfyUI_HYWorld2 nodes/world_mirror_v2.py + world_mirror_v1.py (source read) + a real completed Graydient job (R20164xxx 'v9oKd0', 2026-10-04, RTX 4090, 7 frames @576x320, Prompt executed in 143.61s, output delivered)",
+    "inputs": {
+      "ply_data": "PLY_DATA (link)",
+      "filename": "STRING widget (default 'output')"
+    },
+    "outputs": [
+      "filepath"
+    ],
+    "note": "OUTPUT_NODE. Writes <filename>_00001_gaussians.ply (+ a .splat preview cache). filepath (STRING) feeds MeshSmuggleGate.glb_path -- the input is called glb_path but the smuggler is format-agnostic (a 17MB gzip PLY became 1 PNG)."
+  },
+  "HYW2FlipPLY": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "path": "STRING (link, forceInput; the VNCCS_SavePLY filepath)",
+      "flip": "INT widget 0-1 (default 1)"
+    },
+    "outputs": [
+      "path"
+    ],
+    "note": "CONFIRMED live: the smuggled file came back named worldstereo_scene_00001_gaussians_upright.ply, so the node ran and wrote <name>_upright.ply. Rotates a 3DGS PLY 180 deg about X (xyz, normals, quaternion (w,x,y,z)->(-x,w,-z,y)) so OpenCV camera-space (y down) scenes open upright in y-up viewers; flip=0 passes the path through."
+  },
+  "HYW2StopWatchImage": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "IMAGE (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet."
+  },
+  "HYW2StopWatchString": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "STRING (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet."
+  },
+  "HYW2StopWatchPlyData": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "PLY_DATA (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet."
+  },
+  "HYW2StopWatchWorldStereoModel": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "WORLDSTEREO_MODEL (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet."
+  },
+  "HYW2StopWatchWorldMirrorModel": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "WORLDMIRROR_MODEL (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet."
+  },
+  "HYW2StopWatchStringEnd": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks)",
+    "inputs": {
+      "value": "STRING (link, forceInput)",
+      "label": "STRING widget"
+    },
+    "outputs": [
+      "value"
+    ],
+    "note": "Typed pass-through that prints '[HYW2 STOPWATCH] <label>: N s since ComfyUI process start | +M s since previous mark'. Accepted by a real job (the chain completed). The stopwatch OUTPUT lines have not been read from a log yet. OUTPUT_NODE variant."
+  },
+  "VNCCS_WorldMirrorV2_3D_Advanced": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue nodes.py (own source) + real delivered Graydient job (R...V9mQDy, 2026-10-04, workflow3848 v5, 2 PNG chunks) + world_mirror_v2.py source read (AST-checked against the _Clean class: 0 mismatches, 0 unknown keys)",
+    "inputs": {
+      "use_gsplat": "bool widget (value used live: True)",
+      "target_size": "int widget (value used live: 434)",
+      "offload_scheme": "str widget (value used live: 'none')",
+      "head_frame_chunk_size": "int widget (value used live: 1)",
+      "head_compute_mode": "str widget (value used live: 'depth_only')",
+      "gs_param_chunk_size": "int widget (value used live: 1)",
+      "transformer_mlp_chunk_size": "int widget (value used live: 8192)",
+      "confidence_percentile": "float widget (value used live: 10.0)",
+      "apply_sky_mask": "bool widget (value used live: False)",
+      "filter_edges": "bool widget (value used live: True)",
+      "filter_splats": "bool widget (value used live: False)",
+      "edge_normal_threshold": "float widget (value used live: 1.0)",
+      "edge_depth_threshold": "float widget (value used live: 0.03)",
+      "apply_confidence_mask": "bool widget (value used live: False)",
+      "camera_conditioning": "str widget (value used live: 'pose+intrinsics')",
+      "missing_camera_strategy": "str widget (value used live: 'off')",
+      "splat_camera_source": "str widget (value used live: 'camera_inputs')",
+      "splat_color_source": "str widget (value used live: 'input_image')",
+      "adaptive_target_size": "bool widget (value used live: False)",
+      "apply_model_masks": "bool widget (value used live: False)",
+      "model_mask_threshold": "float widget (value used live: 0.5)",
+      "voxel_prune_splats": "bool widget (value used live: True)",
+      "voxel_size": "float widget (value used live: 0.002)",
+      "splat_scale_multiplier": "float widget (value used live: 1.0)",
+      "splat_opacity_floor": "float widget (value used live: 0.0)",
+      "debug_log": "bool widget (value used live: False)",
+      "splat_upsample_mode": "str widget (value used live: 'depth_backproject')",
+      "splat_upsample_size": "int widget (value used live: 484)",
+      "splat_upsample_depth_source": "str widget (value used live: 'gs_depth')",
+      "splat_upsample_scale": "float widget (value used live: 0.003)",
+      "splat_upsample_scale_mode": "str widget (value used live: 'depth_adaptive')",
+      "splat_upsample_depth_scale_strength": "float widget (value used live: 1.0)",
+      "splat_upsample_depth_scale_max": "float widget (value used live: 3.0)",
+      "splat_upsample_opacity": "float widget (value used live: 0.9)",
+      "splat_upsample_voxel_prune": "bool widget (value used live: False)",
+      "splat_upsample_voxel_size": "float widget (value used live: 0.0015)",
+      "splat_upsample_max_points": "int widget (value used live: 0)",
+      "splat_upsample_cap_far_bias": "float widget (value used live: 1.75)",
+      "normalize_camera_poses_to_first": "bool widget (value used live: False)",
+      "model": "WORLDMIRROR_MODEL (link)",
+      "images": "IMAGE (link)",
+      "camera_intrinsics": "TENSOR (link, optional)",
+      "camera_poses": "TENSOR (link, optional)",
+      "depth_prior": "IMAGE (link, optional; not used)"
+    },
+    "outputs": [
+      "ply_data",
+      "depth_maps",
+      "normal_maps",
+      "camera_poses",
+      "camera_intrinsics",
+      "raw_splats",
+      "filter_mask",
+      "gs_filter_mask"
+    ],
+    "note": "Delivered a correct native result (901,208 splats = 7 x 266 x 484 with splat_upsample_max_points=0, voxel prune off). It does NOT expose low_vram_mode, so head_compute_mode/chunk sizes must be set explicitly (depth_only, 1, 1, 8192) or the base default 'all' runs. splat_upsample_size is NOT inferred from the images here (Clean does that); 484 = 576 minus WorldStereo's automatic 8% edge crop."
+  },
+  "HYW2Frame0Priority": {
+    "source": "UnlimitedEditing/ComfyUI-HYWorld2Glue frame0.py (own source, unit-tested offline against real scenes) + two real delivered Graydient jobs (workflow3848 v8 and v9, 2026-10-04: filenames ..._gaussians_f0_upright.ply)",
+    "inputs": {
+      "path": "STRING (link, forceInput; the PLY path from the switch / SavePLY)",
+      "frames": "IMAGE (link; the batch fed to WorldMirror -- gives the view count and frame aspect)",
+      "tol": "FLOAT widget 0.005-0.3 (default 0.04 = 4% depth tolerance)",
+      "enable": "INT widget 0-1 (default 1)"
+    },
+    "outputs": [
+      "path"
+    ],
+    "note": "CONFIRMED live: kept 409,453 (v8) and 295,479 (v9) of 901,208 splats and wrote <name>_f0.ply. Keeps all of view 0 (the real photo) and a later view's splat only where view 0 has no surface of matching depth. Infers the per-view raster grid (7 x 266 x 484) from the point count and frame aspect; assumes camera 0 = identity (pinhole fitted from view 0). Passes the path through unchanged if the layout is unexpected or enable=0. Run it BEFORE the flip (it also accepts flipped files)."
+  },
+  "ImageBatch": {
+    "source": "comfy-core node; keys as used in gen_ltx25_ripple.py (job 39yNVD)",
+    "inputs": {
+      "image1": "IMAGE",
+      "image2": "IMAGE"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. Both images must already be the same size (the Ripple graph resizes both to WxH first); output is image1's frames followed by image2's."
+  },
+  "ResizeImageMaskNode": {
+    "source": "comfy-core node; keys as used in gen_ltx25_ripple.py (job 39yNVD) and gen_ltx25_upscale_ref.py",
+    "inputs": {
+      "input": "IMAGE",
+      "resize_type": "COMBO ('scale dimensions' | 'scale longer dimension')",
+      "resize_type.width": "INT (dotted dynamic-combo sub-field, only with 'scale dimensions')",
+      "resize_type.height": "INT (dotted sub-field)",
+      "resize_type.crop": "COMBO ('center')",
+      "resize_type.longer_size": "INT (dotted sub-field, only with 'scale longer dimension')",
+      "scale_method": "COMBO ('lanczos')"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. The sub-fields are dotted keys in the API graph, and Graydient field_mapping can patch them by that dotted node_input_name (width/height mapped straight onto resize_type.width/.height in job 39yNVD, node_input_index 1/2). Used for a center-crop resize of both the edited frame and the video frames."
+  },
+  "LTXAddVideoICLoRAGuide": {
+    "source": "Lightricks/ComfyUI-LTXVideo iclora.py; keys as used in gen_ltx25_ripple.py (job 39yNVD) and gen_ltx25_upscale_ref.py; widget order cross-checked against WepeNerd's LTX_Ripple_FFAF_Edit_v11.json (7 widgets_values)",
+    "inputs": {
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "vae": "VAE",
+      "latent": "LATENT",
+      "image": "IMAGE",
+      "latent_downscale_factor": "FLOAT (a link from LTXICLoRALoaderModelOnly's 2nd output OR a literal; both forms exist in the wild)",
+      "frame_idx": "INT (0 = align with the generated clip, for video references; -1 = outside the frame range, single-image references)",
+      "strength": "FLOAT",
+      "crop": "COMBO ('disabled')",
+      "use_tiled_encode": "BOOLEAN",
+      "tile_size": "INT (256)",
+      "tile_overlap": "INT (64)"
+    },
+    "outputs": [
+      "positive",
+      "negative",
+      "latent"
+    ],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. The literal form latent_downscale_factor=1.0 is CONFIRMED to work here (plain LoraLoaderModelOnly + Ripple LoRA, whose safetensors header metadata is empty so there is no calibrated reference_downscale_factor; the author's workflow also hardcodes 1). Use the LTXICLoRALoaderModelOnly 2nd output instead when the LoRA's metadata carries a factor (see gen_ltx25_upscale_ref.py). Pair with LTXVCropGuides after sampling."
+  },
+  "BasicScheduler": {
+    "source": "comfy-core node; keys as used in gen_ltx25_ripple.py (job 39yNVD)",
+    "inputs": {
+      "model": "MODEL",
+      "scheduler": "COMBO ('simple')",
+      "steps": "INT",
+      "denoise": "FLOAT"
+    },
+    "outputs": [
+      "SIGMAS"
+    ],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. 8 steps / simple / denoise 1 with euler + CFGGuider cfg 1 is the author's recommended distilled setup for LTX Ripple and produced a coherent result here."
+  },
+  "CFGGuider": {
+    "source": "comfy-core node; keys as used in gen_ltx25_ripple.py (job 39yNVD) and gen_ltx25_upscale_ref.py",
+    "inputs": {
+      "model": "MODEL",
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "cfg": "FLOAT"
+    },
+    "outputs": [
+      "GUIDER"
+    ],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. For IC-LoRA graphs, feed positive/negative from the LAST LTXAddVideoICLoRAGuide so the guide keyframes are in the conditioning."
+  },
+  "SaveVideo": {
+    "source": "comfy-core node; keys as used in gen_ltx25_ripple.py (job 39yNVD) and gen_pinkcherry_ltx25.py",
+    "inputs": {
+      "video": "VIDEO",
+      "filename_prefix": "STRING",
+      "codec": "COMBO ('auto')",
+      "format": "COMBO ('auto')"
+    },
+    "outputs": [],
+    "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. The stock save node Graydient's collector recognises; with CreateVideo(images, audio, fps) upstream it delivered an h264 mp4 with an AAC track."
   }
 }

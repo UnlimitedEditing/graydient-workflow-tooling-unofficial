@@ -15,17 +15,33 @@ sources:
 # KI-005: SaaS Execution Constraints, VRAM & Timeout Budgets
 
 ## 1. Execution Timeout Budget
-The total execution timeout budget per job on Graydient is **~380 seconds**.
+**ComfyUI run time is limited to ~180 seconds** (some grace on top) — stated by Jacob 2026-10-04 and
+confirmed by `worldstereo-recon-v1` (R20164194), which logged `SavePLY SUCCESS` and then timed out with no
+`Prompt executed` line. The clock starts when ComfyUI starts. Earlier versions of this file said ~380 s;
+that (and the ~300 s / ~277 s figures elsewhere) were observed upper bounds, not budgets. **Plan to 180 s,
+target <= 150 s.**
 
-### Budget Components
+### NOT counted (happen before ComfyUI starts)
 1. Node repository git cloning & setup (~15–30s)
-2. Pip dependency installation (~10–30s)
-3. Model weight loading into VRAM (~10–20s)
+2. Pip dependency installation (10s – several minutes)
+3. `concept_mapping` model downloads
+4. First-time machine startup (up to ~2000s)
+
+### Counted (everything after ComfyUI is up)
+1. ComfyUI startup to `got prompt` (~15s lean, up to ~80s with heavy node packs)
+2. Any model download performed *inside a node* at run time
+3. Model weight loading into VRAM (~10–35s per large model)
 4. Inference sampling steps
-5. VAE/Audio encoding & saving
+5. VAE/Audio encoding, **post-processing, saving and export** (easy to forget; recon-v1's reconstruction + export
+   stages came after inference and pushed it past 180 s)
+
+The clock is **ComfyUI startup (~15–30 s) + the log's `Prompt executed in N seconds`**, so N alone is not the
+budget: `worldstereo-recon-v1` (R20164820) logged N = 168.65 s, no errors, and was still flagged `timed_out`
+(`success: false`, `files: []`). **Target N <= ~120 s.** The result's `elapsed` is not the number either (it
+includes the uncounted pip/clone/download phase).
 
 > [!WARNING]
-> Large model downloads (>5GB) **MUST** be staged in `concept_mapping`. Attempting to download multi-gigabyte models at runtime will consume the timeout budget and trigger job cancellations.
+> Large model downloads (>5GB) **MUST** be staged in `concept_mapping`. Attempting to download multi-gigabyte models inside a node at runtime counts against the ~180 s run-time budget and triggers job cancellations; a `concept_mapping` download happens before the clock starts.
 
 ---
 

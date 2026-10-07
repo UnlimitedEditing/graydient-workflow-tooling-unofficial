@@ -116,7 +116,7 @@ def load_model(self, model_name: str):
 ### 3.2 Canonical Local Fields
 | Graydient `local_field` | Standard UI Usage | Common Target Input |
 |---|---|---|
-| `prompt` / `prompt_positive` | Main positive text prompt | Sampler text / CLIP Text Encode |
+| `prompt_positive` (not `prompt`: it was confirmed not delivered to the node; KI-007) | Main positive text prompt | Sampler text / CLIP Text Encode |
 | `prompt_negative` | Negative text prompt | Sampler negative text / CLIP |
 | `seed` | Random seed integer | Sampler seed |
 | `length` | Output duration / step count | Sampler audio_length / max_tokens |
@@ -162,7 +162,7 @@ Always split complex model integrations into two decoupled ComfyUI custom nodes:
 
 ## 5. Execution Constraints & Gotchas Checklist
 
-1. **Timeout Budget**: Total job execution budget is **~380s**. Model downloads must be staged in `concept_mapping` to avoid consuming the inference time budget.
+1. **Timeout Budget**: ComfyUI *run time* is capped at **~180s** (startup included; plan for <=150s, i.e. `Prompt executed in` <=~120s). Repo clones, `requirements.pip`, `concept_mapping` downloads and first-time machine startup (up to ~2000s) happen *before* the clock starts and are not counted. Stage model downloads in `concept_mapping`. Older ~380s/~300s figures were observed upper bounds, not budgets (KI-005).
 2. **VRAM Allocation**: Model weights + activation memory must fit within instance limits (e.g. 24GB RTX 4090).
 3. **Execution Order**: ComfyUI computes node execution order strictly based on graph topology links, NOT the numerical `"order"` field.
 4. **Escape HTML Frontend Tags**: The Graydient web frontend strips bare `<` and `>` characters from text inputs. Workflows requiring prompt tags must use prefix syntax (e.g., `tags::emotion:elation::`) or bracket-free strings.

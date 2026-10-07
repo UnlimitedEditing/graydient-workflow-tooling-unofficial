@@ -38,7 +38,7 @@ Do NOT harvest:
 
 ## What to update, and how
 
-Read `D:\tripostl\graydient_builder\node_schema_db.json`'s own `_readme` field and the
+Read `graydient_builder/node_schema_db.json`'s own `_readme` field and the
 existing entries first, to match tone/format — every entry has a `source`, `inputs`
 (exact keys, with type/shape notes for anything non-obvious like dotted Autogrow
 sub-fields), `outputs`, and a `note` explaining *why* it's recorded (what bug it

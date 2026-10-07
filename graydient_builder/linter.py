@@ -173,6 +173,17 @@ class GraydientLinter:
         # Check pip packages
         for pkg in pip_reqs:
             pkg_clean = pkg.strip().lower()
+            # OBSERVED live (R20163116, 2026-10-04): in that job's printed COMMAND block the entries
+            # 'diffusers>=0.36.0', 'transformers>=5.2.0', 'optimum-quanto>=0.2.4', 'imageio[ffmpeg]' and
+            # 'git+...MoGe.git@<sha>' were all ABSENT; bare names, '==' pins and bare URLs were present.
+            # NOT established that Graydient always drops these (100+ older workflows use >=, [extras]
+            # or ' @ ' and some ran fine), so this is INFO only. Check the job's COMMAND block. KI-007 sec 19.
+            if re.search(r"[<>\[\]]|@", pkg.strip()):
+                self.issues.append(LintIssue(
+                    "INFO",
+                    "PIP_SPEC_MAYBE_DROPPED",
+                    f"Pip entry '{pkg}' contains <, >, [extras] or @ -- one real job's COMMAND block omitted such entries (KI-007 sec 19). If the package matters, confirm it appears in the job's COMMAND; a bare name, '==' pin or commit .zip URL is known to survive."
+                ))
             for pattern in BANNED_PIP_PATTERNS:
                 if re.search(pattern, pkg_clean):
                     self.issues.append(LintIssue(
@@ -191,7 +202,13 @@ class GraydientLinter:
 
     def _check_concept_mapping(self, gw: Dict[str, Any]):
         concept_mapping = gw.get("concept_mapping", [])
-        for entry in concept_mapping:
+        for entry in concept_mapping or []:
+            # Dynamic-LoRA slots (type "local", allow_dynamic true, no url/destination) are
+            # resolved by Graydient at request time. False positive fixed 2026-10-02:
+            # pinkcherry-ltx25 completed a real Graydient job with five of these, and the
+            # live Ltx2/H3 workflows (e.g. redgraft-ltx25) store the identical shape.
+            if entry.get("allow_dynamic") and entry.get("type") == "local":
+                continue
             url = entry.get("url", "")
             dest = entry.get("destination", "")
 
@@ -213,6 +230,26 @@ class GraydientLinter:
             input_name = fm.get("node_input_name", "")
             input_idx = fm.get("node_input_index")
             local_field = fm.get("local_field", "")
+
+            # Stated by Jacob 2026-10-04: slot4..slot8 accept NUMBERS ONLY (and there is no slot9) from users (slot1..slot3 take strings).
+            # INFO, not WARNING/ERROR: 23 existing workflows ship non-numeric DEFAULTS in slot4-9 ('htdemucs', 'True',
+            # ...) and several are live, so a string default evidently works -- but a user can't type a different one.
+            # A string CHOICE on slot4+ should be a numeric slot driving a lazy ComfySwitchNode (KI-007 sec 23).
+            _m = re.match(r"slot(\d+)$", str(local_field))
+            if _m and int(_m.group(1)) > 8:
+                # Stated by Jacob 2026-10-04: Graydient has slot1..slot8 only; a mapping to slot9+ never receives a value.
+                self.issues.append(LintIssue(
+                    "WARNING", "SLOT_DOES_NOT_EXIST",
+                    f"'{local_field}' does not exist: Graydient has slot1..slot8 only, so this mapping can never be set at run time (KI-007 sec 23)."))
+            if _m and 4 <= int(_m.group(1)) <= 8:
+                _dv = str(fm.get("default_value", ""))
+                try:
+                    float(_dv)
+                except ValueError:
+                    if _dv != "":
+                        self.issues.append(LintIssue(
+                            "INFO", "SLOT4_9_NON_NUMERIC_DEFAULT",
+                            f"'{local_field}' has the non-numeric default {_dv[:30]!r}: slots 4-8 only accept numbers from users, so this can never be changed at run time (KI-007 sec 23)."))
 
             if node_id not in std_nodes:
                 self.issues.append(LintIssue("ERROR", "FM_NODE_NOT_IN_STANDARD", f"Field mapped node {node_id} ('{local_field}') not found in 'workflow'.", node_id))
@@ -237,6 +274,85 @@ class GraydientLinter:
     def _check_anti_patterns(self, gw: Dict[str, Any], standard_wf: Dict[str, Any], api_wf: Dict[str, Any]):
         field_mappings = gw.get("field_mapping", [])
         std_nodes = {str(n.get("id")): n for n in standard_wf.get("nodes", [])}
+
+        # Confirmed live (2026-10-07, ripple-ltx25): concept_mapping's field_mapping /
+        # weight_field_mapping strings are "<node_id>-<node title>.<index>-<input name>".
+        # A node titled "Load LTX-2.5 Transformer" made the job fail at job PREPARATION
+        # (status failure, Error details = a bare "ValueError", no ComfyUI process ever started,
+        # and the CLI never noticed -- it waited its whole --timeout). Renaming ONLY that title to
+        # "Load Diffusion Model" made the same submission succeed (render 39yNVD, 37.36 s).
+        # Only the combination "-" + "." was ever observed failing, so the dot is the prime suspect
+        # (it collides with the "." delimiter): ERROR on a dot. A hyphen alone is only WARN --
+        # "Load JoyAI-Echo DiT Model" in joyaiecho-t2voice has one and was never confirmed live
+        # either way. 156 titles in the existing GraydientWorkflow-*.json had neither character.
+        import re as _re_title
+        title_re = _re_title.compile(r"^(\d+)-(.*)\.(\d+)-([^.]+)$")
+        for cm in (gw.get("concept_mapping") or []):
+            for key in ("field_mapping", "weight_field_mapping"):
+                fm_str = cm.get(key) or ""
+                m = title_re.match(fm_str)
+                if not m:
+                    continue
+                title = m.group(2)
+                if "." in title:
+                    self.issues.append(LintIssue(
+                        "ERROR",
+                        "CONCEPT_MAPPING_TITLE_HAS_DOT",
+                        f"concept_mapping {key} '{fm_str}' references a node titled '{title}', which "
+                        f"contains '.'. The string format is '<node_id>-<title>.<index>-<input>', and a "
+                        f"title with '.' + '-' ('Load LTX-2.5 Transformer') made a real job fail at "
+                        f"preparation with a bare ValueError (ripple-ltx25, 2026-10-07; KI-007). "
+                        f"Rename the node (e.g. 'Load Diffusion Model').",
+                        m.group(1)))
+                elif "-" in title:
+                    self.issues.append(LintIssue(
+                        "WARN",
+                        "CONCEPT_MAPPING_TITLE_HAS_HYPHEN",
+                        f"concept_mapping {key} '{fm_str}' references a node titled '{title}' with a "
+                        f"'-'. Unconfirmed either way on its own: a title with BOTH '-' and '.' failed "
+                        f"live (KI-007). Safest to use a plain title like 'Load Diffusion Model'.",
+                        m.group(1)))
+
+        # Confirmed live (2026-09-01, hunyuanworld-mirror-v1): unlike init_image_url
+        # (real URL passthrough), Graydient's numbered image1..image9 slots do NOT
+        # accept an "_url" suffixed variant at all -- only the bare name. A real
+        # submission to "image6_url" never even reached the node; only bare
+        # "image6" does, and it arrives as a Graydient-staged local filename, not
+        # a raw URL (see KI-007's "arrive as staged filenames" entry for the
+        # node-side handling that requires). This mirrors the init_video/init_audio
+        # numbered-slot pattern too, per the same confirmed vocabulary gap.
+        import re as _re
+        numbered_url_pattern = _re.compile(r"^(image|video|audio)[1-9]_url$")
+        for fm in field_mappings:
+            local_field = fm.get("local_field", "")
+            if numbered_url_pattern.match(local_field):
+                self.issues.append(LintIssue(
+                    "ERROR",
+                    "GRAYDIENT_INVALID_NUMBERED_MEDIA_URL_FIELD",
+                    f"local_field '{local_field}' is not a field Graydient accepts -- "
+                    f"the numbered image1..9/video1..9/audio1..9 slots only exist as "
+                    f"bare names (e.g. 'image6', not 'image6_url'). Unlike init_image_url, "
+                    f"there is no confirmed '_url' suffixed variant for these. Confirmed "
+                    f"live 2026-09-01 (KI-007) -- the node consuming this slot must also "
+                    f"handle a Graydient-staged local filename, not just a URL.",
+                    str(fm.get("node_id"))
+                ))
+
+        # Confirmed live (2026-09-24, rig-track): a field_mapping with local_field "prompt" never
+        # delivered the API prompt to the node -- render ZVzPB9's record held the full prompt
+        # (clean_prompt) but the node received "" (track had zero emotion events). The identical
+        # workflow re-restored with local_field "prompt_positive" delivered it (render PZJPBn, 12
+        # emotion events). prompt_positive is the platform standard (390 deployed workflows vs 25
+        # on "prompt"); lyric-llm (id 3210, local_field "prompt") shows the same "{}" symptom.
+        for fm in field_mappings:
+            if fm.get("local_field") == "prompt":
+                self.issues.append(LintIssue(
+                    "WARNING",
+                    "GRAYDIENT_PROMPT_FIELD_NOT_DELIVERED",
+                    "local_field 'prompt' was confirmed NOT to deliver the API prompt to the node "
+                    "(2026-09-24, rig-track v1 vs v2). Use 'prompt_positive' (KI-007 section 15).",
+                    str(fm.get("node_id"))
+                ))
 
         for fm in field_mappings:
             local_field = fm.get("local_field", "")

@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initM3DS();
   initAgent();
+  initGameDev();
   initRenders();
   initLinter();
   initDiagnostics();
@@ -588,4 +589,235 @@ async function checkStatus() {
   } catch (err) {
     console.error('Status check error:', err);
   }
+}
+
+// ── 9. Game Dev Agent (VAIL + Godot MCP) ──────────────────────────────────
+function initGameDev() {
+  const vailBadge = document.getElementById('vail-deck-badge');
+  const godotBadge = document.getElementById('godot-deck-badge');
+  const probeVailBtn = document.getElementById('probe-vail-btn');
+  const probeGodotBtn = document.getElementById('probe-godot-btn');
+
+  const vailCmdSelect = document.getElementById('vail-cmd-select');
+  const vailCmdArgs = document.getElementById('vail-cmd-args');
+  const dispatchVailBtn = document.getElementById('dispatch-vail-btn');
+
+  const godotToolSelect = document.getElementById('godot-tool-select');
+  const godotToolArgs = document.getElementById('godot-tool-args');
+  const dispatchGodotBtn = document.getElementById('dispatch-godot-btn');
+
+  const bridgeDeployBtn = document.getElementById('bridge-deploy-btn');
+  const bridgeEngineSelect = document.getElementById('bridge-engine-select');
+  const bridgeStatusNote = document.getElementById('bridge-status-note');
+
+  const gdInput = document.getElementById('gamedev-input');
+  const gdSendBtn = document.getElementById('gamedev-send-btn');
+
+  // Probe engines
+  async function probeEngines() {
+    try {
+      const res = await fetch('/api/gamedev/status');
+      const data = await res.json();
+
+      // VAIL
+      const vailDot = document.getElementById('vail-dot');
+      const vailText = document.getElementById('vail-status-text');
+      if (data.vail && data.vail.online) {
+        if (vailBadge) {
+          vailBadge.textContent = 'Online (55557)';
+          vailBadge.className = 'badge-tag';
+          vailBadge.style.color = 'var(--accent-emerald)';
+        }
+        if (vailDot) vailDot.className = 'status-dot dot-online';
+        if (vailText) vailText.textContent = 'UE5 VAIL: Online';
+      } else {
+        if (vailBadge) {
+          vailBadge.textContent = 'Offline';
+          vailBadge.className = 'badge-tag badge-err';
+        }
+        if (vailDot) vailDot.className = 'status-dot dot-offline';
+        if (vailText) vailText.textContent = 'UE5 VAIL: Offline';
+      }
+
+      // Godot
+      const godotDot = document.getElementById('godot-dot');
+      const godotText = document.getElementById('godot-status-text');
+      if (data.godot && data.godot.online) {
+        if (godotBadge) {
+          godotBadge.textContent = `Online (${data.godot.version || '4.6.1'})`;
+          godotBadge.className = 'badge-tag';
+          godotBadge.style.color = 'var(--accent-cyan)';
+        }
+        if (godotDot) godotDot.className = 'status-dot dot-online';
+        if (godotText) godotText.textContent = `Godot MCP: ${data.godot.version || '4.6.1'}`;
+      } else {
+        if (godotBadge) {
+          godotBadge.textContent = 'Missing Config';
+          godotBadge.className = 'badge-tag badge-err';
+        }
+        if (godotDot) godotDot.className = 'status-dot dot-offline';
+        if (godotText) godotText.textContent = 'Godot MCP: Offline';
+      }
+    } catch (err) {
+      console.error('Failed to probe engines:', err);
+    }
+  }
+
+  if (probeVailBtn) probeVailBtn.addEventListener('click', probeEngines);
+  if (probeGodotBtn) probeGodotBtn.addEventListener('click', probeEngines);
+
+  // Dispatch VAIL command
+  if (dispatchVailBtn) {
+    dispatchVailBtn.addEventListener('click', async () => {
+      const cmd = vailCmdSelect.value;
+      let params = {};
+      try {
+        if (vailCmdArgs.value.trim()) params = JSON.parse(vailCmdArgs.value.trim());
+      } catch (err) {
+        alert('Invalid JSON in arguments: ' + err.message);
+        return;
+      }
+
+      appendGameDevMessage('user', `Dispatch VAIL Command: <code>${cmd}</code>`);
+      const bubble = appendGameDevMessage('assistant', `Dispatching <code>${cmd}</code> to Unreal Engine (TCP 55557)...`);
+
+      try {
+        const res = await fetch('/api/gamedev/vail/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd, params })
+        });
+        const data = await res.json();
+        bubble.innerHTML = formatMarkdown(`**VAIL Response for \`${cmd}\`:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
+      } catch (err) {
+        bubble.innerHTML = `<span style="color:var(--accent-rose)">VAIL Error: ${err.message}</span>`;
+      }
+    });
+  }
+
+  // Dispatch Godot MCP Tool
+  if (dispatchGodotBtn) {
+    dispatchGodotBtn.addEventListener('click', async () => {
+      const tool = godotToolSelect.value;
+      let params = {};
+      try {
+        if (godotToolArgs.value.trim()) params = JSON.parse(godotToolArgs.value.trim());
+      } catch (err) {
+        alert('Invalid JSON in arguments: ' + err.message);
+        return;
+      }
+
+      appendGameDevMessage('user', `Run Godot MCP Tool: <code>${tool}</code>`);
+      const bubble = appendGameDevMessage('assistant', `Executing Godot MCP Tool <code>${tool}</code>...`);
+
+      try {
+        const res = await fetch('/api/gamedev/godot/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool_name: tool, params })
+        });
+        const data = await res.json();
+        bubble.innerHTML = formatMarkdown(`**Godot MCP Tool Result for \`${tool}\`:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
+      } catch (err) {
+        bubble.innerHTML = `<span style="color:var(--accent-rose)">Godot MCP Error: ${err.message}</span>`;
+      }
+    });
+  }
+
+  // Asset Bridge Deploy
+  if (bridgeDeployBtn) {
+    bridgeDeployBtn.addEventListener('click', async () => {
+      if (!currentExtractedAsset || !currentExtractedAsset.extracted_filename) {
+        alert('No 3D asset currently loaded or decoded. Extract an M3DS image in 3D Viewer first.');
+        return;
+      }
+      const engine = bridgeEngineSelect.value;
+      bridgeStatusNote.textContent = `Deploying ${currentExtractedAsset.extracted_filename} to ${engine}...`;
+
+      try {
+        const res = await fetch('/api/gamedev/deploy-asset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mesh_path: currentExtractedAsset.extracted_filename,
+            target_engine: engine
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          bridgeStatusNote.innerHTML = `<span style="color:var(--accent-emerald)">✓ Deployed to ${data.destination}</span>`;
+          appendGameDevMessage('assistant', `📦 **Asset Deployed!**\nCopied \`${currentExtractedAsset.extracted_filename}\` to **${engine.toUpperCase()}** at:\n\`${data.destination}\``);
+        } else {
+          bridgeStatusNote.innerHTML = `<span style="color:var(--accent-rose)">❌ ${data.message}</span>`;
+        }
+      } catch (err) {
+        bridgeStatusNote.textContent = 'Deploy failed: ' + err.message;
+      }
+    });
+  }
+
+  // Game Dev Agent Chat
+  async function sendGameDevChat(text) {
+    const msg = text || gdInput.value.trim();
+    if (!msg) return;
+
+    appendGameDevMessage('user', msg);
+    if (!text) gdInput.value = '';
+
+    const typingMsg = appendGameDevMessage('assistant', 'Game Dev Agent thinking (Gemini 3.8 Flash)...');
+
+    try {
+      const res = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `[GAME_DEV_AGENT] ${msg}` })
+      });
+      const data = await res.json();
+      let fullText = '';
+      if (data.responses) {
+        data.responses.forEach(chunk => {
+          if (chunk.text) fullText += chunk.text;
+          if (chunk.message) fullText += `\n*${chunk.message}*\n`;
+        });
+      }
+      typingMsg.innerHTML = formatMarkdown(fullText || 'No response returned.');
+    } catch (err) {
+      typingMsg.innerHTML = `<span style="color:var(--accent-rose)">Game Dev Agent error: ${err.message}</span>`;
+    }
+  }
+
+  if (gdSendBtn) gdSendBtn.addEventListener('click', () => sendGameDevChat());
+  if (gdInput) {
+    gdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendGameDevChat();
+      }
+    });
+  }
+
+  // Suggestion chips
+  document.querySelectorAll('.chip-suggestion-gd').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const prompt = chip.getAttribute('data-prompt');
+      sendGameDevChat(prompt);
+    });
+  });
+
+  // Initial probe
+  probeEngines();
+}
+
+function appendGameDevMessage(role, text) {
+  const messages = document.getElementById('gamedev-messages');
+  if (!messages) return null;
+  const msgEl = document.createElement('div');
+  msgEl.className = `message msg-${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = formatMarkdown(text);
+  msgEl.appendChild(bubble);
+  messages.appendChild(msgEl);
+  messages.scrollTop = messages.scrollHeight;
+  return bubble;
 }

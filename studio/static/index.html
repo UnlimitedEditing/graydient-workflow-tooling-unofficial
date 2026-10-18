@@ -44,11 +44,15 @@
         </div>
         <div class="status-pill pill-graveyard" title="34 Hardened Container Failure Rules">
           <span class="pill-icon">🛡️</span>
-          <span>Graveyard: 34 Rules</span>
+          <span>Graveyard: 34</span>
         </div>
-        <div class="status-pill pill-m3ds" title="Automatic detection & unpacking of 3D meshes & data">
-          <span class="pill-icon">🧊</span>
-          <span>M3DS Auto-Decoder: Online</span>
+        <div class="status-pill pill-vail" id="pill-vail" title="Unreal Engine 5.8 VAIL Socket (127.0.0.1:55557)">
+          <span class="status-dot dot-offline" id="vail-dot"></span>
+          <span id="vail-status-text">UE5 VAIL: Offline</span>
+        </div>
+        <div class="status-pill pill-godot" id="pill-godot" title="Godot Engine 4.6.1 & Godot MCP Bridge">
+          <span class="status-dot dot-online" id="godot-dot"></span>
+          <span id="godot-status-text">Godot MCP: Online</span>
         </div>
         <button class="settings-btn" id="open-settings-btn" title="Configure API Key">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,6 +72,10 @@
       <button class="nav-tab" data-tab="tab-agent">
         <span class="tab-icon">🤖</span>
         <span>Gemini AI Co-Pilot</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-gamedev">
+        <span class="tab-icon">🎮</span>
+        <span>Game Dev Agent</span>
       </button>
       <button class="nav-tab" data-tab="tab-renders">
         <span class="tab-icon">⚡</span>
@@ -342,6 +350,149 @@
                 <span class="badge-tag badge-err" id="diag-category">Identified Failure Mode</span>
               </div>
               <div class="diagnose-body" id="diag-body"></div>
+            </div>
+          </div>
+        </div>
+      <!-- 6. GAME DEV AGENT TAB (VAIL + GODOT MCP) -->
+      <section class="tab-panel" id="tab-gamedev">
+        <div class="split-view gamedev-split">
+          <!-- Left: Engine Deck & Tool Dispatchers -->
+          <div class="panel-card sidebar-panel gamedev-sidebar">
+            <!-- Unreal Engine 5.8 VAIL Card -->
+            <div class="engine-card">
+              <div class="engine-card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:18px;">🎮</span>
+                  <div>
+                    <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">Unreal Engine 5.8</h3>
+                    <span style="font-size:11px;color:var(--text-dim);">VAIL TCP: 127.0.0.1:55557</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="badge-tag badge-err" id="vail-deck-badge">Offline</span>
+                  <button class="btn-sm" id="probe-vail-btn" title="Probe port 55557">↺ Probe</button>
+                </div>
+              </div>
+              <div class="engine-card-body">
+                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Command</label>
+                <select id="vail-cmd-select" class="form-select" style="margin-bottom:8px;">
+                  <option value="vail_plugin_version">vail_plugin_version</option>
+                  <option value="vail_get_tree">vail_get_tree (Inspect scene/actor tree)</option>
+                  <option value="vail_level_query_actors">vail_level_query_actors (Query actors)</option>
+                  <option value="vail_trigger_live_coding">vail_trigger_live_coding (Compile C++)</option>
+                  <option value="vail_asset_query">vail_asset_query (/Game assets)</option>
+                  <option value="vail_set_property">vail_set_property</option>
+                </select>
+                <textarea id="vail-cmd-args" class="code-area" rows="2" style="font-size:11px;margin-bottom:8px;" placeholder='{"max_depth": 2}'></textarea>
+                <button class="btn btn-primary btn-block btn-sm" id="dispatch-vail-btn">⚡ Dispatch VAIL</button>
+              </div>
+            </div>
+
+            <!-- Godot 4.x Godot-MCP Card -->
+            <div class="engine-card" style="margin-top:16px;">
+              <div class="engine-card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:18px;">👾</span>
+                  <div>
+                    <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">Godot Engine 4.x</h3>
+                    <span style="font-size:11px;color:var(--text-dim);">Godot MCP ToolRegistry</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="badge-tag" id="godot-deck-badge" style="background:rgba(0,242,254,0.15);color:var(--accent-cyan);border-color:var(--accent-cyan);">Ready</span>
+                  <button class="btn-sm" id="probe-godot-btn" title="Probe Godot MCP">↺ Probe</button>
+                </div>
+              </div>
+              <div class="engine-card-body">
+                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">MCP Tool</label>
+                <select id="godot-tool-select" class="form-select" style="margin-bottom:8px;">
+                  <option value="get_godot_version">get_godot_version</option>
+                  <option value="list_projects">list_projects (Scan projects)</option>
+                  <option value="create_scene">create_scene (New .tscn)</option>
+                  <option value="add_node">add_node (Add Node to Scene)</option>
+                  <option value="launch_editor">launch_editor (Open Godot GUI)</option>
+                  <option value="run_project">run_project (Playtest project)</option>
+                  <option value="get_debug_output">get_debug_output</option>
+                </select>
+                <textarea id="godot-tool-args" class="code-area" rows="2" style="font-size:11px;margin-bottom:8px;" placeholder='{}'></textarea>
+                <button class="btn btn-primary btn-block btn-sm" id="dispatch-godot-btn">🚀 Run Godot Tool</button>
+              </div>
+            </div>
+
+            <!-- 3D Asset Bridge Card -->
+            <div class="engine-card" style="margin-top:16px;">
+              <div class="engine-card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:18px;">🧊</span>
+                  <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">3D Asset Pipeline Bridge</h3>
+                </div>
+              </div>
+              <div class="engine-card-body">
+                <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 8px 0;">
+                  Deploy the current decoded 3D asset directly into your game project:
+                </p>
+                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                  <select id="bridge-engine-select" class="form-select" style="flex:1;">
+                    <option value="godot">Godot (res://assets/)</option>
+                    <option value="unreal">Unreal (Content/Imported/)</option>
+                  </select>
+                  <button class="btn btn-sm btn-primary" id="bridge-deploy-btn">Deploy Asset</button>
+                </div>
+                <div id="bridge-status-note" style="font-size:11px;color:var(--text-dim);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Autonomous Game Dev Agent Chat -->
+          <div class="panel-card viewport-panel gamedev-viewport">
+            <div class="chat-header">
+              <div class="agent-avatar" style="background:linear-gradient(135deg, #a855f7, #6366f1);">
+                <span style="font-size:18px;">🎮</span>
+              </div>
+              <div>
+                <h2 class="panel-title" style="margin:0;">Game Dev Agent (VAIL + Godot MCP)</h2>
+                <span class="agent-badge">Gemini 3.8 Flash • Unreal 5.8 Blueprints/VAIL • Godot 4.6.1 GDScript • Asset Pipeline</span>
+              </div>
+            </div>
+
+            <div class="chat-messages" id="gamedev-messages">
+              <div class="message msg-assistant">
+                <div class="msg-bubble">
+                  🕹️ <strong>Game Dev Agent Online!</strong><br><br>
+                  I am equipped with direct bridges into your local game engines:<br>
+                  • <strong>Unreal Engine 5.8 via VAIL</strong>: Communicating directly over TCP (`127.0.0.1:55557`) for headless actor inspection, property mutation, and live coding compilation.<br>
+                  • <strong>Godot Engine 4.x via Godot MCP</strong>: ToolRegistry integrated with Godot 4.6.1 Mono for scene generation, node authoring, and project playtesting.<br>
+                  • <strong>3D Model Pipeline</strong>: Direct shipping of generated meshes from the 3D viewer to your game projects.<br><br>
+                  What game feature or scene would you like to build?
+                </div>
+              </div>
+            </div>
+
+            <!-- Suggestions -->
+            <div class="chat-suggestions">
+              <button class="chip-suggestion-gd" data-prompt="Probe the live status of Unreal Engine 5.8 VAIL and Godot MCP and report the findings.">
+                🔍 Probe Engines
+              </button>
+              <button class="chip-suggestion-gd" data-prompt="List all known projects and get the Godot engine version using the Godot MCP tool.">
+                👾 Godot Projects & Version
+              </button>
+              <button class="chip-suggestion-gd" data-prompt="Generate a complete CharacterBody3D player controller in GDScript 2.0 with smooth WASD movement, jumping, and mouse look.">
+                📜 GDScript 3D Controller
+              </button>
+              <button class="chip-suggestion-gd" data-prompt="Explain how VAIL controls Blueprint graphs and how to trigger a live coding compile.">
+                ⚡ VAIL Blueprint Control
+              </button>
+            </div>
+
+            <div class="chat-input-bar">
+              <textarea id="gamedev-input" rows="1" placeholder="Ask Game Dev Agent to author GDScript, inspect VAIL actors, or stage scenes..."></textarea>
+              <button class="btn btn-primary" id="gamedev-send-btn">
+                <span>Send</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
           </div>
         </div>

@@ -113,6 +113,22 @@ class GeminiStudioAgent:
 2. ALWAYS run `lint_workflow_script` after generating or modifying any `gen_*.py` script.
 3. If the linter reports any error, self-heal the code immediately before reporting completion.
 4. M3DS Steganography: When generating 3D meshes (GLB, PLY), use SmuggleMeshAsImage or M3DS nodes so Graydient can collect the PNG and PirateUI can auto-render the 3D model.
+
+=== GAME DEV AGENT & ENGINE BRIDGES (VAIL & GODOT MCP) ===
+You are also the autonomous Game Development Lead Agent inside PirateUI.
+You control TWO primary game engine interfaces:
+1. Unreal Engine 5.8 via VAIL (Virtual Agent Interface Layer):
+   - Direct TCP socket (127.0.0.1:55557) communicating with the VAIL plugin in Unreal Engine 5.8.
+   - Use `vail_execute_command(command, params_json)` to inspect actor trees (`vail_get_tree`), spawn actors (`vail_level_spawn_actor`), mutate properties (`vail_set_property`), connect Blueprint graph pins, and trigger live coding compiles (`vail_trigger_live_coding`).
+   - If Unreal is offline, explain that the user can launch their Unreal project (e.g. `D:\\UE5.8\\vailtest`).
+2. Godot Engine 4.x via Godot MCP:
+   - Interfaces directly with Godot 4.6.1 Mono (`D:\\Godot_v4.6.1-stable_mono_win64`) and the Godot MCP ToolRegistry (`D:\\godot-mcp`).
+   - Use `godot_mcp_execute(tool_name, params_json)` to launch editor (`launch_editor`), run/stop projects (`run_project`, `stop_project`), create scenes (`create_scene`), add/edit nodes (`add_node`, `edit_node`), and capture live debug output (`get_debug_output`).
+3. 3D Game Asset Staging:
+   - Use `deploy_3d_asset_to_game(mesh_name, target_engine)` to ship generated `.glb` or `.ply` meshes directly into Godot (`res://assets`) or Unreal Content directories.
+4. Game Scripting:
+   - Author clean, typed GDScript 2.0 or C# for Godot.
+   - Author Blueprint construction or C++ logic for Unreal Engine.
 """)
         return "\n\n".join(docs)
 
@@ -228,6 +244,39 @@ class GeminiStudioAgent:
             res = unpack_and_save(image_path)
             return json.dumps(res, indent=2)
 
+        def vail_execute_command(command: str, params_json: str = "{}") -> str:
+            """Sends a command to Unreal Engine 5.8 VAIL plugin (TCP 55557), e.g. vail_get_tree, vail_trigger_live_coding, vail_level_spawn_actor."""
+            from .game_dev_bridge import send_vail_command
+            try:
+                p = json.loads(params_json) if params_json.strip() else {}
+            except Exception:
+                p = {}
+            res = send_vail_command(command, p)
+            return json.dumps(res, indent=2)
+
+        def godot_mcp_execute(tool_name: str, params_json: str = "{}") -> str:
+            """Executes any tool from the Godot MCP ToolRegistry (launch_editor, run_project, create_scene, add_node, list_projects, get_debug_output)."""
+            from .game_dev_bridge import send_godot_tool
+            try:
+                p = json.loads(params_json) if params_json.strip() else {}
+            except Exception:
+                p = {}
+            res = send_godot_tool(tool_name, p)
+            return json.dumps(res, indent=2)
+
+        def game_dev_probe() -> str:
+            """Probes the live status of Unreal Engine 5.8 (VAIL on port 55557) and Godot Engine / Godot MCP."""
+            from .game_dev_bridge import check_vail_connection, check_godot_status
+            vail = check_vail_connection()
+            godot = check_godot_status()
+            return json.dumps({"unreal_vail": vail, "godot_mcp": godot}, indent=2)
+
+        def deploy_3d_asset_to_game(mesh_name_or_path: str, target_engine: str = "godot", custom_project_dir: str = "") -> str:
+            """Deploys a generated 3D model (.glb/.ply) into a Godot or Unreal Engine project folder."""
+            from .game_dev_bridge import deploy_mesh_to_game
+            res = deploy_mesh_to_game(mesh_name_or_path, target_engine, custom_project_dir or None)
+            return json.dumps(res, indent=2)
+
         # Store tool functions
         self.tools = [
             read_workspace_file,
@@ -236,12 +285,17 @@ class GeminiStudioAgent:
             lint_workflow_script,
             search_knowledge_catalog,
             diagnose_failure_log,
-            decode_m3ds_steganography
+            decode_m3ds_steganography,
+            vail_execute_command,
+            godot_mcp_execute,
+            game_dev_probe,
+            deploy_3d_asset_to_game
         ]
 
         # Initialize multi-turn chat session with automatic tool calling enabled
+        self.active_model = "gemini-3.7-flash"
         self.chat_session = self.client.chats.create(
-            model="gemini-3.8-flash",
+            model=self.active_model,
             config=types.GenerateContentConfig(
                 system_instruction=self.system_instruction,
                 tools=self.tools,
@@ -251,7 +305,7 @@ class GeminiStudioAgent:
 
     def chat(self, user_message: str, history: list = None) -> Generator[dict, None, None]:
         """
-        Chat with Gemini 3.8 Flash in an autonomous coding agent loop.
+        Chat with Gemini Flash in an autonomous coding and game dev agent loop.
         Automatically executes tools, reads/writes code, and lints workflows.
         """
         if not self.client or not self.chat_session:
@@ -264,21 +318,42 @@ class GeminiStudioAgent:
             }
             return
 
-        try:
-            yield {"type": "status", "message": "Reasoning & coordinating tools with Gemini 3.8 Flash (1M Context)..."}
+        models_to_try = [self.active_model] + [m for m in ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.8-flash"] if m != self.active_model]
+        last_err = None
 
-            # Send message through the multi-turn session with automatic tool execution
-            response = self.chat_session.send_message(user_message)
-            response_text = response.text if response and response.text else "Operation complete."
+        for model_name in models_to_try:
+            try:
+                if model_name != self.active_model:
+                    from google.genai import types
+                    self.active_model = model_name
+                    self.chat_session = self.client.chats.create(
+                        model=self.active_model,
+                        config=types.GenerateContentConfig(
+                            system_instruction=self.system_instruction,
+                            tools=self.tools,
+                            temperature=0.2,
+                        )
+                    )
 
-            yield {"type": "content", "text": response_text}
+                yield {"type": "status", "message": f"Reasoning & coordinating tools with Gemini ({self.active_model})..."}
+                response = self.chat_session.send_message(user_message)
+                response_text = response.text if response and response.text else "Operation complete."
+                yield {"type": "content", "text": response_text}
+                return
 
-        except Exception as e:
-            yield {
-                "type": "error",
-                "message": f"Gemini Agent error: {str(e)}",
-                "traceback": traceback.format_exc()
-            }
+            except Exception as e:
+                last_err = e
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "404" in err_str:
+                    continue  # Failover to next model
+                else:
+                    break
+
+        yield {
+            "type": "error",
+            "message": f"Gemini Agent error: {str(last_err)}",
+            "traceback": traceback.format_exc()
+        }
 
     def _tool_lint(self, target: str) -> dict:
         """Runs the zero-defect linter for the UI /api/agent/lint endpoint."""

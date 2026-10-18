@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 from .gemini_agent import GeminiStudioAgent
 from .render_manager import RenderManager
@@ -69,6 +69,23 @@ class RenderSubmitRequest(BaseModel):
 class SyncRequest(BaseModel):
     commit_message: Optional[str] = "Update via Graydient Studio"
     push: Optional[bool] = False
+
+class VailExecRequest(BaseModel):
+    command: str
+    params: Optional[Dict[str, Any]] = None
+
+class GodotExecRequest(BaseModel):
+    tool_name: str
+    params: Optional[Dict[str, Any]] = None
+
+class DeployAssetRequest(BaseModel):
+    mesh_path: str
+    target_engine: Optional[str] = "godot"
+    custom_project_dir: Optional[str] = None
+
+VailExecRequest.model_rebuild()
+GodotExecRequest.model_rebuild()
+DeployAssetRequest.model_rebuild()
 
 # ── API Endpoints ──────────────────────────────────────────────────────────
 
@@ -221,6 +238,31 @@ def sync_repository(req: SyncRequest):
         "stdout": proc.stdout,
         "stderr": proc.stderr
     }
+
+# ── Game Dev Agent & Engine Endpoints ──────────────────────────────────────
+
+@app.get("/api/gamedev/status")
+def get_gamedev_status():
+    from .game_dev_bridge import check_vail_connection, check_godot_status
+    return {
+        "vail": check_vail_connection(),
+        "godot": check_godot_status()
+    }
+
+@app.post("/api/gamedev/vail/exec")
+def exec_vail_command(req: VailExecRequest):
+    from .game_dev_bridge import send_vail_command
+    return send_vail_command(req.command, req.params)
+
+@app.post("/api/gamedev/godot/exec")
+def exec_godot_tool(req: GodotExecRequest):
+    from .game_dev_bridge import send_godot_tool
+    return send_godot_tool(req.tool_name, req.params)
+
+@app.post("/api/gamedev/deploy-asset")
+def deploy_asset_to_engine(req: DeployAssetRequest):
+    from .game_dev_bridge import deploy_mesh_to_game
+    return deploy_mesh_to_game(req.mesh_path, req.target_engine, req.custom_project_dir)
 
 # ── Serve Local Files & Static UI ──────────────────────────────────────────
 

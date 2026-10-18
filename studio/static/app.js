@@ -123,6 +123,9 @@ function initTabs() {
         if (targetId === 'tab-m3ds' && viewer) {
           setTimeout(() => viewer.onResize(), 50);
         }
+        if (targetId === 'tab-gamedev' && window.probeGameDevEngines) {
+          window.probeGameDevEngines();
+        }
       }
     });
   });
@@ -663,6 +666,7 @@ function initGameDev() {
     }
   }
 
+  window.probeGameDevEngines = probeEngines;
   if (probeVailBtn) probeVailBtn.addEventListener('click', probeEngines);
   if (probeGodotBtn) probeGodotBtn.addEventListener('click', probeEngines);
 
@@ -764,13 +768,13 @@ function initGameDev() {
     appendGameDevMessage('user', msg);
     if (!text) gdInput.value = '';
 
-    const typingMsg = appendGameDevMessage('assistant', 'Game Dev Agent thinking (Gemini 3.8 Flash)...');
+    const typingMsg = appendGameDevMessage('assistant', 'Game Dev Agent thinking (Gemini Flash)...');
 
     try {
-      const res = await fetch('/api/agent/chat', {
+      const res = await fetch('/api/gamedev/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `[GAME_DEV_AGENT] ${msg}` })
+        body: JSON.stringify({ message: msg })
       });
       const data = await res.json();
       let fullText = '';

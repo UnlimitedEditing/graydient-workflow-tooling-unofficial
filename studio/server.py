@@ -264,6 +264,11 @@ def deploy_asset_to_engine(req: DeployAssetRequest):
     from .game_dev_bridge import deploy_mesh_to_game
     return deploy_mesh_to_game(req.mesh_path, req.target_engine, req.custom_project_dir)
 
+@app.post("/api/gamedev/agent/chat")
+def chat_gamedev(req: ChatRequest):
+    chunks = list(agent.chat_gamedev(req.message, req.history))
+    return {"responses": chunks}
+
 # ── Serve Local Files & Static UI ──────────────────────────────────────────
 
 @app.get("/files/{filepath:path}")

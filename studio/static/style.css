@@ -894,8 +894,19 @@ body {
 
 /* ── Game Dev Agent Tab ─────────────────────────────────────────────────── */
 .gamedev-sidebar {
-  max-width: 360px;
+  width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  gap: 12px;
+}
+
+.gamedev-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .engine-card {

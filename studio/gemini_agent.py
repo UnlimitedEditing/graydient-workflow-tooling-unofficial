@@ -58,8 +58,10 @@ class GeminiStudioAgent:
                         pass
         self.api_key = key
         self.client = None
-        self.chat_session = None
-        self.system_instruction = self._build_system_instruction()
+        self.workflow_session = None
+        self.gamedev_session = None
+        self.workflow_instruction = self._build_workflow_system_instruction()
+        self.gamedev_instruction = self._build_gamedev_system_instruction()
         self._init_client()
 
     def _init_client(self):
@@ -77,7 +79,7 @@ class GeminiStudioAgent:
         self.api_key = api_key.strip()
         self._init_client()
 
-    def _build_system_instruction(self) -> str:
+    def _build_workflow_system_instruction(self) -> str:
         docs = []
         docs.append("You are the autonomous Lead Workflow Engineer & Full Coding Agent embedded inside PirateUI.")
         docs.append("You have FULL autonomous capability to read code, write generator scripts, execute terminal commands,")
@@ -113,24 +115,41 @@ class GeminiStudioAgent:
 2. ALWAYS run `lint_workflow_script` after generating or modifying any `gen_*.py` script.
 3. If the linter reports any error, self-heal the code immediately before reporting completion.
 4. M3DS Steganography: When generating 3D meshes (GLB, PLY), use SmuggleMeshAsImage or M3DS nodes so Graydient can collect the PNG and PirateUI can auto-render the 3D model.
-
-=== GAME DEV AGENT & ENGINE BRIDGES (VAIL & GODOT MCP) ===
-You are also the autonomous Game Development Lead Agent inside PirateUI.
-You control TWO primary game engine interfaces:
-1. Unreal Engine 5.8 via VAIL (Virtual Agent Interface Layer):
-   - Direct TCP socket (127.0.0.1:55557) communicating with the VAIL plugin in Unreal Engine 5.8.
-   - Use `vail_execute_command(command, params_json)` to inspect actor trees (`vail_get_tree`), spawn actors (`vail_level_spawn_actor`), mutate properties (`vail_set_property`), connect Blueprint graph pins, and trigger live coding compiles (`vail_trigger_live_coding`).
-   - If Unreal is offline, explain that the user can launch their Unreal project (e.g. `D:\\UE5.8\\vailtest`).
-2. Godot Engine 4.x via Godot MCP:
-   - Interfaces directly with Godot 4.6.1 Mono (`D:\\Godot_v4.6.1-stable_mono_win64`) and the Godot MCP ToolRegistry (`D:\\godot-mcp`).
-   - Use `godot_mcp_execute(tool_name, params_json)` to launch editor (`launch_editor`), run/stop projects (`run_project`, `stop_project`), create scenes (`create_scene`), add/edit nodes (`add_node`, `edit_node`), and capture live debug output (`get_debug_output`).
-3. 3D Game Asset Staging:
-   - Use `deploy_3d_asset_to_game(mesh_name, target_engine)` to ship generated `.glb` or `.ply` meshes directly into Godot (`res://assets`) or Unreal Content directories.
-4. Game Scripting:
-   - Author clean, typed GDScript 2.0 or C# for Godot.
-   - Author Blueprint construction or C++ logic for Unreal Engine.
 """)
         return "\n\n".join(docs)
+
+    def _build_gamedev_system_instruction(self) -> str:
+        return """You are the autonomous Lead Game Development Agent embedded inside PirateUI.
+Your SOLE domain is game development, game engine automation, scene authoring, and 3D asset integration.
+You are deliberately kept LEAN and UNBLOATED: you do NOT carry ComfyUI workflow rules, node graph schemas, or container failure constraints.
+
+=== CORE ENGINES & BRIDGES ===
+1. Godot Engine 4.x via Godot MCP:
+   - Environment: Godot 4.6.1 Mono (Official) + Godot MCP ToolRegistry.
+   - Tool: `godot_mcp_execute(tool_name, params_json)`
+   - Capabilities:
+     • Scene Authoring: `create_scene`, `add_node`, `edit_node`, `remove_node`, `save_scene`.
+     • Project Control: `launch_editor`, `run_project`, `stop_project`, `get_debug_output`, `list_projects`, `get_godot_version`.
+     • Scripting: Write modern, typed GDScript 2.0 (e.g. `@export`, `@onready`, `CharacterBody3D`, signals, `_physics_process(delta)`), or C# for Godot Mono.
+2. Unreal Engine 5.8 via VAIL (Virtual Agent Interface Layer):
+   - Protocol: Headless TCP command interface on 127.0.0.1:55557.
+   - Tool: `vail_execute_command(command, params_json)`
+   - Capabilities:
+     • Inspection: `vail_get_tree` (inspect actor and component hierarchies), `vail_level_query_actors`, `vail_asset_query`.
+     • Mutation: `vail_set_property`, `vail_level_spawn_actor`, `vail_component_add`, `vail_input_map_key`.
+     • C++ Live Coding: `vail_trigger_live_coding` to compile C++ inside Unreal Engine.
+     • Offline Guidance: If Unreal is offline, inform the user to start their Unreal project (e.g. D:\\UE5.8\\vailtest).
+3. 3D Game Asset Staging:
+   - Tool: `deploy_3d_asset_to_game(mesh_name_or_path, target_engine, custom_project_dir)`
+   - Directly ships generated/decoded 3D meshes (.glb, .ply) from PirateUI into Godot (`res://assets`) or Unreal Content directories.
+4. Workspace Tools:
+   - `read_workspace_file`, `write_workspace_file`, `run_terminal_command`, `game_dev_probe`.
+
+=== STANDARDS ===
+- Keep game logic modular, production-ready, and well-typed.
+- Test and probe engine status before and after mutations when relevant.
+- Provide immediately runnable code and tool actions.
+"""
 
     def _init_chat_session(self):
         if not self.client:
@@ -277,41 +296,66 @@ You control TWO primary game engine interfaces:
             res = deploy_mesh_to_game(mesh_name_or_path, target_engine, custom_project_dir or None)
             return json.dumps(res, indent=2)
 
-        # Store tool functions
-        self.tools = [
+        # Separate toolsets
+        self.workflow_tools = [
             read_workspace_file,
             write_workspace_file,
             run_terminal_command,
             lint_workflow_script,
             search_knowledge_catalog,
             diagnose_failure_log,
-            decode_m3ds_steganography,
+            decode_m3ds_steganography
+        ]
+
+        self.gamedev_tools = [
             vail_execute_command,
             godot_mcp_execute,
             game_dev_probe,
-            deploy_3d_asset_to_game
+            deploy_3d_asset_to_game,
+            read_workspace_file,
+            write_workspace_file,
+            run_terminal_command
         ]
 
-        # Initialize multi-turn chat session with automatic tool calling enabled
         self.active_model = "gemini-3.7-flash"
-        self.chat_session = self.client.chats.create(
+
+        self.workflow_session = self.client.chats.create(
             model=self.active_model,
             config=types.GenerateContentConfig(
-                system_instruction=self.system_instruction,
-                tools=self.tools,
+                system_instruction=self.workflow_instruction,
+                tools=self.workflow_tools,
                 temperature=0.2,
             )
         )
 
+        self.gamedev_session = self.client.chats.create(
+            model=self.active_model,
+            config=types.GenerateContentConfig(
+                system_instruction=self.gamedev_instruction,
+                tools=self.gamedev_tools,
+                temperature=0.2,
+            )
+        )
+
+    def chat_workflow(self, user_message: str, history: list = None) -> Generator[dict, None, None]:
+        """Runs the Lead Workflow Engineer chat session."""
+        return self._run_chat(user_message, is_gamedev=False)
+
+    def chat_gamedev(self, user_message: str, history: list = None) -> Generator[dict, None, None]:
+        """Runs the pure, unbloated Game Dev Agent chat session."""
+        return self._run_chat(user_message, is_gamedev=True)
+
     def chat(self, user_message: str, history: list = None) -> Generator[dict, None, None]:
-        """
-        Chat with Gemini Flash in an autonomous coding and game dev agent loop.
-        Automatically executes tools, reads/writes code, and lints workflows.
-        """
-        if not self.client or not self.chat_session:
+        """Unified chat entry point routing automatically to the right specialized session."""
+        is_gamedev = user_message.startswith("[GAME_DEV_AGENT]") or "[GAME_DEV_MODE]" in user_message
+        clean_msg = user_message.replace("[GAME_DEV_AGENT]", "").replace("[GAME_DEV_MODE]", "").strip()
+        return self._run_chat(clean_msg, is_gamedev=is_gamedev)
+
+    def _run_chat(self, user_message: str, is_gamedev: bool = False) -> Generator[dict, None, None]:
+        if not self.client or not self.workflow_session or not self.gamedev_session:
             self._init_client()
 
-        if not self.client or not self.chat_session:
+        if not self.client:
             yield {
                 "type": "error",
                 "message": "Gemini API Key is not set or invalid. Please configure your key in PirateUI Settings."
@@ -321,22 +365,37 @@ You control TWO primary game engine interfaces:
         models_to_try = [self.active_model] + [m for m in ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.8-flash"] if m != self.active_model]
         last_err = None
 
+        agent_title = "Game Dev Agent" if is_gamedev else "Lead Workflow Engineer"
+        instruction = self.gamedev_instruction if is_gamedev else self.workflow_instruction
+        tools = self.gamedev_tools if is_gamedev else self.workflow_tools
+
         for model_name in models_to_try:
             try:
+                from google.genai import types
                 if model_name != self.active_model:
-                    from google.genai import types
                     self.active_model = model_name
-                    self.chat_session = self.client.chats.create(
-                        model=self.active_model,
-                        config=types.GenerateContentConfig(
-                            system_instruction=self.system_instruction,
-                            tools=self.tools,
-                            temperature=0.2,
+                    if is_gamedev:
+                        self.gamedev_session = self.client.chats.create(
+                            model=self.active_model,
+                            config=types.GenerateContentConfig(
+                                system_instruction=instruction,
+                                tools=tools,
+                                temperature=0.2,
+                            )
                         )
-                    )
+                    else:
+                        self.workflow_session = self.client.chats.create(
+                            model=self.active_model,
+                            config=types.GenerateContentConfig(
+                                system_instruction=instruction,
+                                tools=tools,
+                                temperature=0.2,
+                            )
+                        )
 
-                yield {"type": "status", "message": f"Reasoning & coordinating tools with Gemini ({self.active_model})..."}
-                response = self.chat_session.send_message(user_message)
+                session = self.gamedev_session if is_gamedev else self.workflow_session
+                yield {"type": "status", "message": f"{agent_title} reasoning ({self.active_model})..."}
+                response = session.send_message(user_message)
                 response_text = response.text if response and response.text else "Operation complete."
                 yield {"type": "content", "text": response_text}
                 return
@@ -351,7 +410,7 @@ You control TWO primary game engine interfaces:
 
         yield {
             "type": "error",
-            "message": f"Gemini Agent error: {str(last_err)}",
+            "message": f"{agent_title} error: {str(last_err)}",
             "traceback": traceback.format_exc()
         }
 

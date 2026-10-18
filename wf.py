@@ -212,6 +212,32 @@ def cmd_new(args):
     print(f"✨ Created new workflow generator script: {filename}")
     print(f"👉 Edit '{filename}' and run `python {filename}` to build and auto-lint.")
 
+def cmd_lint(args):
+    target = args.target
+    if not os.path.exists(target):
+        candidates = [os.path.join(BASE_DIR, target), os.path.join(BASE_DIR, "templates", target)]
+        target = next((c for c in candidates if os.path.exists(c)), target)
+    if not os.path.exists(target):
+        print(f"❌ File not found: {args.target}")
+        sys.exit(1)
+
+    print(f"📐 Pre-Flight Linting: {target}")
+    if target.endswith(".py"):
+        res = subprocess.run([sys.executable, target], cwd=BASE_DIR, capture_output=True, text=True, encoding="utf-8")
+        if res.returncode != 0:
+            print(f"❌ Script execution failed (exit code {res.returncode}):")
+            print(res.stderr or res.stdout)
+            sys.exit(res.returncode)
+        print(res.stdout)
+    elif target.endswith(".json"):
+        with open(target, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        from graydient_builder.linter import lint_workflow, format_lint_report
+        is_valid, issues = lint_workflow(data)
+        print(format_lint_report(issues))
+        if not is_valid:
+            sys.exit(1)
+
 def cmd_bury(args):
     title = args.title
     reason = args.reason or "Failed on Graydient ephemeral runner."

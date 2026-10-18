@@ -53,7 +53,7 @@ def main():
     print("  [*] PIRATEUI -- AUTONOMOUS WORKFLOW & M3DS STUDIO")
     print("=" * 65)
     print(f"  * Studio UI:        {url}")
-    print(f"  * AI Engine:        Google Gemini 2.0 Flash (1M Context)")
+    print(f"  * AI Engine:        Google Gemini 3.8 Flash (1M Context)")
     print(f"  * M3DS Converter:   Active (GLB / PLY / Score JSON)")
     print(f"  * Zero-Defect Lint: 25+ Pre-Flight Checks (KI-001..KI-009)")
     print("=" * 65)

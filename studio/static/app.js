@@ -331,12 +331,23 @@ function appendMessage(role, text) {
 }
 
 function formatMarkdown(text) {
-  return text
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.4);padding:2px 4px;border-radius:4px;color:var(--accent-cyan);">$1</code>');
+  if (!text) return '';
+  // 1. Triple backtick code blocks
+  let formatted = text.replace(/```([a-zA-Z0-9_\-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<pre style="background:rgba(0,0,0,0.5);border:1px solid var(--border-color);padding:10px;border-radius:6px;overflow-x:auto;margin:8px 0;"><code style="font-family:'Fira Code',monospace;font-size:11.5px;color:var(--accent-cyan);">${escapeHtml(code)}</code></pre>`;
+  });
+  // 2. Bold & Italic
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  // 3. Inline backtick code
+  formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.4);padding:2px 5px;border-radius:4px;color:var(--accent-cyan);font-family:\'Fira Code\',monospace;font-size:11.5px;">$1</code>');
+  // 4. Line breaks
+  formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+  return formatted;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ── 5. Render Studio & Library ────────────────────────────────────────────

@@ -418,11 +418,24 @@ def cmd_sync(args):
                 shutil.copy2(cpf, os.path.join(dst_cli, cf))
         print("✅ Synced Graydient CLI (src/, public/, package.json, commands, archive, server)")
 
-    # 5. Sync root references & wf scripts
-    for rf in ["GRAYDIENT-COMPLETE-REFERENCE.md", "COMFYUI-REFERENCE.md", "wf.py", "wf.bat"]:
+    # 5. Sync root references, studio, and wf scripts
+    for rf in ["GRAYDIENT-COMPLETE-REFERENCE.md", "COMFYUI-REFERENCE.md", "wf.py", "wf.bat", "studio.py", "studio.bat"]:
         r_src = os.path.join(BASE_DIR, rf)
         if os.path.isfile(r_src):
             shutil.copy2(r_src, os.path.join(repo_dir, rf))
+            
+    # Sync studio/ directory
+    src_studio = os.path.join(BASE_DIR, "studio")
+    dst_studio = os.path.join(repo_dir, "studio")
+    if os.path.isdir(src_studio):
+        for root, dirs, files in os.walk(src_studio):
+            if "__pycache__" in root: continue
+            rel = os.path.relpath(root, src_studio)
+            target_dir = os.path.join(dst_studio, rel)
+            os.makedirs(target_dir, exist_ok=True)
+            for f in files:
+                shutil.copy2(os.path.join(root, f), os.path.join(target_dir, f))
+    print("✅ Synced Graydient Studio desktop app (studio/, studio.py, studio.bat)")
     print("✅ Synced root references and wf.py CLI")
 
     # 6. Optional Git Add, Commit & Push
@@ -487,6 +500,12 @@ def main():
     p_sync.add_argument("--push", "-p", action="store_true", help="Automatically commit and git push to GitHub")
     p_sync.add_argument("--message", "-m", default="", help="Custom git commit message")
     p_sync.set_defaults(func=cmd_sync)
+
+    # Studio Desktop App
+    p_studio = subparsers.add_parser("studio", help="Launch the Graydient Studio desktop app & M3DS viewer")
+    p_studio.add_argument("--port", type=int, default=8765, help="Server port (default 8765)")
+    p_studio.add_argument("--no-browser", action="store_true", help="Do not automatically launch browser")
+    p_studio.set_defaults(func=lambda a: subprocess.run([sys.executable, os.path.join(BASE_DIR, "studio.py"), "--port", str(a.port)] + (["--no-browser"] if a.no_browser else [])))
 
     args = parser.parse_args()
     args.func(args)

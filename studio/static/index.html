@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graydient Studio — Autonomous Workflow Engineering & M3DS Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-gem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="logo-title">GRAYDIENT <span>STUDIO</span></h1>
+          <span class="logo-subtitle">Autonomous Workflow Engineer & M3DS Converter</span>
+        </div>
+      </div>
+
+      <div class="header-pills">
+        <div class="status-pill pill-ai" id="pill-ai" title="Google Gemini 2.0 Flash (1M Context) zero-cost driver">
+          <span class="status-dot"></span>
+          <span id="ai-status-text">Gemini 2.0 Flash: Ready</span>
+        </div>
+        <div class="status-pill pill-graveyard" title="34 Hardened Container Failure Rules">
+          <span class="pill-icon">🛡️</span>
+          <span>Graveyard: 34 Rules</span>
+        </div>
+        <div class="status-pill pill-m3ds" title="Automatic detection & unpacking of 3D meshes & data">
+          <span class="pill-icon">🧊</span>
+          <span>M3DS Auto-Decoder: Online</span>
+        </div>
+        <button class="settings-btn" id="open-settings-btn" title="Configure API Key">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="app-nav">
+      <button class="nav-tab active" data-tab="tab-m3ds">
+        <span class="tab-icon">🧊</span>
+        <span>M3DS 3D Viewer</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-agent">
+        <span class="tab-icon">🤖</span>
+        <span>Gemini AI Co-Pilot</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-renders">
+        <span class="tab-icon">⚡</span>
+        <span>Render Studio</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-linter">
+        <span class="tab-icon">📐</span>
+        <span>Workflow Linter</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-diagnostics">
+        <span class="tab-icon">🩺</span>
+        <span>Diagnostics</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Panels -->
+    <main class="app-body">
+      <!-- 1. M3DS & 3D STUDIO TAB -->
+      <section class="tab-panel active" id="tab-m3ds">
+        <div class="split-view">
+          <!-- Left Control Panel -->
+          <div class="panel-card sidebar-panel">
+            <h2 class="panel-title">M3DS Steganography Converter</h2>
+            <p class="panel-desc">
+              Graydient returns 3D meshes (GLB, PLY) and scores inside lossless PNG images. Drop any image here to instantly recover and visualize the 3D model.
+            </p>
+
+            <div class="drop-zone" id="m3ds-drop-zone">
+              <div class="drop-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <p>Drag & drop <strong>M3DS PNG image</strong></p>
+              <span class="drop-subtext">or click to browse local files</span>
+              <input type="file" id="m3ds-file-input" accept=".png,image/png" style="display:none;">
+            </div>
+
+            <div class="quick-samples">
+              <span class="section-label">Quick Test on Local Samples:</span>
+              <div class="sample-chips">
+                <button class="sample-chip" id="load-sample-splat">
+                  <span>✨ Gaussian Splat (.ply)</span>
+                </button>
+                <button class="sample-chip" id="load-sample-score">
+                  <span>🎵 YuE2 Song Score (.json)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Decoded Metadata Card -->
+            <div class="decoded-card" id="decoded-info-card" style="display:none;">
+              <div class="card-header">
+                <span class="badge-tag" id="decoded-type-badge">3D Mesh</span>
+                <span class="file-size" id="decoded-size">0 KB</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Extracted File:</span>
+                <span class="meta-val" id="decoded-filename">-</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Container CRC32:</span>
+                <span class="meta-val meta-ok">✓ Verified Valid</span>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" id="download-extracted-btn">⬇ Export Decoded Asset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right 3D Viewport Panel -->
+          <div class="panel-card viewport-panel">
+            <div class="viewport-header">
+              <div class="viewport-title">
+                <span class="dot-online"></span>
+                <span id="viewport-status">Interactive 3D WebGL Canvas</span>
+              </div>
+              <div class="viewport-controls">
+                <label class="toggle-control">
+                  <input type="checkbox" id="wireframe-toggle">
+                  <span>Wireframe</span>
+                </label>
+                <button class="btn-sm" id="reset-cam-btn">↺ Reset View</button>
+              </div>
+            </div>
+
+            <div class="canvas-wrapper" id="three-viewport">
+              <div class="empty-hint" id="three-hint">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <p>No 3D Model Loaded</p>
+                <span>Drop an M3DS PNG on the left to extract and render the model in real time</span>
+              </div>
+            </div>
+
+            <!-- JSON Score Viewer (conditional) -->
+            <div class="json-viewport" id="json-viewport" style="display:none;">
+              <pre><code id="json-score-code"></code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. GEMINI AI CO-PILOT TAB -->
+      <section class="tab-panel" id="tab-agent">
+        <div class="agent-layout">
+          <div class="panel-card chat-panel">
+            <div class="chat-header">
+              <div class="agent-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path>
+                  <rect x="3" y="8" width="18" height="12" rx="2"></rect>
+                  <circle cx="9" cy="13" r="1.5"></circle>
+                  <circle cx="15" cy="13" r="1.5"></circle>
+                  <path d="M9 17h6"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="panel-title" style="margin:0;">Gemini 2.0 Flash Autonomous Co-Pilot</h2>
+                <span class="agent-badge">1,000,000 Token Context • Zero Cost • Full Graydient Catalog</span>
+              </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+              <div class="message msg-assistant">
+                <div class="msg-bubble">
+                  👋 <strong>Welcome to Graydient Studio!</strong> I am your zero-cost autonomous workflow engineer.<br><br>
+                  I have your entire repository embedded into my 1M-token context — including <strong>all 34 Graveyard rules</strong> (`KI-007`), the complete <strong>ComfyUI node schema catalog</strong> (`node_schema_db.json`), and verified model CDN staging URLs (`concept_db.json`).<br><br>
+                  What would you like to build or diagnose today?
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Suggestions -->
+            <div class="chat-suggestions">
+              <button class="chip-suggestion" data-prompt="Audit and explain the FastWan 1.3B 720p 2-stage latent upscale workflow">
+                ⚡ FastWan 720p Pipeline
+              </button>
+              <button class="chip-suggestion" data-prompt="How do I configure an M3DS text-to-3D mesh workflow so Graydient returns a valid GLB?">
+                🧊 M3DS Text-to-3D Mesh
+              </button>
+              <button class="chip-suggestion" data-prompt="What are the strict rules for slot4 through slot8 field mapping on Graydient?">
+                🔢 Slot Mapping Rules (KI-003)
+              </button>
+              <button class="chip-suggestion" data-prompt="Why does my container fail with 'maturin: command not found'?">
+                🛡️ Graveyard Rule #1 (Banned Wheels)
+              </button>
+            </div>
+
+            <div class="chat-input-bar">
+              <textarea id="agent-input" rows="1" placeholder="Ask Gemini Flash to author a workflow, inspect a failure, or check a model..."></textarea>
+              <button class="btn btn-primary" id="agent-send-btn">
+                <span>Send</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. RENDER STUDIO TAB -->
+      <section class="tab-panel" id="tab-renders">
+        <div class="split-view">
+          <div class="panel-card sidebar-panel">
+            <h2 class="panel-title">Launch Render</h2>
+            <form id="render-form">
+              <div class="form-group">
+                <label>Workflow Slug</label>
+                <input type="text" id="render-slug" placeholder="e.g. turbo-moss, fastwan, meshscript-txt2mesh" required>
+              </div>
+              <div class="form-group">
+                <label>Prompt</label>
+                <textarea id="render-prompt" rows="3" placeholder="Enter positive prompt..." required></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Slot 1</label>
+                  <input type="text" id="render-slot1" placeholder="e.g. context_level">
+                </div>
+                <div class="form-group">
+                  <label>Slot 2</label>
+                  <input type="text" id="render-slot2" placeholder="e.g. steps / seed">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block" id="submit-render-btn">
+                ⚡ Fire Render to Graydient
+              </button>
+            </form>
+          </div>
+
+          <div class="panel-card viewport-panel">
+            <div class="viewport-header">
+              <div class="viewport-title">Local Render History & Gallery</div>
+              <button class="btn-sm" id="refresh-renders-btn">↻ Refresh</button>
+            </div>
+            <div class="renders-grid" id="renders-grid">
+              <!-- Render cards rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. WORKFLOW LINTER TAB -->
+      <section class="tab-panel" id="tab-linter">
+        <div class="split-view">
+          <div class="panel-card sidebar-panel">
+            <h2 class="panel-title">Canonical Templates</h2>
+            <div class="template-list" id="template-list">
+              <!-- Loaded via JS -->
+            </div>
+            <button class="btn btn-primary btn-block" id="run-linter-btn" style="margin-top:16px;">
+              🔍 Run Zero-Defect Linter
+            </button>
+          </div>
+
+          <div class="panel-card viewport-panel">
+            <div class="viewport-header">
+              <div class="viewport-title">Workflow Generator Script</div>
+              <span class="badge-tag" id="linter-status-badge">Ready to Lint</span>
+            </div>
+            <div class="editor-wrapper">
+              <textarea id="code-editor" class="code-area" spellcheck="false"></textarea>
+            </div>
+            <div class="linter-output" id="linter-results-area" style="display:none;">
+              <h3 id="linter-summary-title">Lint Results</h3>
+              <div id="linter-issues-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. DIAGNOSTICS TAB -->
+      <section class="tab-panel" id="tab-diagnostics">
+        <div class="diagnostics-layout">
+          <div class="panel-card">
+            <h2 class="panel-title">Automated Container Log Diagnostics</h2>
+            <p class="panel-desc">
+              Paste a failed Graydient container execution log or stack trace below. The diagnostic engine instantly cross-references against the 34 cataloged Graveyard rules to output the exact root cause and fix.
+            </p>
+            <div class="form-group">
+              <textarea id="diagnose-input" rows="8" class="code-area" placeholder="Paste workflow-failure-R*.txt log or Python traceback here..."></textarea>
+            </div>
+            <button class="btn btn-primary" id="run-diagnose-btn">🩺 Diagnose Against KI-007 Graveyard</button>
+
+            <div class="diagnose-result" id="diagnose-result" style="display:none; margin-top:20px;">
+              <div class="diagnose-header">
+                <span class="badge-tag badge-err" id="diag-category">Identified Failure Mode</span>
+              </div>
+              <div class="diagnose-body" id="diag-body"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Settings Modal for Gemini API Key -->
+  <div class="modal-overlay" id="settings-modal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Studio Settings</h3>
+        <button class="close-modal-btn" id="close-settings-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Google AI Studio API Key (Gemini Flash)</label>
+          <p class="field-hint">
+            Get a 100% free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com</a>. Gives 1,500 free requests per day with 1M context.
+          </p>
+          <input type="password" id="settings-key-input" placeholder="AIzaSy...">
+        </div>
+        <button class="btn btn-primary" id="save-key-btn">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

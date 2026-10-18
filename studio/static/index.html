@@ -138,6 +138,17 @@
                 <button class="btn btn-primary" id="download-extracted-btn">⬇ Export Decoded Asset</button>
               </div>
             </div>
+
+            <!-- Staged Scene Outliner -->
+            <div class="scene-outliner-card" id="scene-outliner-card">
+              <div class="card-header">
+                <span class="section-label" style="margin:0;">Environment Scene Outliner</span>
+                <button class="btn-sm" id="export-scene-btn" title="Export entire multi-mesh scene as single GLB">⬇ Export Scene (.glb)</button>
+              </div>
+              <div class="staged-assets-list" id="staged-assets-list">
+                <div style="font-size:11.5px;color:var(--text-dim);padding:8px 0;">No props staged yet. Load or drop assets to build environments.</div>
+              </div>
+            </div>
           </div>
 
           <!-- Right 3D Viewport Panel -->
@@ -148,10 +159,16 @@
                 <span id="viewport-status">Interactive 3D WebGL Canvas</span>
               </div>
               <div class="viewport-controls">
+                <div class="gizmo-mode-group">
+                  <button class="btn-sm active" id="gizmo-translate-btn" title="Translate / Move [W]">Move (W)</button>
+                  <button class="btn-sm" id="gizmo-rotate-btn" title="Rotate [E]">Rotate (E)</button>
+                  <button class="btn-sm" id="gizmo-scale-btn" title="Scale [R]">Scale (R)</button>
+                </div>
                 <label class="toggle-control">
                   <input type="checkbox" id="wireframe-toggle">
                   <span>Wireframe</span>
                 </label>
+                <button class="btn-sm" id="delete-asset-btn" style="color:var(--accent-rose);" title="Remove selected prop">✕ Delete</button>
                 <button class="btn-sm" id="reset-cam-btn">↺ Reset View</button>
               </div>
             </div>

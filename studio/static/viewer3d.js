@@ -1,12 +1,9 @@
-/**
- * Three.js 3D Viewer for Graydient Studio.
- * Renders decoded M3DS GLB meshes and PLY point clouds with OrbitControls,
- * PBR lighting, and auto-camera framing.
- */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export class StudioViewer3D {
@@ -18,6 +15,9 @@ export class StudioViewer3D {
     this.camera = null;
     this.renderer = null;
     this.controls = null;
+    this.transformControls = null;
+    this.assets = [];          // Array of { id, name, object, type }
+    this.selectedAsset = null;
     this.currentModel = null;
     this.animId = null;
 
@@ -68,11 +68,102 @@ export class StudioViewer3D {
     this.controls.dampingFactor = 0.05;
     this.controls.target.set(0, 0.5, 0);
 
+    // Transform Controls (Move / Rotate / Scale Gizmo)
+    this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+    this.transformControls.size = 0.75;
+    this.transformControls.addEventListener('dragging-changed', (e) => {
+      this.controls.enabled = !e.value;
+    });
+    this.scene.add(this.transformControls);
+
+    // Keyboard shortcuts for gizmo (W=Translate, E=Rotate, R=Scale)
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (e.key === 'w' || e.key === 'W') this.setGizmoMode('translate');
+      if (e.key === 'e' || e.key === 'E') this.setGizmoMode('rotate');
+      if (e.key === 'r' || e.key === 'R') this.setGizmoMode('scale');
+    });
+
     // Resize listener
     window.addEventListener('resize', () => this.onResize());
 
     // Animation Loop
     this.animate();
+  }
+
+  setGizmoMode(mode) {
+    if (this.transformControls) {
+      this.transformControls.setMode(mode);
+    }
+  }
+
+  addGLBToScene(url, name = 'Asset', onProgress, onError) {
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      (gltf) => {
+        const obj = gltf.scene;
+        const id = 'asset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        obj.userData.assetId = id;
+        this.scene.add(obj);
+
+        const assetEntry = { id, name, object: obj, type: 'glb' };
+        this.assets.push(assetEntry);
+        this.selectAsset(id);
+        if (this.assets.length === 1) {
+          this.frameObject(obj);
+        }
+        if (onProgress) onProgress(100, assetEntry);
+      },
+      (xhr) => {
+        if (onProgress && xhr.total) {
+          onProgress(Math.round((xhr.loaded / xhr.total) * 100));
+        }
+      },
+      onError
+    );
+  }
+
+  selectAsset(id) {
+    const asset = this.assets.find(a => a.id === id);
+    if (asset) {
+      this.selectedAsset = asset;
+      this.transformControls.attach(asset.object);
+    } else {
+      this.selectedAsset = null;
+      this.transformControls.detach();
+    }
+  }
+
+  deleteSelectedAsset() {
+    if (!this.selectedAsset) return;
+    this.transformControls.detach();
+    this.scene.remove(this.selectedAsset.object);
+    this.assets = this.assets.filter(a => a.id !== this.selectedAsset.id);
+    this.selectedAsset = null;
+  }
+
+  exportCombinedScene(filename = 'staged_environment.glb') {
+    const exporter = new GLTFExporter();
+    const exportGroup = new THREE.Group();
+    this.assets.forEach(a => {
+      exportGroup.add(a.object.clone());
+    });
+
+    exporter.parse(
+      exportGroup,
+      (gltf) => {
+        const blob = new Blob([gltf], { type: 'model/gltf-binary' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+      },
+      (error) => {
+        console.error('GLTF Export error:', error);
+      },
+      { binary: true }
+    );
   }
 
   onResize() {
@@ -96,25 +187,7 @@ export class StudioViewer3D {
 
   loadGLB(url, onProgress, onError) {
     this.clearModel();
-    const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        this.currentModel = gltf.scene;
-        this.scene.add(this.currentModel);
-        this.frameObject(this.currentModel);
-        if (onProgress) onProgress(100);
-      },
-      (xhr) => {
-        if (onProgress && xhr.total) {
-          onProgress(Math.round((xhr.loaded / xhr.total) * 100));
-        }
-      },
-      (err) => {
-        console.error('Error loading GLB:', err);
-        if (onError) onError(err);
-      }
-    );
+    this.addGLBToScene(url, 'Primary Mesh', onProgress, onError);
   }
 
   loadPLY(url, onProgress, onError) {
@@ -169,6 +242,10 @@ export class StudioViewer3D {
   }
 
   clearModel() {
+    if (this.transformControls) this.transformControls.detach();
+    this.assets.forEach(a => this.scene.remove(a.object));
+    this.assets = [];
+    this.selectedAsset = null;
     if (this.currentModel) {
       this.scene.remove(this.currentModel);
       this.currentModel = null;

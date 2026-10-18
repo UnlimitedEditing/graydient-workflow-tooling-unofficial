@@ -43,6 +43,67 @@ function initViewer() {
       if (viewer.currentModel) viewer.frameObject(viewer.currentModel);
     });
   }
+
+  // Gizmo Mode Buttons (W, E, R)
+  const btnT = document.getElementById('gizmo-translate-btn');
+  const btnR = document.getElementById('gizmo-rotate-btn');
+  const btnS = document.getElementById('gizmo-scale-btn');
+
+  function setMode(mode, activeBtn) {
+    viewer.setGizmoMode(mode);
+    [btnT, btnR, btnS].forEach(b => b && b.classList.remove('active'));
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  if (btnT) btnT.addEventListener('click', () => setMode('translate', btnT));
+  if (btnR) btnR.addEventListener('click', () => setMode('rotate', btnR));
+  if (btnS) btnS.addEventListener('click', () => setMode('scale', btnS));
+
+  // Delete Selected Prop
+  const deleteBtn = document.getElementById('delete-asset-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      viewer.deleteSelectedAsset();
+      updateSceneOutliner();
+    });
+  }
+
+  // Export Combined Scene (.glb)
+  const exportSceneBtn = document.getElementById('export-scene-btn');
+  if (exportSceneBtn) {
+    exportSceneBtn.addEventListener('click', () => {
+      if (viewer.assets.length === 0) {
+        alert('No 3D props staged in scene to export.');
+        return;
+      }
+      viewer.exportCombinedScene('staged_environment.glb');
+    });
+  }
+}
+
+function updateSceneOutliner() {
+  const listEl = document.getElementById('staged-assets-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  if (viewer.assets.length === 0) {
+    listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-dim);padding:8px 0;">No props staged yet. Load or drop assets to build environments.</div>';
+    return;
+  }
+
+  viewer.assets.forEach((a, idx) => {
+    const item = document.createElement('div');
+    item.className = 'staged-asset-item' + (viewer.selectedAsset && viewer.selectedAsset.id === a.id ? ' selected' : '');
+    item.innerHTML = `
+      <span>📦 ${a.name || 'Prop ' + (idx + 1)}</span>
+      <span style="font-size:10px;color:var(--text-dim);text-transform:uppercase;">${a.type}</span>
+    `;
+    item.addEventListener('click', () => {
+      viewer.selectAsset(a.id);
+      updateSceneOutliner();
+    });
+    listEl.appendChild(item);
+  });
 }
 
 // ── 2. Tab Navigation ─────────────────────────────────────────────────────
@@ -173,13 +234,16 @@ function handleM3DSResult(meta) {
   if (meta.category === '3d_mesh') {
     if (hintEl) hintEl.style.display = 'none';
     if (jsonView) jsonView.style.display = 'none';
-    updateViewportStatus(`Rendering 3D Model: ${meta.extracted_filename}`);
-    viewer.loadGLB(fileUrl);
+    updateViewportStatus(`Staging 3D Prop: ${meta.extracted_filename}`);
+    viewer.addGLBToScene(fileUrl, meta.extracted_filename, () => {
+      updateSceneOutliner();
+    });
   } else if (meta.category === '3d_pointcloud') {
     if (hintEl) hintEl.style.display = 'none';
     if (jsonView) jsonView.style.display = 'none';
     updateViewportStatus(`Rendering Point Cloud: ${meta.extracted_filename}`);
     viewer.loadPLY(fileUrl);
+    updateSceneOutliner();
   } else if (meta.category === 'score_json') {
     if (hintEl) hintEl.style.display = 'none';
     if (jsonView) {

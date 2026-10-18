@@ -98,7 +98,11 @@ export function registerRenderCommand(program: Command): void {
           const result = await submitRender(
             rawInput,
             opts.workflow,
-            (name, data) => logProgress(`[${name}] ${JSON.stringify(data).slice(0, 200)}`),
+            (name, data) => {
+              // the hash sits past the 200-char cut and is the only way to `status` a render after --timeout
+              const hash = (data as Record<string, unknown>)?.render_hash
+              logProgress(`[${name}]${hash ? ` render_hash=${hash}` : ''} ${JSON.stringify(data).slice(0, 200)}`)
+            },
             {
               initImage,
               initVideo,

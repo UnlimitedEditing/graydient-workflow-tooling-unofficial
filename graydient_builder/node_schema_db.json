@@ -135,7 +135,9 @@
       "format": "COMBO: flac|mp3|opus (widget)",
       "quality": "COMBO: V0|128k|192k|256k|320k (widget)"
     },
-    "outputs": ["audio"],
+    "outputs": [
+      "audio"
+    ],
     "note": "Standard ComfyUI advanced audio export node with configurable format (flac, mp3, opus) and high-bitrate quality (320k)."
   },
   "LTXVAudioVAEEncode": {
@@ -308,7 +310,7 @@
       "INT",
       "BOOL"
     ],
-    "note": "Confirmed the hard way: this script's first pass guessed a bare 'a' key instead of the Autogrow-group 'values.a'. Also confirmed a real bug where the downstream wiring read the FLOAT output (slot 0) instead of the INT output (slot 1) for a value later used as a frame count -- frame counts need the INT output, not FLOAT. | LTX-2.5 official t2v wiring (read from the template, ran live in pinkcherry-ltx25): expression 'a' on values.a=fps -> output[0] FLOAT feeds LTXVConditioning.frame_rate and CreateVideo.fps; output[1] INT feeds LTXVEmptyLatentAudio.frame_rate (typed 'FLOAT,INT')."
+    "note": "Confirmed the hard way: this script's first pass guessed a bare 'a' key instead of the Autogrow-group 'values.a'. Also confirmed a real bug where the downstream wiring read the FLOAT output (slot 0) instead of the INT output (slot 1) for a value later used as a frame count -- frame counts need the INT output, not FLOAT. | LTX-2.5 official t2v wiring (read from the template, ran live in pinkcherry-ltx25): expression 'a' on values.a=fps -> output[0] FLOAT feeds LTXVConditioning.frame_rate and CreateVideo.fps; output[1] INT feeds LTXVEmptyLatentAudio.frame_rate (typed 'FLOAT,INT'). | Harvest 2026-10-09: a 3-input expression ('values.c') is rejected by the linter as unverified (only values.a / values.b are verified from source) -- chain two nodes instead. Ternary expressions work (simpleeval): 'a if a < b else b' (a min) ran live in edit-firstframe-qwen21 v6-v9."
   },
   "TextGenerateLTX2Prompt": {
     "source": "ComfyUI core (LLM prompt-enhancer node used by official LTX-2.5 templates) -- confirmed directly from a real official template's saved workflow JSON (node 380 in the LTX-2.5 i2v template), not guessed",
@@ -345,7 +347,7 @@
     "outputs": [
       "output"
     ],
-    "note": "Confirmed the hard way: this script's first pass guessed 'value_if_false'/'value_if_true'."
+    "note": "Confirmed the hard way: this script's first pass guessed 'value_if_false'/'value_if_true'. | Harvest 2026-10-09: also switches CONDITIONING (two TextEncodeQwenImage21 branches, on_true/on_false, one switch each for positive and negative) as well as IMAGE; both selections ran live (edit-firstframe-qwen21 v6-v9)."
   },
   "LoadAudio": {
     "source": "comfy_extras/nodes_audio.py (ComfyUI built-in)",
@@ -419,7 +421,7 @@
       "IMAGE",
       "MASK"
     ],
-    "note": "SAFE for Graydient's image1 field specifically -- confirmed the hard way that image1 resolves to a filename Graydient pre-stages into input/ BEFORE the job runs (e.g. 'image1__<hash>.png'), not a URL. This is the opposite of the general 'never pass a URL to LoadImage, use LoadImageFromURL' guidance -- image1 genuinely is filename-based, confirmed by a real job failure when LoadImageFromURL was used instead ('Invalid URL image1__<hash>.png: No scheme supplied')."
+    "note": "SAFE for Graydient's image1 field specifically -- confirmed the hard way that image1 resolves to a filename Graydient pre-stages into input/ BEFORE the job runs (e.g. 'image1__<hash>.png'), not a URL. This is the opposite of the general 'never pass a URL to LoadImage, use LoadImageFromURL' guidance -- image1 genuinely is filename-based, confirmed by a real job failure when LoadImageFromURL was used instead ('Invalid URL image1__<hash>.png: No scheme supplied'). | Harvest 2026-10-09: a LoadImage with image 'example.png' (ships in ComfyUI's input/, present on Graydient runners) keeps validation passing when image1 is NOT supplied, and Graydient overwrites it with the staged file when image1 is supplied (edit-firstframe-qwen21 v8: both cases ran live). Pair it with a PrimitiveString mapped from the same image1 field (a local_field may map to several nodes) + StringCompare to know whether a reference was given."
   },
   "LoadVideoFromURLAuto": {
     "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'filename' input added commit 39e1be8)",
@@ -433,7 +435,7 @@
     "outputs": [
       "IMAGE"
     ],
-    "note": "Confirmed working end-to-end on real Graydient jobs (subtitle-burn-in workflow, gen_subtitles.py), including a run with the 'filename' input present in the graph. Unlike TripoSGLoadVideoFromURL (forces a fixed width/height, distorting non-matching-aspect sources), this ffprobes the real source dimensions and scales preserving aspect, capped to max_side, rounded to even pixels for h264. Wire slot1-style downstream style params off frames.shape rather than piping width/height through the graph -- this node deliberately has no width/height OUTPUT, since BurnSubtitlesFromTimeline reads frame dims directly from the IMAGE tensor. KI-003 §3.2: Graydient's init_<type>_* is a {bool,filename,url} triplet and it's unconfirmed which of filename/url a given submission path populates -- map both."
+    "note": "Confirmed working end-to-end on real Graydient jobs (subtitle-burn-in workflow, gen_subtitles.py), including a run with the 'filename' input present in the graph. Unlike TripoSGLoadVideoFromURL (forces a fixed width/height, distorting non-matching-aspect sources), this ffprobes the real source dimensions and scales preserving aspect, capped to max_side, rounded to even pixels for h264. Wire slot1-style downstream style params off frames.shape rather than piping width/height through the graph -- this node deliberately has no width/height OUTPUT, since BurnSubtitlesFromTimeline reads frame dims directly from the IMAGE tensor. KI-003 \u00a73.2: Graydient's init_<type>_* is a {bool,filename,url} triplet and it's unconfirmed which of filename/url a given submission path populates -- map both. | Harvest 2026-10-09 (edit-firstframe-qwen21, source read nodes.py): with BOTH url and filename empty it does NOT error -- it silently returns one black 480x832 frame, so a job with no delivered video still reports success and ships a black image of exactly 832x480 (seen in 3 jobs). max_frames=1 returns just frame 0 (confirmed: output matched ffmpeg's frame 0 of the same clip). The video arrived only after submitting with the real init_video triplet (graydient render --init-video <url>, delivered as init_video_filename) and mapping init_video_filename like the platform's own extract-frames workflow; see KI-007 section 25."
   },
   "BurnSubtitlesFromTimeline": {
     "source": "ComfyUI-TripoSG/nodes.py (added commit 84d3299; 'speed' input added commit 554da56)",
@@ -464,7 +466,7 @@
       "IMAGE (lyrics_card)",
       "STRING (lyrics_json)"
     ],
-    "note": "Confirmed working with a video URL (not just an audio URL) passed directly to 'url' -- faster-whisper decodes the audio track straight out of the video container, no separate audio-extraction step needed for transcription. lyrics_json is output index 1, a JSON string with a 'timeline' list of {start,end,text,type} entries (type is 'lyric' or 'instrumental'); 'lyric' entries also carry a 'words' list of {start,end,text} (added same session, NOT yet confirmed on a real job -- only the pre-existing segment-level fields were confirmed) for BurnSubtitlesFromTimeline's speed-based rechunking. concept_mapping for the whisper weights MUST be re-derived per model_size via the real HF API file listing (huggingface.co/api/models/Systran/faster-whisper-<size>) -- faster-whisper-small ships vocabulary.txt and NO preprocessor_config.json, while faster-whisper-large-v3 ships vocabulary.json AND preprocessor_config.json. Copying large-v3's staged filenames for 'small' produced ctranslate2 error 'Cannot load the vocabulary from the model directory' on a real job this session; buried in KI-007 graveyard as a separate anti-pattern entry. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
+    "note": "Confirmed working with a video URL (not just an audio URL) passed directly to 'url' -- faster-whisper decodes the audio track straight out of the video container, no separate audio-extraction step needed for transcription. lyrics_json is output index 1, a JSON string with a 'timeline' list of {start,end,text,type} entries (type is 'lyric' or 'instrumental'); 'lyric' entries also carry a 'words' list of {start,end,text} (added same session, NOT yet confirmed on a real job -- only the pre-existing segment-level fields were confirmed) for BurnSubtitlesFromTimeline's speed-based rechunking. concept_mapping for the whisper weights MUST be re-derived per model_size via the real HF API file listing (huggingface.co/api/models/Systran/faster-whisper-<size>) -- faster-whisper-small ships vocabulary.txt and NO preprocessor_config.json, while faster-whisper-large-v3 ships vocabulary.json AND preprocessor_config.json. Copying large-v3's staged filenames for 'small' produced ctranslate2 error 'Cannot load the vocabulary from the model directory' on a real job this session; buried in KI-007 graveyard as a separate anti-pattern entry. KI-003 \u00a73.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
   },
   "LoadAudioFromURLStereo": {
     "source": "ComfyUI-TripoSG/nodes.py",
@@ -476,7 +478,7 @@
     "outputs": [
       "AUDIO"
     ],
-    "note": "Confirmed working with a video URL (not just an audio URL) -- decodes via an ffmpeg subprocess against whatever container the URL points to, so the same init_video_url can feed this node to extract the original audio track for re-muxing into a subtitle-burn or other video-in/video-out workflow's output, no separate audio field mapping needed. BUG FOUND AND FIXED same session: the original version had NO local-filename fallback at all (bare urllib.request.urlopen(url), which raises 'unknown url type' on a filename) -- would have crashed outright on any submission that populated init_video_filename instead of init_video_url. Now resolves http(s) vs local exactly like TranscribeAudioFromURL/LoadImageFromURL. KI-003 §3.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
+    "note": "Confirmed working with a video URL (not just an audio URL) -- decodes via an ffmpeg subprocess against whatever container the URL points to, so the same init_video_url can feed this node to extract the original audio track for re-muxing into a subtitle-burn or other video-in/video-out workflow's output, no separate audio field mapping needed. BUG FOUND AND FIXED same session: the original version had NO local-filename fallback at all (bare urllib.request.urlopen(url), which raises 'unknown url type' on a filename) -- would have crashed outright on any submission that populated init_video_filename instead of init_video_url. Now resolves http(s) vs local exactly like TranscribeAudioFromURL/LoadImageFromURL. KI-003 \u00a73.2: init_<type>_* is a {bool,filename,url} triplet, map both filename and url."
   },
   "VHS_VideoCombine": {
     "source": "ComfyUI-VideoHelperSuite (github.com/Kosinkadink/ComfyUI-VideoHelperSuite)",
@@ -652,7 +654,7 @@
       "card",
       "summary"
     ],
-    "note": "widgets_values order = input order above (audio_url 0, media_url 1, media_filename 2, brief 3, llm 4, seed 5, whisper_model 6). Runs Ollama 0.34.2 + qwen3:14b from concept-staged files (see KI-007 §16). Live log showed init_image_url arriving as the real URL AND init_image_filename as a staged 'init_image__<hash>.ogg' for the SAME file -- the node dedupes by content kind (first sheet / first audio wins)."
+    "note": "widgets_values order = input order above (audio_url 0, media_url 1, media_filename 2, brief 3, llm 4, seed 5, whisper_model 6). Runs Ollama 0.34.2 + qwen3:14b from concept-staged files (see KI-007 \u00a716). Live log showed init_image_url arriving as the real URL AND init_image_filename as a staged 'init_image__<hash>.ogg' for the SAME file -- the node dedupes by content kind (first sheet / first audio wins)."
   },
   "RigStudioSaveSheet": {
     "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_sheet.py -- confirmed live: render ZVe419 returned the sheet PNG and it decoded byte-exact locally (analysis/sheet.py loads) and was accepted by rig-perform (render ndxPNV).",
@@ -1197,5 +1199,685 @@
     },
     "outputs": [],
     "note": "Confirmed by a real Graydient job: render 39yNVD (workflow3864 v3, gen_ltx25_ripple.py, 2026-10-07, `Prompt executed in 37.36 seconds`, delivered a 768x448 / 97-frame mp4). A clean run proves every REQUIRED input was present and correctly typed; ComfyUI ignores unknown extra API inputs, so it does not by itself prove each optional key is real. The stock save node Graydient's collector recognises; with CreateVideo(images, audio, fps) upstream it delivered an h264 mp4 with an AAC track."
+  },
+  "ImageScaleToTotalPixels": {
+    "source": "ComfyUI master (comfy_extras/nodes_post_processing.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "image": "IMAGE",
+      "upscale_method": "COMBO (nearest-exact|bilinear|area|bicubic|lanczos)",
+      "megapixels": "FLOAT (widget; may be a link)",
+      "resolution_steps": "INT (widget)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Read from source: target total = megapixels * 1024 * 1024 (MiB-style, NOT 1e6), then width/height = round(dim * scale / resolution_steps) * resolution_steps and the image is RESIZED to that (crop='disabled'), so the aspect ratio drifts by up to steps/2 px per side; it never crops. Consequence found the hard way: a 'never upscale' cap computed as w*h/1e6 still upscales ~2.4% per side (use w*h/1048576). Confirmed live (edit-firstframe-qwen21 v6-v9, many jobs): 'megapixels' accepts a link (from ComfyMathExpression) and the snapped size round-trips cleanly through ImageScale back to the source size."
+  },
+  "ImageScale": {
+    "source": "ComfyUI nodes.py (read via raw.githubusercontent.com 2026-10-09)",
+    "inputs": {
+      "image": "IMAGE",
+      "upscale_method": "COMBO (nearest-exact|bilinear|area|bicubic|lanczos)",
+      "width": "INT (widget; may be a link)",
+      "height": "INT (widget; may be a link)",
+      "crop": "COMBO (disabled|center)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "width/height 0 = derive from the other axis. Confirmed live (edit-firstframe-qwen21 v4-v9): width/height linked from GetImageSize returns the output at the source video's exact frame size (500x372, 768x448 both exact)."
+  },
+  "GetImageSize": {
+    "source": "ComfyUI master (comfy_extras/nodes_images.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "image": "IMAGE"
+    },
+    "outputs": [
+      "width (INT, slot 0)",
+      "height (INT, slot 1)",
+      "batch_size (INT, slot 2)"
+    ],
+    "note": "Outputs are ordered width, height, batch_size. Confirmed live (edit-firstframe-qwen21): slots 0/1 linked into ImageScale width/height and into ComfyMathExpression."
+  },
+  "ImageCompositeMasked": {
+    "source": "ComfyUI master (comfy_extras/nodes_mask.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "destination": "IMAGE",
+      "source": "IMAGE",
+      "x": "INT (widget; may be a link)",
+      "y": "INT (widget)",
+      "resize_source": "BOOLEAN (widget)",
+      "mask": "MASK (optional; in SOURCE coordinates)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Pastes source onto destination at (x, y); destination pixels not covered by source stay untouched. Confirmed live (edit-firstframe-qwen21 v8/v9): x linked from a PrimitiveInt (45) moved a model output 45 px right over the original frame, residual shift vs the true frame 0 measured 0 px; the uncovered left strip stays original pixels."
+  },
+  "FeatherMask": {
+    "source": "ComfyUI master (comfy_extras/nodes_mask.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "mask": "MASK",
+      "left": "INT (widget)",
+      "top": "INT (widget)",
+      "right": "INT (widget)",
+      "bottom": "INT (widget)"
+    },
+    "outputs": [
+      "MASK"
+    ],
+    "note": "Ramps the mask linearly from 0 at each named edge up to its value over N px. With SolidMask(1.0) -> FeatherMask(left=40) -> ImageCompositeMasked.mask it fades a pasted image into the destination across ~40 px (confirmed live, edit-firstframe-qwen21 v9: hard seam at the paste edge gone on a 3x zoom)."
+  },
+  "StringCompare": {
+    "source": "ComfyUI master (comfy_extras/nodes_string.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "string_a": "STRING (may be a link)",
+      "string_b": "STRING (widget)",
+      "mode": "COMBO (Starts With|Ends With|Equal)",
+      "case_sensitive": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "BOOLEAN"
+    ],
+    "note": "Confirmed live (edit-firstframe-qwen21 v6-v9): mode 'Equal' with string_b '' on a PrimitiveString that Graydient fills from image1 picked the correct ComfySwitchNode branch both when image1 was absent and when it was supplied."
+  },
+  "PrimitiveString": {
+    "source": "ComfyUI master (comfy_extras/nodes_primitive.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "value": "STRING (widget)"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Confirmed live: usable as a Graydient field_mapping target (node_input_name 'value'); one local_field (image1) may map to this AND another node."
+  },
+  "PrimitiveStringMultiline": {
+    "source": "ComfyUI master (comfy_extras/nodes_primitive.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "value": "STRING (multiline widget)"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Confirmed live (edit-firstframe-qwen21): prompt_positive mapped to 'value' on this node, then wrapped by StringFormat."
+  },
+  "PrimitiveFloat": {
+    "source": "ComfyUI master (comfy_extras/nodes_primitive.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "value": "FLOAT (widget)"
+    },
+    "outputs": [
+      "FLOAT"
+    ],
+    "note": "Confirmed live: slot2 mapped to 'value' (denoise 0.3-1.0) and linked into KSampler.denoise."
+  },
+  "TextEncodeQwenImage21": {
+    "source": "ComfyUI master (comfy_extras/nodes_qwen.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "clip": "CLIP",
+      "prompt": "STRING (widget; may be a link)",
+      "negative_prompt": "STRING (widget)",
+      "vae": "VAE (optional)",
+      "resolution": "INT (widget; 0 = keep each reference at its own size rounded to a multiple of 32)",
+      "images.image_1": "IMAGE (Autogrow group 'images', slot 1 of 16; the group allows ZERO images)",
+      "images.image_2": "IMAGE (Autogrow group 'images', slot 2 of 16; the group allows ZERO images)",
+      "images.image_3": "IMAGE (Autogrow group 'images', slot 3 of 16; the group allows ZERO images)",
+      "images.image_4": "IMAGE (Autogrow group 'images', slot 4 of 16; the group allows ZERO images)",
+      "images.image_5": "IMAGE (Autogrow group 'images', slot 5 of 16; the group allows ZERO images)",
+      "images.image_6": "IMAGE (Autogrow group 'images', slot 6 of 16; the group allows ZERO images)",
+      "images.image_7": "IMAGE (Autogrow group 'images', slot 7 of 16; the group allows ZERO images)",
+      "images.image_8": "IMAGE (Autogrow group 'images', slot 8 of 16; the group allows ZERO images)",
+      "images.image_9": "IMAGE (Autogrow group 'images', slot 9 of 16; the group allows ZERO images)",
+      "images.image_10": "IMAGE (Autogrow group 'images', slot 10 of 16; the group allows ZERO images)",
+      "images.image_11": "IMAGE (Autogrow group 'images', slot 11 of 16; the group allows ZERO images)",
+      "images.image_12": "IMAGE (Autogrow group 'images', slot 12 of 16; the group allows ZERO images)",
+      "images.image_13": "IMAGE (Autogrow group 'images', slot 13 of 16; the group allows ZERO images)",
+      "images.image_14": "IMAGE (Autogrow group 'images', slot 14 of 16; the group allows ZERO images)",
+      "images.image_15": "IMAGE (Autogrow group 'images', slot 15 of 16; the group allows ZERO images)",
+      "images.image_16": "IMAGE (Autogrow group 'images', slot 16 of 16; the group allows ZERO images)"
+    },
+    "outputs": [
+      "positive (CONDITIONING)",
+      "negative (CONDITIONING)",
+      "latent (LATENT, empty 64-ch /16 latent on the FIRST reference image's size)"
+    ],
+    "note": "Source tooltip: sample on the first reference image's size, 'any other size shifts the edit'. Confirmed live (edit-firstframe-qwen21 v1-v9): images.image_1 / images.image_2 dotted keys work, prompt can be linked, and with zero images the node still runs (an img2img-only 'no reference' graph produced a DIFFERENT PERSON at denoise 0.55, so references are what hold identity). Measured: with a reference and denoise 1.0 the edit lands ~40-52 px LEFT of the source (44/40/51 px on 500/500/768-wide frames, scale 1.01-1.03) even though the sampled latent matched the reference size (both multiples of 32), so the documented size-mismatch cause is NOT the explanation here; see KI-007 section 26."
+  },
+  "QwenImage21Cache": {
+    "source": "ComfyUI master (comfy_extras/nodes_qwen.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "model": "MODEL",
+      "device": "COMBO (auto|gpu|cpu|off)",
+      "dtype": "COMBO (default|int8|int4)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "Experimental KV-cache setting for Qwen Image 2.1 edits. Confirmed live with device 'auto', dtype 'default' (every edit-firstframe-qwen21 job)."
+  },
+  "LoadVideo": {
+    "source": "ComfyUI master (comfy_extras/nodes_video.py), read via raw.githubusercontent.com 2026-10-09",
+    "inputs": {
+      "file": "COMBO (upload video; resolved with folder_paths.get_annotated_filepath)"
+    },
+    "outputs": [
+      "VIDEO"
+    ],
+    "note": "Accepts the bare filename Graydient stages for init_video_filename. Confirmed live (archive-submit v1, render 2p5WM0): LoadVideo -> SaveVideo with format 'auto' / codec 'auto' returned an h264 768x448 mp4 with an AAC track, 4.18 MB vs 4.20 MB for the local copy of the source (remuxed, not re-timed). A pass-through workflow for turning an attached video into a durable S3 link."
+  },
+  "ModelSamplingSD3": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); also matches ComfyUI core",
+    "inputs": {
+      "model": "MODEL",
+      "shift": "FLOAT (widget)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "Iris T2I uses shift 4.0 (what it was trained with, upstream default); the Iris restorer/upscaler uses shift 1.0; the Iris DEPTH model must NOT have this node at all (upstream: it would replace the depth sampling). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "EmptyLatentImage": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "width": "INT (widget)",
+      "height": "INT (widget)",
+      "batch_size": "INT (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "For pixel-space Iris the 'latent' is the pixel image itself (VAELoader 'pixel_space' is a passthrough), so width/height must be multiples of 16. Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "SamplerDPMPP_2M_SDE": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "solver_type": "COMBO (midpoint|heun)",
+      "eta": "FLOAT (widget)",
+      "s_noise": "FLOAT (widget)",
+      "noise_device": "COMBO (gpu|cpu)"
+    },
+    "outputs": [
+      "SAMPLER"
+    ],
+    "note": "Iris's official reference sampler = this node (solver midpoint, eta 0) + BasicScheduler simple 100 steps through SamplerCustom; plain dpmpp_2m is a different formula for flow models (upstream README). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "SamplerCustom": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "model": "MODEL",
+      "add_noise": "BOOLEAN (widget)",
+      "noise_seed": "INT (widget; UI adds control_after_generate right after it, so cfg is widgets_values index 3)",
+      "cfg": "FLOAT (widget)",
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "sampler": "SAMPLER",
+      "sigmas": "SIGMAS",
+      "latent_image": "LATENT"
+    },
+    "outputs": [
+      "output (LATENT)",
+      "denoised_output (LATENT)"
+    ],
+    "note": "Used (not SamplerCustomAdvanced) so no Noise/Guider nodes are needed. Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "VAEDecode": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "samples": "LATENT",
+      "vae": "VAE"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "VAEEncode": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "pixels": "IMAGE",
+      "vae": "VAE"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "With VAELoader 'pixel_space' this is an identity into pixel space (Iris depth/upscale). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "SaveImage": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "images": "IMAGE",
+      "filename_prefix": "STRING (widget)"
+    },
+    "outputs": [],
+    "note": "Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "KSamplerAdvanced": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "model": "MODEL",
+      "add_noise": "COMBO (enable|disable)",
+      "noise_seed": "INT (widget)",
+      "steps": "INT (widget)",
+      "cfg": "FLOAT (widget)",
+      "sampler_name": "COMBO",
+      "scheduler": "COMBO",
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "latent_image": "LATENT",
+      "start_at_step": "INT (widget)",
+      "end_at_step": "INT (widget)",
+      "return_with_leftover_noise": "COMBO (enable|disable)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "Iris depth = add_noise disable, steps 1, cfg 1, euler/simple, start 0. Iris upscale = add_noise disable, steps 2, start_at_step 1, cfg 1 (NOTE add_noise is a COMBO string 'disable', not a bool, unlike SamplerCustom). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "LatentMultiply": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "samples": "LATENT",
+      "multiplier": "FLOAT (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "Required x2 in the Iris upscale branch (the sampler scales its input by (1-sigma)=0.5). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "ImageScaleBy": {
+    "source": "keys taken verbatim from the executed workflow_2 graph of gen_iris3b_studio.py (which completed real Graydient jobs); ",
+    "inputs": {
+      "image": "IMAGE",
+      "upscale_method": "COMBO",
+      "scale_by": "FLOAT (widget)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Widget key is scale_by (not 'scale'/'factor'). Confirmed live: ran in iris3b-studio v2 (WFXZvq1X, 2026-10-13), all three modes returned correct images on Graydient."
+  },
+  "VOSR2ModelLoader": {
+    "source": "ylchen333/ComfyUI-VOSR2 nodes_vosr.py (read directly 2026-10-13) -- confirmed by two real completed Graydient jobs of upscale-vosr2 (v3: 2x of a 1280x1072 handwriting scan -> 2560x2144, correct output).",
+    "inputs": {
+      "model": "COMBO (widget; bundle folder under models/vosr2/, default 'VOSR2')",
+      "dtype": "COMBO (widget; default|fp16|bf16)"
+    },
+    "outputs": [
+      "model"
+    ],
+    "note": "Output type VOSR2_MODEL. If the bundle is absent the loader downloads from CSWRY/VOSR at run time (counts against the 180 s budget) -- stage it with concept_mapping into vosr2/VOSR2/. The DINOv2-L .pth is only available via the HF cache + loader-side conversion, never concept_mapping."
+  },
+  "VOSR2Upscale": {
+    "source": "ylchen333/ComfyUI-VOSR2 nodes_vosr.py (read directly 2026-10-13) -- confirmed by two real completed Graydient jobs of upscale-vosr2 (v3: 2x of a 1280x1072 handwriting scan -> 2560x2144, correct output).",
+    "inputs": {
+      "model": "VOSR2_MODEL (link)",
+      "image": "IMAGE (link)",
+      "upscale": "INT (widget, default 4)",
+      "seed": "INT (widget; control_after_generate adds a 'fixed' entry after it in standard widgets_values)",
+      "color_alignment": "COMBO (widget; wavelet|adain|none)",
+      "tile_size": "INT (widget, 0=off, step 64)",
+      "tile_overlap": "INT (widget; must be < tile_size)",
+      "vae_tile_size": "INT (widget, 0=off)",
+      "vae_tile_overlap": "INT (widget; must be < vae_tile_size)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Model is trained natively at 512 px: keep tile_size=512 whenever the output exceeds 512x512. Output is exactly input x upscale. Widget order for field_mapping node_input_index: upscale 0, seed 1, color_alignment 3 (the 'fixed' control slot is index 2), tile_size 4, ..."
+  },
+  "SkipLayerGuidanceDiTSimple": {
+    "source": "ComfyUI core (comfy_extras/nodes_guidance.py) -- verified against source and real Graydient run of moss-image (WF7JAy5a) 2026-10-17.",
+    "inputs": {
+      "model": "MODEL",
+      "double_layers": "STRING (widget, comma-separated double block layer indices to skip; '' = off)",
+      "single_layers": "STRING (widget, comma-separated single block layer indices to skip; MOSS-Image reference uses '22')",
+      "start_percent": "FLOAT (widget, default 0.0)",
+      "end_percent": "FLOAT (widget, default 0.5; note: do not use 1.0 or extra scale inputs from standard SLG)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "Simplified DiT SLG that only modifies the unconditional pass. Single block layer 22 is the official OpenMOSS quality enhancement layer. If both double_layers and single_layers are blank, returns model unmodified."
+  },
+  "EmptyFlux2LatentImage": {
+    "source": "ComfyUI core (comfy_extras/nodes_flux.py) -- verified against source and real Graydient run of moss-image (WF7JAy5a) 2026-10-17.",
+    "inputs": {
+      "width": "INT (widget, divisible by 16)",
+      "height": "INT (widget, divisible by 16)",
+      "batch_size": "INT (widget, default 1)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "Outputs 128-channel zeroed latent [batch, 128, height // 16, width // 16] for FLUX.2 latent space (16x downsample), required by MOSS-Image."
+  },
+  "KSampler": {
+    "source": "ComfyUI core built-in (nodes.py) -- confirmed across standard T2I workflows.",
+    "inputs": {
+      "model": "MODEL",
+      "positive": "CONDITIONING",
+      "negative": "CONDITIONING",
+      "latent_image": "LATENT",
+      "seed": "INT (widget, index 0)",
+      "steps": "INT (widget, index 2; control_after_generate is index 1 in UI)",
+      "cfg": "FLOAT (widget, index 3)",
+      "sampler_name": "COMBO (widget, index 4)",
+      "scheduler": "COMBO (widget, index 5)",
+      "denoise": "FLOAT (widget, index 6, default 1.0)"
+    },
+    "outputs": [
+      "LATENT"
+    ],
+    "note": "Standard ComfyUI sampling execution node. For flow matching models (MOSS-Image, FLUX), scheduler MUST be 'simple' and denoise must be 1.0 for fresh generation. Widgets values in standard JSON format: [seed, control_after_generate, steps, cfg, sampler_name, scheduler, denoise]."
+  },
+  "DownloadAndLoadCogVideoModel": {
+    "source": "kijai/ComfyUI-CogVideoXWrapper model_loading.py (verified against upstream source)",
+    "inputs": {
+      "model": "COMBO (widget)",
+      "precision": "COMBO (widget: fp16|fp32|bf16)",
+      "quantization": "COMBO (widget: disabled|fp8_e4m3fn|fp8_e4m3fn_fastmode|torchao_fp8dq|torchao_fp8dqrow|torchao_int8dq|torchao_fp6)",
+      "enable_sequential_cpu_offload": "BOOLEAN (widget)",
+      "attention_mode": "COMBO (widget: sdpa|fused_sdpa|sageattn|fused_sageattn|comfy)",
+      "load_device": "COMBO (widget: main_device|offload_device)",
+      "block_edit": "TRANSFORMERBLOCKS (optional link)",
+      "lora": "COGLORA (optional link)",
+      "compile_args": "COMPILEARGS (optional link)"
+    },
+    "outputs": [
+      "model",
+      "vae"
+    ],
+    "note": "Loads CogVideoX transformer and VAE. If base_path and subfolder exist locally under models/CogVideo/, skips HuggingFace snapshot_download entirely."
+  },
+  "CogVideoTextEncode": {
+    "source": "kijai/ComfyUI-CogVideoXWrapper nodes.py (verified against upstream source)",
+    "inputs": {
+      "clip": "CLIP (link from CLIPLoader in sd3 mode)",
+      "prompt": "STRING (widget)",
+      "strength": "FLOAT (optional widget, default 1.0)",
+      "force_offload": "BOOLEAN (optional widget, default True)"
+    },
+    "outputs": [
+      "conditioning",
+      "clip"
+    ],
+    "note": "Encodes text using T5-XXL text encoder (up to 226 tokens)."
+  },
+  "CogVideoSampler": {
+    "source": "kijai/ComfyUI-CogVideoXWrapper nodes.py (verified against upstream source)",
+    "inputs": {
+      "model": "COGVIDEOMODEL (link)",
+      "positive": "CONDITIONING (link)",
+      "negative": "CONDITIONING (link)",
+      "num_frames": "INT (widget, 1-1024, default 49)",
+      "steps": "INT (widget, default 50)",
+      "cfg": "FLOAT (widget, default 6.0)",
+      "seed": "INT (widget, 0-0xffffffffffffffff)",
+      "scheduler": "COMBO (widget: CogVideoXDDIM|CogVideoXDPMScheduler|DPM++|Euler|...)",
+      "samples": "LATENT (optional link, from EmptyLatentImage for resolution)",
+      "image_cond_latents": "LATENT (optional link, for I2V)",
+      "denoise_strength": "FLOAT (optional widget, default 1.0)",
+      "context_options": "COGCONTEXT (optional link)",
+      "controlnet": "COGVIDECONTROLNET (optional link)",
+      "tora_trajectory": "TORAFEATURES (optional link)",
+      "fastercache": "FASTERCACHEARGS (optional link)",
+      "feta_args": "FETAARGS (optional link)",
+      "teacache_args": "TEACACHEARGS (optional link)"
+    },
+    "outputs": [
+      "samples"
+    ],
+    "note": "Main diffusion sampler for CogVideoX. If 4D EmptyLatentImage is passed, dimensions are derived as H*8 and W*8 with random noise."
+  },
+  "CogVideoDecode": {
+    "source": "kijai/ComfyUI-CogVideoXWrapper nodes.py (verified against upstream source)",
+    "inputs": {
+      "vae": "VAE (link)",
+      "samples": "LATENT (link)",
+      "enable_vae_tiling": "BOOLEAN (widget, default True)",
+      "tile_sample_min_height": "INT (widget, default 240)",
+      "tile_sample_min_width": "INT (widget, default 360)",
+      "tile_overlap_factor_height": "FLOAT (widget, default 0.2)",
+      "tile_overlap_factor_width": "FLOAT (widget, default 0.2)",
+      "auto_tile_size": "BOOLEAN (widget, default True)"
+    },
+    "outputs": [
+      "images"
+    ],
+    "note": "Decodes 3D CogVideoX latents into pixel frames. VAE tiling prevents VRAM spikes."
+  },
+  "CogVideoXTeaCache": {
+    "source": "kijai/ComfyUI-CogVideoXWrapper nodes.py (verified against upstream source)",
+    "inputs": {
+      "rel_l1_thresh": "FLOAT (widget, default 0.3, min 0.0, max 10.0, step 0.01)"
+    },
+    "outputs": [
+      "teacache_args"
+    ],
+    "note": "TeaCache (Timestep Embedding Aware Cache) skips redundant transformer steps based on L1 difference threshold. 0.25-0.35 yields ~1.8x-2.5x speedup with virtually no quality degradation."
+  },
+  "LoadWanVideoT5TextEncoder": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of LoadWanVideoT5TextEncoder)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders)",
+      "precision": "COMBO: fp32|fp16|bf16 (widget, default bf16)",
+      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
+      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e5m2 (widget, default disabled)"
+    },
+    "outputs": [
+      "WANTEXTENCODER"
+    ]
+  },
+  "WanVideoModelLoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoModelLoader)",
+    "inputs": {
+      "model": "COMBO STRING (widget, loaded from ComfyUI/models/diffusion_models)",
+      "base_precision": "COMBO: fp32|bf16|fp16|fp16_fast (widget, default bf16)",
+      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e4m3fn_fast|fp8_e4m3fn_scaled|fp8_e4m3fn_scaled_fast|fp8_e5m2|fp8_e5m2_fast|fp8_e5m2_scaled|fp8_e5m2_scaled_fast (widget, default disabled)",
+      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
+      "attention_mode": "COMBO: sdpa|flash_attn|sageattn|sageattn_varlen (widget, default sdpa)"
+    },
+    "outputs": [
+      "WANVIDEOMODEL"
+    ]
+  },
+  "WanVideoTextEncode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoTextEncode)",
+    "inputs": {
+      "t5": "WANTEXTENCODER (link)",
+      "positive_prompt": "STRING (widget, multiline)",
+      "negative_prompt": "STRING (widget, multiline)",
+      "force_offload": "BOOLEAN (widget, default True)"
+    },
+    "outputs": [
+      "WANVIDEOTEXTEMBEDS"
+    ]
+  },
+  "WanVideoEmptyEmbeds": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoEmptyEmbeds)",
+    "inputs": {
+      "width": "INT (widget, default 832)",
+      "height": "INT (widget, default 480)",
+      "num_frames": "INT (widget, default 81)",
+      "control_embeds": "WANVIDIMAGE_EMBEDS (link, optional)",
+      "extra_latents": "LATENT (link, optional)"
+    },
+    "outputs": [
+      "WANVIDIMAGE_EMBEDS"
+    ]
+  },
+  "WanVideoSampler": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_sampler.py -- confirmed from source (INPUT_TYPES of WanVideoSampler)",
+    "inputs": {
+      "model": "WANVIDEOMODEL (link)",
+      "image_embeds": "WANVIDIMAGE_EMBEDS (link)",
+      "steps": "INT (widget, default 30, min 1)",
+      "cfg": "FLOAT (widget, default 6.0)",
+      "shift": "FLOAT (widget, default 5.0)",
+      "seed": "INT (widget, default 0)",
+      "force_offload": "BOOLEAN (widget, default True)",
+      "scheduler": "COMBO STRING (widget, e.g. flowmatch_pusa, unipc, euler, dpm++)",
+      "riflex_freq_index": "INT (widget, default 0)",
+      "text_embeds": "WANVIDEOTEXTEMBEDS (link, optional)",
+      "samples": "LATENT (link, optional, init latents for video2video or multi-stage refining)",
+      "denoise_strength": "FLOAT (widget, default 1.0, 0.0-1.0)",
+      "start_step": "INT (widget, default 0)",
+      "end_step": "INT (widget, default -1)",
+      "add_noise_to_samples": "BOOLEAN (widget, default False)"
+    },
+    "outputs": [
+      "LATENT",
+      "LATENT"
+    ]
+  },
+  "WanVideoVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py (verified against upstream source)",
+    "inputs": {
+      "model_name": "STRING (widget, loads from ComfyUI/models/vae)",
+      "precision": "COMBO: fp16|fp32|bf16 (widget, default bf16)"
+    },
+    "outputs": [
+      "vae"
+    ],
+    "note": "Loads Wan video VAE from models/vae."
+  },
+  "WanVideoDecode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoDecode)",
+    "inputs": {
+      "vae": "WANVAE (link, supports standard Wan VAE and TAEHV)",
+      "samples": "LATENT (link)",
+      "enable_vae_tiling": "BOOLEAN (widget, default False)",
+      "tile_x": "INT (widget, default 272)",
+      "tile_y": "INT (widget, default 272)",
+      "tile_stride_x": "INT (widget, default 144)",
+      "tile_stride_y": "INT (widget, default 128)",
+      "normalization": "COMBO STRING (widget, optional, default default)"
+    },
+    "outputs": [
+      "IMAGE"
+    ]
+  },
+  "LatentUpscale": {
+    "source": "ComfyUI core nodes.py (comfyanonymous/ComfyUI) -- confirmed from source",
+    "inputs": {
+      "samples": "LATENT (link)",
+      "upscale_method": "COMBO: nearest-exact|bilinear|area|bicubic|bislerp (widget)",
+      "width": "INT (widget, default 512, target width in pixels, common_upscale divides by 8)",
+      "height": "INT (widget, default 512, target height in pixels, common_upscale divides by 8)",
+      "crop": "COMBO: disabled|center (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ]
+  },
+  "WanVideoTinyVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoTinyVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae_approx, e.g. taew2_1.safetensors)",
+      "precision": "COMBO: fp16|fp32|bf16 (widget, default fp16)",
+      "parallel": "BOOLEAN (widget, default False)"
+    },
+    "outputs": [
+      "WANVAE"
+    ]
+  },
+  "WanVideoVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae, e.g. Wan2_1_VAE_bf16.safetensors)",
+      "precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)"
+    },
+    "outputs": [
+      "WANVAE"
+    ]
+  },
+  "LoadWanVideoT5TextEncoder": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders, e.g. umt5-xxl-enc-fp8_e4m3fn.safetensors)",
+      "precision": "COMBO: bf16|fp8_e4m3fn|fp8_e5m2 (widget, default bf16)",
+      "load_device": "COMBO: offload_device|main_device (widget, default offload_device)",
+      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e5m2 (widget, default disabled)"
+    },
+    "outputs": [
+      "WANTEXTENCODER"
+    ]
+  },
+  "WanVideoTextEncode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_text_encode.py -- confirmed from source",
+    "inputs": {
+      "t5": "WANTEXTENCODER (link)",
+      "positive_prompt": "STRING (widget, multiline)",
+      "negative_prompt": "STRING (widget, multiline)",
+      "force_offload": "BOOLEAN (widget, default True)"
+    },
+    "outputs": [
+      "WANVIDEOTEXTEMBEDS"
+    ]
+  },
+  "WanVideoModelLoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source",
+    "inputs": {
+      "model": "COMBO STRING (widget, diffusion_models, e.g. Wan2_1-T2V_FastWan_1_3B_bf16.safetensors)",
+      "base_precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)",
+      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e5m2 (widget, default disabled)",
+      "load_device": "COMBO: offload_device|main_device (widget, default offload_device)",
+      "attention_mode": "COMBO: sdpa|flash_attn|sageattn (widget, default sdpa)"
+    },
+    "outputs": [
+      "WANVIDEOMODEL"
+    ]
+  },
+  "WanVideoEmptyEmbeds": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_empty_embeds.py -- confirmed from source",
+    "inputs": {
+      "width": "INT (widget, default 832, step 16)",
+      "height": "INT (widget, default 480, step 16)",
+      "num_frames": "INT (widget, default 81, step 4)"
+    },
+    "outputs": [
+      "WANVIDIMAGE_EMBEDS"
+    ]
+  },
+  "WanVideoSampler": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_sampler.py -- confirmed from source and comfy.icu spec",
+    "inputs": {
+      "model": "WANVIDEOMODEL (link)",
+      "image_embeds": "WANVIDIMAGE_EMBEDS (link)",
+      "text_embeds": "WANVIDEOTEXTEMBEDS (link, optional)",
+      "samples": "LATENT (link, optional, for V2V / refinement passes)",
+      "steps": "INT (widget, default 30)",
+      "cfg": "FLOAT (widget, default 6.0)",
+      "shift": "FLOAT (widget, default 5.0)",
+      "seed": "INT (widget, default 0)",
+      "force_offload": "BOOLEAN (widget, default True)",
+      "scheduler": "COMBO: unipc|euler|dpm++|flowmatch_pusa (widget, default unipc)",
+      "riflex_freq_index": "INT (widget, default 0)",
+      "denoise_strength": "FLOAT (widget, optional, default 1.0)",
+      "batched_cfg": "BOOLEAN (widget, optional, default False)",
+      "rope_function": "COMBO: comfy|native (widget, optional, default comfy)",
+      "start_step": "INT (widget, optional, default 0)",
+      "end_step": "INT (widget, optional, default -1)",
+      "add_noise_to_samples": "BOOLEAN (widget, optional, default False, MUST BE True when feeding clean samples)"
+    },
+    "outputs": [
+      "samples",
+      "denoised_samples"
+    ]
+  },
+  "WanVideoDecode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_decode.py -- confirmed from source",
+    "inputs": {
+      "vae": "WANVAE (link)",
+      "samples": "LATENT (link)",
+      "enable_vae_tiling": "BOOLEAN (widget, default False)",
+      "tile_x": "INT (widget, default 512)",
+      "tile_y": "INT (widget, default 512)",
+      "tile_stride_x": "INT (widget, default 256)",
+      "tile_stride_y": "INT (widget, default 256)"
+    },
+    "outputs": [
+      "IMAGE"
+    ]
   }
 }

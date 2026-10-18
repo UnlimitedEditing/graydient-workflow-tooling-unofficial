@@ -1146,6 +1146,13 @@ before building on either; not resolved as of this doc.
 | `gen_cosmos3_t2v.py` | text→video | Present in repo, same caveat |
 | `gen_cosmos3_i2v.py` | image→video | Present in repo, same caveat |
 
+### Iris-3B (Speridlabs, 3B pixel-space DiT, no VAE) — live as `iris3b`
+
+| Script | Modality | Status |
+|---|---|---|
+| `gen_iris3b_studio.py` | text→image (slot1=0) + depth (slot1=1) + x4 restore (slot1=2) in one workflow | ✅ all three modes confirmed live 2026-10-13 (deployed as the public `iris3b`, v4). Mode switch = `PrimitiveInt` + `ComfyMathExpression` + two lazy `ComfySwitchNode`; image in via `image1` -> `LoadImage` (default `example.png`). Pure core nodes + `Nynxz/ComfyUI-Iris` loader patch, no pip. bf16 weights, 100-step reference sampler (SamplerCustom + DPM++ 2M midpoint, CFG 3), no negative prompt by design. Run time unmeasured. Weights: KI-008 section 10. Pattern: KI-007 section 28. |
+| `gen_iris3b_t2i.py` | text→image only | ✅ confirmed live, superseded by the studio build (kept as the simple reference graph) |
+
 ---
 
 ## 19. The ForgeExpress pixel-data-image convention

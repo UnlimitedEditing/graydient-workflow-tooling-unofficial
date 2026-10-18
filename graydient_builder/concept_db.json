@@ -251,5 +251,159 @@
       "url": "https://huggingface.co/WepeNerd/LTX-Ripple/resolve/main/LTX25_Ripple_v11.safetensors",
       "destination": "loras/LTX25_Ripple_v11.safetensors"
     }
+  ],
+  "qwen-image-2.1-edit-turbo": [
+    {
+      "_note": "Qwen Image 2.1 edit stack + Viggle 4-step turbo LoRA. All four URLs re-verified 2026-10-09 with curl -sI (302, ungated) and confirmed live: concept_mapping staged them before the job in edit-firstframe-qwen21 and gen_pixel_turnaround_qwen21.py.",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+      "destination": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+      "destination": "text_encoders/qwen3vl_8b_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors",
+      "destination": "vae/qwen_image_2.1_vae_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo/resolve/main/Qwen-Image-2.1-viggle-turbo-4step-lora-r64.safetensors",
+      "destination": "loras/Qwen-Image-2.1-viggle-turbo-4step-lora-r64.safetensors"
+    }
+  ],
+  "iris-3b-studio": [
+    {
+      "_note": "Iris-3B (Speridlabs, Apache-2.0) bf16 repack by nynxz + Qwen3-VL 4B encoder; all ungated (curl -sI 302 on 2026-10-13); confirmed live in iris3b-t2i-v1 and iris3b-studio-v1. Loaded by stock UNETLoader/CLIPLoader(type krea2)/LoraLoaderModelOnly via Nynxz/ComfyUI-Iris; NOT ScryptHunter's repo (that one wants models under diffusion_models/iris-3b/).",
+      "url": "https://huggingface.co/nynxz/iris-3b/resolve/main/iris-3b_bf16.safetensors",
+      "destination": "diffusion_models/iris-3b_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/nynxz/iris-3b/resolve/main/iris-3b-depth_bf16.safetensors",
+      "destination": "diffusion_models/iris-3b-depth_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/nynxz/iris-3b/resolve/main/loras/iris-3b-upscaler_r128.safetensors",
+      "destination": "loras/iris-3b-upscaler_r128.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_4b_bf16.safetensors",
+      "destination": "text_encoders/qwen3vl_4b_bf16.safetensors"
+    }
+  ],
+  "vosr2-upscale": [
+    {
+      "url": "https://huggingface.co/CSWRY/VOSR/resolve/main/VOSR2/args.json",
+      "destination": "vosr2/VOSR2/args.json"
+    },
+    {
+      "url": "https://huggingface.co/CSWRY/VOSR/resolve/main/VOSR2/checkpoints/ema_model.safetensors",
+      "destination": "vosr2/VOSR2/checkpoints/ema_model.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/CSWRY/VOSR/resolve/main/Qwen-Image-vae-2d/config.json",
+      "destination": "vosr2/VOSR2/Qwen-Image-vae-2d/config.json"
+    },
+    {
+      "url": "https://huggingface.co/CSWRY/VOSR/resolve/main/Qwen-Image-vae-2d/diffusion_pytorch_model.safetensors",
+      "destination": "vosr2/VOSR2/Qwen-Image-vae-2d/diffusion_pytorch_model.safetensors"
+    }
+  ],
+  "moss-image": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_sft_int8_convrot.safetensors",
+      "destination": "diffusion_models/moss_image_sft_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_int8_convrot.safetensors",
+      "destination": "text_encoders/qwen3.5_9b_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/vae/flux2-vae.safetensors",
+      "destination": "vae/flux2-vae.safetensors"
+    }
+  ],
+  "turbo-moss": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_sft_int8_convrot.safetensors",
+      "destination": "diffusion_models/moss_image_sft_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_int8_convrot.safetensors",
+      "destination": "text_encoders/qwen3.5_9b_int8_convrot.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/vae/flux2-vae.safetensors",
+      "destination": "vae/flux2-vae.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/lodestones/MOSS-Image-SFT-8-steps-dmd/resolve/main/lora.safetensors",
+      "destination": "loras/moss_image_sft_8_steps_dmd.safetensors"
+    }
+  ],
+  "cogvideox-5b-1.5": [
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/transformer_T2V/config.json",
+      "destination": "CogVideo/CogVideoX-5b-1.5/transformer_T2V/config.json"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/transformer_T2V/diffusion_pytorch_model-00001-of-00003.safetensors",
+      "destination": "CogVideo/CogVideoX-5b-1.5/transformer_T2V/diffusion_pytorch_model-00001-of-00003.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/transformer_T2V/diffusion_pytorch_model-00002-of-00003.safetensors",
+      "destination": "CogVideo/CogVideoX-5b-1.5/transformer_T2V/diffusion_pytorch_model-00002-of-00003.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/transformer_T2V/diffusion_pytorch_model-00003-of-00003.safetensors",
+      "destination": "CogVideo/CogVideoX-5b-1.5/transformer_T2V/diffusion_pytorch_model-00003-of-00003.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/transformer_T2V/diffusion_pytorch_model.safetensors.index.json",
+      "destination": "CogVideo/CogVideoX-5b-1.5/transformer_T2V/diffusion_pytorch_model.safetensors.index.json"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/vae/config.json",
+      "destination": "CogVideo/CogVideoX-5b-1.5/vae/config.json"
+    },
+    {
+      "url": "https://huggingface.co/kijai/CogVideoX-5b-1.5/resolve/main/vae/diffusion_pytorch_model.safetensors",
+      "destination": "CogVideo/CogVideoX-5b-1.5/vae/diffusion_pytorch_model.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors",
+      "destination": "clip/t5xxl_fp8_e4m3fn.safetensors"
+    }
+  ],
+  "fastwan22-5b": [
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/FastWan/Wan2_2-TI2V-5B-FastWanFullAttn_bf16.safetensors",
+      "destination": "diffusion_models/Wan2_2-TI2V-5B-FastWanFullAttn_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_2_VAE_bf16.safetensors",
+      "destination": "vae/Wan2_2_VAE_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-fp8_e4m3fn.safetensors",
+      "destination": "text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors"
+    }
+  ],
+  "fastwan13-720p": [
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1-T2V_FastWan_1_3B_bf16.safetensors",
+      "destination": "diffusion_models/Wan2_1-T2V_FastWan_1_3B_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1_VAE_bf16.safetensors",
+      "destination": "vae/Wan2_1_VAE_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/taew2_1.safetensors",
+      "destination": "vae_approx/taew2_1.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-fp8_e4m3fn.safetensors",
+      "destination": "text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors"
+    }
   ]
 }

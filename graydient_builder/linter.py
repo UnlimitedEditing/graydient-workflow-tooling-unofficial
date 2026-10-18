@@ -275,6 +275,22 @@ class GraydientLinter:
         field_mappings = gw.get("field_mapping", [])
         std_nodes = {str(n.get("id")): n for n in standard_wf.get("nodes", [])}
 
+        # Confirmed live (2026-10-13, upscale-vosr2): a workflow that mapped ONLY init_image_url
+        # into Hy3DLoadImageFromURL got an empty url on a `graydient render --init-image-url ...`
+        # submission (the loader's blank 512x512 white placeholder came out, upscaled -- no error).
+        # Mapping init_image_filename to the same widget and submitting with `--init-image <url>`
+        # delivered the image. Mapping both is the existing pinkcherry-ltx25 pattern.
+        _locals = {fm.get("local_field") for fm in field_mappings}
+        if "init_image_url" in _locals and "init_image_filename" not in _locals:
+            self.issues.append(LintIssue(
+                "WARN",
+                "INIT_IMAGE_URL_WITHOUT_FILENAME",
+                "field_mapping has init_image_url but no init_image_filename. Graydient may stage the "
+                "image and fill only the filename (upscale-vosr2, 2026-10-13: init_image_url alone "
+                "gave a silent blank-white input). Map init_image_filename to the same widget too "
+                "(KI-007 section 29).",
+                None))
+
         # Confirmed live (2026-10-07, ripple-ltx25): concept_mapping's field_mapping /
         # weight_field_mapping strings are "<node_id>-<node title>.<index>-<input name>".
         # A node titled "Load LTX-2.5 Transformer" made the job fail at job PREPARATION
@@ -396,6 +412,59 @@ class GraydientLinter:
                     f"standard workflow's 'extra' dict (KI-007).",
                     None
                 ))
+
+        # Confirmed live (2026-10-17, moss-image WF7JAy5a / RPZW19n):
+        # 1. MOSS-Image defines native shift 5.0 in ComfyUI core MOSSImage.
+        #    Wrapping with ModelSamplingSD3 double-shifts timesteps.
+        # 2. Flow matching strictly requires scheduler "simple". Using "sgm_uniform"
+        #    failed with raw multicolored static noise (75.46s job on RTX 4090).
+        # 3. MOSS-Image has no image conditioning weights. The Qwen3.5-9B vision
+        #    tower is dormant and DiT has no reference channels. Partial denoise img2img fails.
+        is_moss = False
+        for node in api_wf.values():
+            if not isinstance(node, dict):
+                continue
+            inputs = node.get("inputs", {})
+            if inputs.get("unet_name", "").startswith("moss_image") or inputs.get("type") == "moss_image":
+                is_moss = True
+                break
+
+        if is_moss:
+            for node_id, node in api_wf.items():
+                if not isinstance(node, dict):
+                    continue
+                ctype = node.get("class_type")
+                if ctype == "ModelSamplingSD3":
+                    self.issues.append(LintIssue(
+                        "ERROR",
+                        "MOSS_IMAGE_REDUNDANT_MODEL_SAMPLING_SD3",
+                        "MOSS-Image already defines native shift: 5.0 in ComfyUI core (MOSSImage). "
+                        "Wrapping with ModelSamplingSD3 double-shifts timesteps (KI-007 sec 31).",
+                        node_id
+                    ))
+                elif ctype == "KSampler":
+                    sched = node.get("inputs", {}).get("scheduler", "")
+                    if sched and sched != "simple":
+                        self.issues.append(LintIssue(
+                            "ERROR",
+                            "MOSS_IMAGE_INVALID_FLOW_SCHEDULER",
+                            f"KSampler uses scheduler '{sched}' on MOSS-Image. Flow matching requires 'simple'; "
+                            f"'sgm_uniform' failed in a live render with un-denoised static noise (KI-007 sec 31).",
+                            node_id
+                        ))
+                    denoise = node.get("inputs", {}).get("denoise", 1.0)
+                    try:
+                        if float(denoise) < 1.0:
+                            self.issues.append(LintIssue(
+                                "WARNING",
+                                "MOSS_IMAGE_NO_IMG2IMG_WEIGHTS",
+                                f"KSampler has denoise={denoise}. MOSS-Image checkpoints have no image-to-image "
+                                f"conditioning weights (Qwen3.5 vision tower is dormant; DiT has no image conditioning "
+                                f"channels). Partial denoise produces corrupted noise (KI-007 sec 31).",
+                                node_id
+                            ))
+                    except (ValueError, TypeError):
+                        pass
 
 
 def lint_workflow(workflow_data: Dict[str, Any]) -> Tuple[bool, List[LintIssue]]:

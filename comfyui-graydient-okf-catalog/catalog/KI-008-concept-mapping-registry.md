@@ -119,3 +119,81 @@ Pre-staging model weights via `concept_mapping` ensures models are downloaded di
 * **Entry**: `ltx-2.5-ripple` in `concept_db.json` -> `https://huggingface.co/WepeNerd/LTX-Ripple/resolve/main/LTX25_Ripple_v11.safetensors` -> `loras/LTX25_Ripple_v11.safetensors` (654,443,392 bytes, ungated; 302->200 verified). Staged by `concept_mapping` and used by a real job (ripple-ltx25 v3, render `39yNVD`).
 * **Base files**: reuse the `ltx-2.5-i2v` entries (distilled int8 transformer, Gemma 4 12B text encoder, audio VAE) from the ungated `comfyicu/LTX-2.5` mirror, plus the **conv** video VAE `vae/ltx-2.5-video-vae-conv-bf16.safetensors` (registered under `ltx-2.5-pinkcherry-t2v`). The author's own list links the gated `Lightricks/LTX-2.5` repo; the mirror worked.
 * **Rule**: the Ripple LoRA is loaded with a plain `LoraLoaderModelOnly` (strength 1.35); its safetensors header metadata is empty, so no `reference_downscale_factor` exists and `LTXAddVideoICLoRAGuide.latent_downscale_factor` is the literal 1.0. Mind KI-007 section 24 when titling the loader node in the concept_mapping field_mapping string.
+
+## 9. Qwen Image 2.1 Edit Stack + Viggle Turbo LoRA (confirmed live 2026-10-09, edit-firstframe-qwen21)
+
+Four files, all ungated (`curl -sI` 302 on 2026-10-09), staged by `concept_mapping` before the job and confirmed by real jobs:
+
+| URL | Destination |
+|---|---|
+| `https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors` | `diffusion_models/qwen_image_2.1_int8_convrot.safetensors` |
+| `https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors` | `text_encoders/qwen3vl_8b_int8_convrot.safetensors` |
+| `https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors` | `vae/qwen_image_2.1_vae_bf16.safetensors` |
+| `https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo/resolve/main/Qwen-Image-2.1-viggle-turbo-4step-lora-r64.safetensors` | `loras/Qwen-Image-2.1-viggle-turbo-4step-lora-r64.safetensors` |
+
+Mirrored in `concept_db.json` under `qwen-image-2.1-edit-turbo`. The PE-I2I text encoder used by the turnaround workflow is a separate, optional file (see `gen_pixel_turnaround_qwen21.py`) and is not in this entry. The LoRA is a diffusers-named file that ComfyUI remaps for QwenImage (works through `LoraLoaderModelOnly`).
+
+
+## 10. Iris-3B Pixel-Space Stack (confirmed live 2026-10-13, iris3b-t2i-v1 and iris3b-studio-v1)
+
+Four files, all ungated (`curl -sI` 302 on 2026-10-13), staged by `concept_mapping` and confirmed by real jobs:
+
+| URL | Destination |
+|---|---|
+| `https://huggingface.co/nynxz/iris-3b/resolve/main/iris-3b_bf16.safetensors` | `diffusion_models/iris-3b_bf16.safetensors` |
+| `https://huggingface.co/nynxz/iris-3b/resolve/main/iris-3b-depth_bf16.safetensors` | `diffusion_models/iris-3b-depth_bf16.safetensors` |
+| `https://huggingface.co/nynxz/iris-3b/resolve/main/loras/iris-3b-upscaler_r128.safetensors` | `loras/iris-3b-upscaler_r128.safetensors` |
+| `https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_4b_bf16.safetensors` | `text_encoders/qwen3vl_4b_bf16.safetensors` |
+
+Mirrored in `concept_db.json` under `iris-3b-studio`. These are the **Nynxz/ComfyUI-Iris** layout (flat `diffusion_models/`, stock `UNETLoader`), not ScryptHunter/ComfyUI-Iris, which scans `diffusion_models/iris-3b/` and has its own loader nodes. The t2i-only workflow needs just rows 1 and 4. The original fp32 checkpoint (`speridlabs/iris-3b`, 12 GB) is a different, larger file; the bf16 repack is "a direct cast of the FP32 release" (nynxz README) and is the precision ComfyUI runs it at anyway.
+
+
+## 11. VOSR 2.0 One-Step Upscaler Bundle (confirmed live 2026-10-13, upscale-vosr2-v2)
+
+Four files from `CSWRY/VOSR` (ungated; `curl -sI` 307/302 redirects on 2026-10-13, not 401), staged into the exact bundle layout `ComfyUI-VOSR2` looks for, and confirmed by a real job (handwriting scan, 2x):
+
+| URL (under `https://huggingface.co/CSWRY/VOSR/resolve/main/`) | Destination |
+|---|---|
+| `VOSR2/args.json` | `vosr2/VOSR2/args.json` |
+| `VOSR2/checkpoints/ema_model.safetensors` (5.58 GB) | `vosr2/VOSR2/checkpoints/ema_model.safetensors` |
+| `Qwen-Image-vae-2d/config.json` | `vosr2/VOSR2/Qwen-Image-vae-2d/config.json` |
+| `Qwen-Image-vae-2d/diffusion_pytorch_model.safetensors` (178 MB) | `vosr2/VOSR2/Qwen-Image-vae-2d/diffusion_pytorch_model.safetensors` |
+
+Mirrored in `concept_db.json` under `vosr2-upscale`. NOT staged: `torch_cache/checkpoints/dinov2_vitl14_pretrain.pth` (1.2 GB) -- the loader needs it converted to `vosr2/VOSR2/dinov2_vitl14.safetensors` and does so itself via `hf_hub_download` (HF cache). `pre_install_script` pre-warms that cache best-effort; whether the warm-up actually worked on the runner is NOT confirmed (the job succeeded either way).
+
+
+## 12. OpenMOSS MOSS-Image 5B T2I Stack (confirmed live 2026-10-17, moss-image WF7JAy5a)
+
+Three files from `Comfy-Org/MOSS-Image` (ungated; `curl -sI` 302 redirects on 2026-10-17), staged into standard ComfyUI directories and confirmed by a real job:
+
+| URL (under `https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/`) | Destination |
+|---|---|
+| `diffusion_models/moss_image_sft_int8_convrot.safetensors` (5.41 GB) | `diffusion_models/moss_image_sft_int8_convrot.safetensors` |
+| `text_encoders/qwen3.5_9b_int8_convrot.safetensors` (9.75 GB) | `text_encoders/qwen3.5_9b_int8_convrot.safetensors` |
+| `vae/flux2-vae.safetensors` (0.34 GB) | `vae/flux2-vae.safetensors` |
+
+## 13. FastWan 1.3B QAD Latent Upscale Stack (confirmed live 2026-10-17, video-turbo-wanq WFEVAxZX)
+
+Three files from `Kijai/WanVideo_comfy` (ungated; `curl -sI` 302 redirects on 2026-10-17), staged into standard directories for `ComfyUI-WanVideoWrapper` and confirmed by a real job (tiger prompt, 81 frames, 1280x720, 197s total execution):
+
+| URL (under `https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/`) | Destination |
+|---|---|
+| `Wan2_1-T2V_FastWan_1_3B_bf16.safetensors` (2.77 GB) | `diffusion_models/Wan2_1-T2V_FastWan_1_3B_bf16.safetensors` |
+| `taew2_1.safetensors` (21.6 MB) | `vae_approx/taew2_1.safetensors` |
+| `umt5-xxl-enc-fp8_e4m3fn.safetensors` (6.27 GB) | `text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors` |
+
+Mirrored in `concept_db.json` under `fastwan13-720p`. Total staging size is ~9.06 GB. Note: `WanVideoTinyVAELoader` resolves `taew2_1.safetensors` strictly from `ComfyUI/models/vae_approx/` (not `models/vae/`), which `WanVideoDecode` natively detects as `TAEHV` and decodes in under 1 second without tiling.
+
+## 14. Turbo-MOSS 8-Step DMD Stack (confirmed live 2026-10-18, turbo-moss WFEjObAa / job kDJoyz)
+
+Four files staged into standard ComfyUI directories and confirmed by a real Graydient job (autumn forest shrine, 1024x1024, 8 steps in ~15s inference, job `kDJoyz`):
+
+| URL | Destination | Size |
+|---|---|---|
+| `https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_sft_int8_convrot.safetensors` | `diffusion_models/moss_image_sft_int8_convrot.safetensors` | 5.41 GB |
+| `https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_int8_convrot.safetensors` | `text_encoders/qwen3.5_9b_int8_convrot.safetensors` | 9.75 GB |
+| `https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/vae/flux2-vae.safetensors` | `vae/flux2-vae.safetensors` | 0.34 GB |
+| `https://huggingface.co/lodestones/MOSS-Image-SFT-8-steps-dmd/resolve/main/lora.safetensors` | `loras/moss_image_sft_8_steps_dmd.safetensors` | 1.19 GB |
+
+Mirrored in `concept_db.json` under `turbo-moss`. Total staging size is ~16.7 GB. Tested and confirmed on Graydient RTX 4090 with `LoraLoaderModelOnly` and `SkipLayerGuidanceDiTSimple` (single_layers="22").
+

@@ -60,6 +60,21 @@ Also check directly:
   that already existed (a proven audio-loader pattern in `ComfyUI-HiggsV3Glue`, an
   official `ia2v` template with the correct audio-sync architecture) — check first.
 
+### Step 2b: Weight Precision & Cloud-to-Cloud Quantization Gate
+
+When a pipeline requires large model weights (> 4 GB) that lack a public FP8/quantized release:
+
+> [!CAUTION]
+> **NEVER attempt to quantize and upload large model weights locally on a residential machine.**
+> - **Failure Mode**: Downloading 10+ GB BF16 weights locally, quantizing to FP8, and attempting to upload 5+ GB over residential upstream (~0.5–1 Mbps / ~80 kB/s) triggers AWS S3/CloudFront multipart chunk timeouts (10–15 min HTTP connection resets), stalls indefinitely, burns local RAM/swap, and takes 15–20 hours.
+> - **The Standard Process (Hugging Face ZeroGPU Cloud Conversion)**:
+>   Always execute the conversion cloud-to-cloud inside a Hugging Face Space (e.g. `Jacob121294/pinkcherryltx25` or an ephemeral ZeroGPU Space) directly on the AWS us-east-1 backbone:
+>   1. **Cloud Download**: Pulls source BF16 weights at **600–800 MB/s** (~12s).
+>   2. **In-Memory Quantization**: Quantizes 2D+ matrices to native FP8 (`float8_e4m3fn`) in RAM/VRAM while keeping 1D norm/biases in BF16 (~20s). Deletes source weights from disk cache immediately to keep root storage well below 50 GB.
+>   3. **Cloud Upload**: Pushes to target Hugging Face model repository at **300+ MB/s** (~15s).
+>   4. **Total Turnaround**: **Under 2 minutes flat** with zero local bandwidth or disk burned.
+>   5. **ZeroGPU Requirement**: When targeting ZeroGPU (`zero-a10g`), the script **MUST** include an `@spaces.GPU` decorated function (`import spaces; @spaces.GPU def _noop(): return None`), otherwise the container supervisor will immediately terminate the container with `No @spaces.GPU function detected during startup`.
+
 ### Step 3: If a blocker is found, run the 3-step Pivot Protocol (KI-009)
 
 1. **Acknowledge & isolate the intent** — confirm you understood the goal correctly,

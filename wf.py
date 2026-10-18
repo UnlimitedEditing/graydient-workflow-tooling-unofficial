@@ -226,6 +226,225 @@ def cmd_bury(args):
 
     print(f"🪦 Buried anti-pattern '{title}' in KI-007 Graveyard.")
 
+DIAGNOSTIC_RULES = [
+    {
+        "pattern": r"(Allocation on device 0 would exceed allowed memory|CUDA out of memory)",
+        "issue": "GPU Out of Memory (CUDA OOM)",
+        "ki": "KI-005 (§1 VRAM Budgets) / KI-007 (§33 Wan 720p VRAM / TAEHV)",
+        "advice": "Container exceeded ~22 GB physical VRAM limit. For Wan video, ensure TAEHV fast VAE decoder is used (from vae_approx/) instead of full BF16 VAE, reduce resolution/frames, or avoid concurrent heavy models."
+    },
+    {
+        "pattern": r"(timed_out|Execution timed out|Prompt executed.*exceeded)",
+        "issue": "Job Execution Timeout",
+        "ki": "KI-005 (§2 Timeout Budget) / KI-007 (§0 ComfyUI ~180s Limit)",
+        "advice": "ComfyUI execution exceeded the ~180s hard limit. Reduce sampling steps (e.g. use Turbo/distilled LoRA), lower canvas resolution, or prune redundant node passes."
+    },
+    {
+        "pattern": r"sgm_uniform",
+        "issue": "Flow-Matching Scheduler Mismatch",
+        "ki": "KI-007 (§31 MOSS-Image / Flow Matching)",
+        "advice": "MOSS-Image / FLUX flow matching strictly requires scheduler: 'simple'. 'sgm_uniform' fails to denoise the velocity field and produces raw multicolored static noise."
+    },
+    {
+        "pattern": r"ModelSamplingSD3.*MOSS",
+        "issue": "Redundant Flow Shift on MOSS-Image",
+        "ki": "KI-007 (§31 Double-Shift Failure Mode)",
+        "advice": "MOSSImage in ComfyUI core natively defines shift: 5.0. Wrapping with ModelSamplingSD3 double-shifts timesteps and distorts generated latents."
+    },
+    {
+        "pattern": r"No @spaces\.GPU function detected",
+        "issue": "ZeroGPU Cloud Space AST Missing Decorator",
+        "ki": "KI-007 (§32 Cloud-to-Cloud Weight Conversion)",
+        "advice": "Hugging Face ZeroGPU supervisor requires an explicit @spaces.GPU decorated function in the AST at startup (e.g. `import spaces; @spaces.GPU def _noop(): return None`)."
+    },
+    {
+        "pattern": r"ModuleNotFoundError: No module named '([^']+)'",
+        "issue": "Missing Python Package Dependency",
+        "ki": "KI-007 (§19 Pip Install Constraints)",
+        "advice": "A node requires an uninstalled package. Check `requirements.pip` in workflow configuration. Note: Packages requiring C++/Rust compilation (cargo/maturin) are banned on ephemeral runners."
+    },
+    {
+        "pattern": r"Cannot execute because node ([^ ]+) does not exist",
+        "issue": "Uninstalled Custom Node Class",
+        "ki": "KI-007 (§18 Node Repository Packaging)",
+        "advice": "ComfyUI cannot find the node class. Check that the custom node git repository is added to `requirements.github`, and ensure the repository has an __init__.py at its root."
+    },
+    {
+        "pattern": r"locator\.waitFor: Timeout.*Changes saved",
+        "issue": "Archive Meta Cover Upload Timeout",
+        "ki": "KI-007 (§34 Playwright Cover Upload)",
+        "advice": "Uploading full-size uncompressed PNGs can exceed the 20s Playwright timeout while Phoenix LiveView handles the upload. Pre-convert cover images to JPEG (~200 KB) before calling `archive meta --image`."
+    }
+]
+
+def cmd_diagnose(args):
+    import re
+    target = args.target
+    if not target:
+        # Search Downloads for latest failure log
+        downloads_dir = os.path.expanduser(r"~\Downloads")
+        failure_files = glob.glob(os.path.join(downloads_dir, "workflow-failure-*.txt"))
+        if failure_files:
+            target = max(failure_files, key=os.path.getmtime)
+            print(f"📂 Auto-detected most recent failure log: {target}")
+        else:
+            print("❌ No target log file specified and no workflow-failure-*.txt found in Downloads.")
+            sys.exit(1)
+
+    if not os.path.isfile(target):
+        print(f"❌ File not found: {target}")
+        sys.exit(1)
+
+    with open(target, "r", encoding="utf-8", errors="ignore") as f:
+        raw = f.read()
+
+    # Try parsing as JSON error payload from Graydient
+    job_id = None
+    machine = None
+    messages = []
+    traceback = ""
+    try:
+        data = json.loads(raw)
+        job_id = data.get("job")
+        machine = data.get("machine")
+        messages = data.get("message", [])
+        traceback = data.get("traceback", "")
+    except Exception:
+        traceback = raw
+
+    print("\n" + "=" * 60)
+    print(f"🩺 Graydient Job Diagnostic Report")
+    if job_id:
+        print(f"   ↳ Job ID:  {job_id}")
+    if machine:
+        print(f"   ↳ Machine: {machine}")
+    print("=" * 60)
+
+    matched = False
+    full_text = raw + "\n" + "\n".join(messages) + "\n" + traceback
+    for rule in DIAGNOSTIC_RULES:
+        m = re.search(rule["pattern"], full_text, re.IGNORECASE)
+        if m:
+            matched = True
+            print(f"\n🚨 Detected Issue: {rule['issue']}")
+            print(f"📚 Catalog Rule:   {rule['ki']}")
+            print(f"💡 Solution:       {rule['advice']}")
+            if m.groups():
+                print(f"🔍 Matched detail:  '{m.group(0)}'")
+
+    if not matched:
+        print("\n⚠️  No known pattern match in KI-007 Graveyard rules.")
+        print("📄 Raw Error Preview:")
+        lines = [line for line in full_text.splitlines() if "error" in line.lower() or "exception" in line.lower() or "traceback" in line.lower()]
+        for l in lines[:10]:
+            print(f"   {l.strip()}")
+        print("\n👉 If this is a newly discovered container constraint, bury it using:")
+        print(f"   python wf.py bury \"Short Failure Title\" --reason \"Explanation of why it failed\"")
+
+    print("\n" + "=" * 60 + "\n")
+
+def cmd_sync(args):
+    import shutil
+    repo_dir = args.repo_dir or os.path.join(BASE_DIR, "graydient-workflow-tooling-unofficial")
+    if not os.path.isdir(repo_dir):
+        print(f"❌ Target unified repository directory not found: {repo_dir}")
+        print("Please clone https://github.com/UnlimitedEditing/graydient-workflow-tooling-unofficial first.")
+        sys.exit(1)
+
+    print(f"🔄 Syncing resident Graydient files to unified repository: {repo_dir}\n" + "=" * 60)
+
+    # 1. Sync graydient_builder
+    src_gb = os.path.join(BASE_DIR, "graydient_builder")
+    dst_gb = os.path.join(repo_dir, "graydient_builder")
+    os.makedirs(dst_gb, exist_ok=True)
+    for f in os.listdir(src_gb):
+        if f.endswith(".pyc") or f == "__pycache__": continue
+        shutil.copy2(os.path.join(src_gb, f), os.path.join(dst_gb, f))
+    print("✅ Synced graydient_builder (core, blocks, linter, concept_db, node_schema_db)")
+
+    # 2. Sync comfyui-graydient-okf-catalog
+    src_cat = os.path.join(BASE_DIR, "comfyui-graydient-okf-catalog")
+    dst_cat = os.path.join(repo_dir, "comfyui-graydient-okf-catalog")
+    for root, dirs, files in os.walk(src_cat):
+        if ".git" in root: continue
+        rel = os.path.relpath(root, src_cat)
+        target_dir = os.path.join(dst_cat, rel)
+        os.makedirs(target_dir, exist_ok=True)
+        for f in files:
+            shutil.copy2(os.path.join(root, f), os.path.join(target_dir, f))
+    print("✅ Synced comfyui-graydient-okf-catalog (okf.yaml, catalog KI-001..KI-009, templates)")
+
+    # 3. Sync Agent Skills (to both .agents/skills and .claude/skills)
+    src_skills = os.path.join(BASE_DIR, ".agents", "skills")
+    dst_agents_skills = os.path.join(repo_dir, ".agents", "skills")
+    dst_claude_skills = os.path.join(repo_dir, ".claude", "skills")
+    if os.path.isdir(src_skills):
+        for s in os.listdir(src_skills):
+            s_src = os.path.join(src_skills, s)
+            if os.path.isdir(s_src):
+                s_dst_a = os.path.join(dst_agents_skills, s)
+                s_dst_c = os.path.join(dst_claude_skills, s)
+                os.makedirs(s_dst_a, exist_ok=True)
+                os.makedirs(s_dst_c, exist_ok=True)
+                for f in os.listdir(s_src):
+                    sf = os.path.join(s_src, f)
+                    if os.path.isfile(sf):
+                        shutil.copy2(sf, os.path.join(s_dst_a, f))
+                        shutil.copy2(sf, os.path.join(s_dst_c, f))
+        print("✅ Synced skills (preflight-plan, harvest-session, graydient-archive, graydient-concepts, higgs-voice, comfyui-workflow-porting)")
+
+    # 4. Sync CLI source from D:\ForgeExpress\cli
+    src_cli = r"D:\ForgeExpress\cli"
+    dst_cli = os.path.join(repo_dir, "cli")
+    if os.path.isdir(src_cli):
+        # src
+        for root, dirs, files in os.walk(os.path.join(src_cli, "src")):
+            rel = os.path.relpath(root, src_cli)
+            target_dir = os.path.join(dst_cli, rel)
+            os.makedirs(target_dir, exist_ok=True)
+            for f in files:
+                shutil.copy2(os.path.join(root, f), os.path.join(target_dir, f))
+        # public
+        for root, dirs, files in os.walk(os.path.join(src_cli, "public")):
+            rel = os.path.relpath(root, src_cli)
+            target_dir = os.path.join(dst_cli, rel)
+            os.makedirs(target_dir, exist_ok=True)
+            for f in files:
+                shutil.copy2(os.path.join(root, f), os.path.join(target_dir, f))
+        # package.json & tsconfig
+        for cf in ["package.json", "tsconfig.json"]:
+            cpf = os.path.join(src_cli, cf)
+            if os.path.isfile(cpf):
+                shutil.copy2(cpf, os.path.join(dst_cli, cf))
+        print("✅ Synced Graydient CLI (src/, public/, package.json, commands, archive, server)")
+
+    # 5. Sync root references & wf scripts
+    for rf in ["GRAYDIENT-COMPLETE-REFERENCE.md", "COMFYUI-REFERENCE.md", "wf.py", "wf.bat"]:
+        r_src = os.path.join(BASE_DIR, rf)
+        if os.path.isfile(r_src):
+            shutil.copy2(r_src, os.path.join(repo_dir, rf))
+    print("✅ Synced root references and wf.py CLI")
+
+    # 6. Optional Git Add, Commit & Push
+    if args.push:
+        print("\n🚀 Pushing updates to GitHub...")
+        msg = args.message or "Sync: updated Graydient tooling, knowledge catalog, and skills"
+        res_add = subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, text=True)
+        res_status = subprocess.run(["git", "status", "--porcelain"], cwd=repo_dir, capture_output=True, text=True)
+        if not res_status.stdout.strip():
+            print("✨ Working tree clean. Repository is already up to date.")
+        else:
+            res_commit = subprocess.run(["git", "commit", "-m", msg], cwd=repo_dir, capture_output=True, text=True)
+            print(res_commit.stdout.strip())
+            res_push = subprocess.run(["git", "push", "origin", "master"], cwd=repo_dir, capture_output=True, text=True)
+            if res_push.returncode == 0:
+                print("🎉 Successfully pushed updates to GitHub!")
+            else:
+                print(f"❌ Git push failed: {res_push.stderr}")
+                sys.exit(res_push.returncode)
+
+    print("\n" + "=" * 60)
+
 def main():
     parser = argparse.ArgumentParser(description="Graydient ComfyUI Workflow Engineering CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -256,6 +475,18 @@ def main():
     p_bury.add_argument("title", help="Short name of the failed approach")
     p_bury.add_argument("--reason", required=True, help="Why it failed on Graydient")
     p_bury.set_defaults(func=cmd_bury)
+
+    # Diagnose
+    p_diag = subparsers.add_parser("diagnose", help="Diagnose a workflow failure log or error JSON against KI-007")
+    p_diag.add_argument("target", nargs="?", default="", help="Path to error log / failure JSON (auto-detects from Downloads if omitted)")
+    p_diag.set_defaults(func=cmd_diagnose)
+
+    # Sync
+    p_sync = subparsers.add_parser("sync", help="Sync resident Graydient files to the unified repository")
+    p_sync.add_argument("--repo-dir", default="", help="Path to unified repository directory")
+    p_sync.add_argument("--push", "-p", action="store_true", help="Automatically commit and git push to GitHub")
+    p_sync.add_argument("--message", "-m", default="", help="Custom git commit message")
+    p_sync.set_defaults(func=cmd_sync)
 
     args = parser.parse_args()
     args.func(args)

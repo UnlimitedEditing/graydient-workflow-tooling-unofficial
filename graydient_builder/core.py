@@ -84,24 +84,30 @@ class GraydientWorkflow:
             self.github_requirements.append(repo_url)
         return self
 
+    def set_flag(self, flag_name: str, value: bool):
+        """Sets an archive platform flag (e.g. supports_txt2vid, install_detected_nodes)."""
+        self.metadata[flag_name] = value
+        return self
+
     def to_dict(self) -> Dict[str, Any]:
         """Serializes to the complete Graydient Backup/Restore JSON dictionary."""
-        return {
-            "graydient_workflow": {
-                "author": self.author,
-                "avg_elapsed": self.avg_elapsed,
-                "concept_mapping": self.concept_mapping,
-                "description": self.description,
-                "field_mapping": self.field_mapping,
-                "name": self.name,
-                "requirements": {
-                    "github": self.github_requirements,
-                    "pip": self.pip_requirements
-                },
-                "workflow": json.dumps(self.standard_workflow, indent=2),
-                "workflow_2": json.dumps(self.api_workflow, indent=2)
-            }
+        gw = {
+            "author": self.author,
+            "avg_elapsed": self.avg_elapsed,
+            "concept_mapping": self.concept_mapping,
+            "description": self.description,
+            "field_mapping": self.field_mapping,
+            "name": self.name,
+            "requirements": {
+                "github": self.github_requirements,
+                "pip": self.pip_requirements
+            },
+            "workflow": json.dumps(self.standard_workflow, indent=2),
+            "workflow_2": json.dumps(self.api_workflow, indent=2)
         }
+        for k, v in self.metadata.items():
+            gw[k] = v
+        return {"graydient_workflow": gw}
 
     def save(self, filepath: Optional[str] = None, force: bool = False) -> str:
         """

@@ -38,7 +38,7 @@ Do NOT harvest:
 
 ## What to update, and how
 
-Read `graydient_builder/node_schema_db.json`'s own `_readme` field and the
+Read `D:\tripostl\graydient_builder\node_schema_db.json`'s own `_readme` field and the
 existing entries first, to match tone/format — every entry has a `source`, `inputs`
 (exact keys, with type/shape notes for anything non-obvious like dotted Autogrow
 sub-fields), `outputs`, and a `note` explaining *why* it's recorded (what bug it
@@ -83,13 +83,24 @@ prevents, what the confirmation evidence was). Follow this pattern exactly.
    fix the rule and record *why* in a code comment with the confirming evidence
    (which real job, which package) — not just fix it silently.
 
+5. **Sync & Push to Unified Repository** (`python wf.py sync --push`): after the local
+   catalog and linter are updated and verified, synchronize and push the harvested
+   discoveries directly to the public unified tooling repository:
+   ```bash
+   python wf.py sync --push -m "Harvest: <workflow-name> - <brief summary of updates>"
+   ```
+   This automatically mirrors `graydient_builder/`, `comfyui-graydient-okf-catalog/`,
+   skills (`.agents/skills` and `.claude/skills`), CLI updates, and references into
+   `graydient-workflow-tooling-unofficial` and pushes the commit to GitHub.
+
 ## After harvesting
 
-Run `python wf.py lint <the confirmed-working gen_*.py>` one final time. It must
-return 0 errors. If it doesn't, something in the harvest is wrong — fix the harvest,
-never loosen a check just to make a known-good workflow pass.
-
-Report back concisely: what was added/fixed in each of the four files, and confirm
-the final lint pass. Don't pad this with restating the whole session's history — the
-catalog files themselves are the durable record now, the chat summary just needs to
-confirm they're accurate and consistent.
+1. Run `python wf.py lint <the confirmed-working gen_*.py>` one final time. It must
+   return 0 errors. If it doesn't, something in the harvest is wrong — fix the harvest,
+   never loosen a check just to make a known-good workflow pass.
+2. Run `python wf.py sync --push -m "Harvest: <workflow-name> - <summary>"` to publish
+   the updates to the unified repository.
+3. Report back concisely: what was added/fixed in each of the catalog files, confirm
+   the final lint pass, and report the GitHub push confirmation. Don't pad this with
+   restating the whole session's history — the catalog files and git history are the
+   durable record now.

@@ -491,3 +491,126 @@ This document records the hard physical constraints of Graydient's ephemeral clo
 * **Related confirmed facts from the same build**: `extract-frames` (`/run:extract-frames /slot1:0 --init-video <public https URL>`) returns frame 0 as a PNG with no local download; `--init-image <https URL>` of a previous render's S3 URL works where the CLI's temp-upload host is dead; a second media type goes via `/image1:URL1 --placeholder URL1=<url>` while the video uses `--init-video-url` (the `init_video_url` field) -- both arrived correctly.
 * **Reference implementation**: `gen_ltx25_ripple.py` -> `GraydientWorkflow-ripple-ltx25-v1.json` (LTX Ripple FFAF IC-LoRA, WepeNerd). Edited-frame + source-video frames -> `ImageBatch` -> one `LTXAddVideoICLoRAGuide` (frame_idx 0, latent_downscale_factor literal 1.0) -> distilled 22B int8, 8 steps euler CFG 1 (`BasicScheduler simple`) with `LoraLoaderModelOnly` strength 1.35 -> `LTXVCropGuides` -> `VAEDecodeTiled` + `LTXVAudioVAEDecode` -> `CreateVideo` -> `SaveVideo`. **Measured (job 39yNVD)**: 768x448, 97 frames @ 24 fps (4.04 s), h264 + AAC, `Prompt executed in 37.36 seconds` -- far under the ~120 s planning target, so the default size and length have lots of headroom (the author runs 1152x768 / 129; untested here). Visual check by Claude of frames 0/48/96: the snow edit persisted through the clip with the source's camera push-in; Jacob has not yet judged motion fidelity. The ComfyUI-TripoSG `trimesh`/`cv2` import warnings in the log are harmless here (video loader stays active).
 
+## 25. A Video That Never Arrives Looks Like a Successful Job With a Black 832x480 Image (confirmed 2026-10-09, edit-firstframe-qwen21)
+
+**Failure Mode**: `LoadVideoFromURLAuto` returns ONE BLACK 480x832 FRAME, with no error, when both `url` and `filename` are empty (source: ComfyUI-TripoSG/nodes.py). Three consecutive jobs (v1, a second video URL, and a flags change) came back `success` with a solid-black PNG of exactly 832x480 while the Qwen half of the graph ran normally (`Prompt executed in 14.90 seconds`). The input video was simply not delivered.
+**What worked**: map `init_video_filename` (the way the platform's own `extract-frames` does: Modes vid2img, Fields `init_video_filename` + `slot1`) and submit with the real triplet, `graydient render ... --init-video <url>`. The failing runs mapped `init_video_url` and used `--init-video-url <url>`. Both were changed together in v4, so which one mattered is NOT isolated; the feature flags (img2vid vs vid2img) were ruled out (changed in v2, same black result).
+**The Rule**: when a workflow input looks wrong, debug it by saving the loader output with a temporary `SaveImage`; a black image of exactly 480x832 means 'nothing delivered', not 'model failure'. Copy the field mapping of a platform workflow that already works for that media type.
+
+## 26. Qwen Image 2.1 Edit: the Reference Path Lands the Result ~45 px Left; Partial Denoise Ghosts or Ignores the Edit (measured 2026-10-09, edit-firstframe-qwen21)
+
+**Measured** on a 500x372 clip (true frame 0 from ffmpeg as ground truth), seed fixed:
+
+| Setup | Residual shift vs frame 0 | Hand sharpness (src 678) | Edit applied |
+|---|---|---|---|
+| denoise 0.55, img2img from the frame + frame as reference (v6) | 0 px | 584 | NO (prompt ignored) |
+| denoise 1.0, same graph | 44 px | 278 | YES |
+| denoise 0.7, frame 1 MP-upscaled + duplicate 2nd ref (v5) | 21 px | 330 | partly, visible ghost on the hands |
+| denoise 0.55, img2img start, NO reference images | n/a | n/a | applied, but a DIFFERENT PERSON |
+
+Three denoise-1.0 runs fit a shift-only offset of 44 / 40 / 51 px (8.8% / 8.0% / 6.6% of width on 500 / 500 / 768-wide frames) with a 1.01-1.03 scale, i.e. roughly constant in pixels, not proportional. The size-mismatch cause named in the node's own tooltip does not apply (sampled latent and reference are the same multiple-of-32 size). v5 also changed three things at once (1 MP upscale, duplicate image_2, denoise), so the ghost's cause between them is NOT isolated; the earlier belief that the upscale caused it is not supported by the d1.0 run, which shifts at native size.
+**The Rule**: for reference-driven edits where the result must stay registered to the source (first-frame anchoring), run denoise 1.0 and cancel the offset: `ImageCompositeMasked(destination = original frame, source = edit, x = 45)` with a `SolidMask -> FeatherMask(left=40)` mask so the strip uncovered on the left is original pixels and the seam fades. Confirmed live (v8/v9): residual 0 px against frame 0 on the 500x372 clip, edit and likeness intact. NOT yet verified on other frame sizes (only the 768x448 clip was measured before correction), so keep the pixel offset a mapped field (`slot3`, default 45).
+
+## 27. An Unmapped `image1` Is Silently Ignored; CLI Reference URLs Need a Placeholder (confirmed 2026-10-09, edit-firstframe-qwen21)
+
+**Failure Mode**: a workflow whose graph had an extra-reference path but only mapped `init_image_url` accepted a Telegram `/image1:<url>` prompt, ran to success and simply never used the reference (the source character stayed). There is no warning when a supplied platform field has no mapping.
+**The Rule**: if a workflow advertises a reference image, map `image1` (and keep a `LoadImage` default of `example.png` so a run without it still validates; map the same `image1` to a `PrimitiveString` + `StringCompare` to branch on presence). Confirmed live with and without a reference. From the CLI the URL contains `/`, which the prompt parser reads as options (`unknown /QUu9I2.png`, HTTP 403): submit `/image1:URL1` with `--placeholder URL1=<url>`.
+
+
+## 28. One Workflow, Three Tasks: Mode Slot + Lazy Switches Runs Only the Chosen Branch (confirmed 2026-10-13, iris3b-studio)
+
+**Reference implementation**: `gen_iris3b_studio.py` -> `GraydientWorkflow-iris3b-studio-v1.json` (Iris-3B text-to-image / depth / x4 restore). `slot1` -> `PrimitiveInt` -> two `ComfyMathExpression` (`round(a) == 0`, `round(a) == 1`, BOOL = output slot 2) -> two chained lazy `ComfySwitchNode` (depth-vs-upscale, then t2i-vs-rest) -> one `SaveImage`.
+**Confirmed live** (three consecutive jobs, one per mode, all succeeded with correct output): the selected branch produces the output and the other branches raise no error, with `LoadImage` defaulted to `example.png` and fed by `image1` (so t2i mode with no image validated). Whether the unselected loaders are skipped entirely was not read from a ComfyUI log; it is the documented lazy-switch behaviour.
+**The Rule**: stage EVERY branch's checkpoint in `concept_mapping` even though only one branch runs: ComfyUI validates all COMBO values (UNETLoader/LoraLoader names) for the whole graph before execution. Image input via CLI for such a workflow: `/image1:URL1` in the prompt + `--placeholder URL1=<https url>` (an https URL worked, no upload needed; confirmed for depth and upscale modes).
+**Not confirmed (do not treat as fact)**: real run time per mode. The CLI-visible elapsed (3-5 min per job incl. queue) is not `Prompt executed in N s`; read the archive Logs tab ComfyUI log for that. A separate cover render on the same t2i workflow sat queued 45 min and was aborted by the CLI with no hash, cause unknown (the user later reported the same prompt ran fine on another runner).
+**Iris-specific upstream guidance (README-sourced, NOT measured by us)**: leave the negative prompt as an empty string: Iris was trained with the encoded empty prompt as its CFG null and zeroed-out conditioning gives worse results; CLIPLoader type `krea2` is the correct Qwen3-VL-4B setup; VAELoader `pixel_space` is a passthrough.
+
+
+## 29. `init_image_url` Alone Can Deliver Nothing: Blank White Image, No Error (confirmed 2026-10-13, upscale-vosr2)
+
+**Failure Mode**: `Hy3DLoadImageFromURL` returns a blank 512x512 white image, with no error, when its `url` widget is empty. A workflow that mapped only `init_image_url` and was submitted with `graydient render ... --init-image-url <https URL>` ran to success but upscaled that blank placeholder (output 2048x2048 white at 4x, then 1024x1024 white at 2x; pixel std ~0.5). The submit log even listed `init_image_url` in `api_url_params`, so the platform "received" it; the node still got nothing.
+**What worked**: map BOTH `init_image_url` and `init_image_filename` to the same `url` widget (the pinkcherry-ltx25 pattern; the loader already falls back to a staged `input/` file) and submit with `--init-image <https URL>`. Job succeeded: 1280x1072 input -> 2560x2144 output, correct. Which of the two fields Graydient filled was not logged; do not assume `--init-image-url` is unusable on other workflows, only that it did not deliver here.
+**The Rule**: an output that is blank white at exactly (512 x scale) means 'nothing delivered', not 'model failure'. Map the filename field alongside the URL field for every image input. `graydient_builder/linter.py` now WARNs `INIT_IMAGE_URL_WITHOUT_FILENAME`. Sister of section 25 (black 480x832 for video).
+**Reference implementation**: `gen_vosr2_upscale.py` -> `GraydientWorkflow-vosr2-upscale-v2.json` (public archive workflow `upscale-vosr2`, WF7By0Ga). Also confirmed there: the archive public toggle only appears after the description and image are saved, so `archive meta --public` must be a second call; `--slot1` is not a render CLI flag, use `/slot1:2` in the prompt; the first cold run took ~202 s end to end (not the ComfyUI `Prompt executed` time).
+
+
+## 30. Restoring Onto a PUBLIC Workflow Silently Un-Publishes It and Drops Its Cover; Re-Publishing Needs a Successful Run on the New Version (confirmed 2026-10-13, iris3b v2 -> v4)
+
+**Failure Mode**: `graydient archive restore <public id> <json> --fix` bumped iris3b v2 -> v3 and reported "Flag differences: none", but afterwards `archive show` read `public: null` / `example image: false`. A following `archive meta --description-file` (v4) did not bring them back. The workflow was effectively private from then until re-published. The Basics page then showed "Workflow not eligible to go public yet" (the `is_public` radio does not exist, so `archive meta --public --confirm-public` fails with `locator.check: Timeout ... input[name="is_public"][value="on"]`).
+**What fixed it (in order)**: (1) re-upload the cover with `archive meta <id> --image cover.jpg` (this alone moved it to `public=false image=true`); (2) run one successful real render on the NEW version through the live slug (`graydient render ... /run:<slug>`, output file confirmed); (3) `archive meta <id> --public --confirm-public` then succeeded. Not separated: whether the image or the successful run (or both) is what lifts the "not eligible" gate, because they were done back to back.
+**The Rule**: treat a restore onto a live public workflow as an unpublish. Before restoring, note public/image state with `archive show`; afterwards re-check, re-upload the cover, run a real test through the slug, then re-publish (and only with the user's explicit go-ahead for that workflow). Prefer restoring to a private copy and swapping only when the user has said to replace the public one.
+**Deleting a workflow**: the CLI has no delete command. The Basics page has `<a phx-click="del-workflow" data-confirm="Are you sure you want to delete this workflow?">Delete</a>`; it is a link (not role=button) guarded by a browser `confirm()` that must be accepted. Driven via a one-off Playwright script reusing the CLI's `ArchiveSession`. First run appeared to do nothing (the id still listed by `archive list`), a second run with a 6 s wait removed it from the list; `archive show <old id>` still renders the edit page afterwards, so it looks like a soft delete. Always assert the target's name before clicking.
+
+
+## 31. MOSS-Image Flow-Matching Pipeline: Native Shift 5.0, Simple Scheduler, and No Image-to-Image Weights (confirmed 2026-10-17, moss-image WF7JAy5a / edit-moss)
+
+* **Reference Implementation**: `gen_moss_image.py` -> `GraydientWorkflow-moss-image-v2.json` (deployed to private archive `moss-image` WF7JAy5a). Core chain: `UNETLoader` (`moss_image_sft_int8_convrot.safetensors`) -> `SkipLayerGuidanceDiTSimple` (`single_layers="22"`, `double_layers=""`, `start_percent=0.0`, `end_percent=0.5`) -> `KSampler` (`sampler_name="er_sde"`, `scheduler="simple"`, `cfg=2.5`, `steps=25`, `denoise=1.0`) with `CLIPLoader` (`type="moss_image"`, `qwen3.5_9b_int8_convrot.safetensors`), `VAELoader` (`flux2-vae.safetensors`), `EmptyFlux2LatentImage` -> `VAEDecode` -> `SaveImage`.
+* **Failure Mode 1 (Redundant Shift)**: Wrapping MOSS-Image with `ModelSamplingSD3(shift=5.0)` double-shifts and corrupts the flow-matching timesteps. ComfyUI Core's `MOSSImage` class (`comfy/ldm/moss_image/supported_models.py`) already natively defines `sampling_settings = {"shift": 5.0, "multiplier": 1.0}` on the base model loader.
+* **Failure Mode 2 (Scheduler Mismatch -> Static Noise)**: In a live Graydient job (RTX 4090, 75.46s, job `RPZW19n`), using `scheduler: "sgm_uniform"` failed to denoise the flow-matching velocity field and produced raw multicolored static noise. MOSS-Image is a flow-matching model in FLUX.2 latent space (128 channels, 16x downsampling) and strictly requires `scheduler: "simple"` (linear flow schedule from 1.0 to 0.0).
+* **Failure Mode 3 (SLG Parameter Breakage)**: Standard `SkipLayerGuidanceDiT` takes `scale` and extra passes, whereas `SkipLayerGuidanceDiTSimple` only modifies the unconditional pass. Setting `scale=3.0` or `end_percent=1.0` caused errors; the official OpenMOSS reference requires `single_layers="22"`, `double_layers=""`, `start_percent=0.0`, `end_percent=0.5`.
+* **Failure Mode 4 (No Image-to-Image / Editing Weights)**: Attempted in `edit-moss` (WFa49Aq7) by feeding encoded source image latents to `KSampler` with `denoise=0.65`. The job failed because MOSS-Image has zero image-to-image conditioning:
+  1. The DiT input projection accepts only image patch latents (no concatenated reference channels like InstructPix2Pix or FLUX.1 Fill).
+  2. While `qwen3.5_9b_int8_convrot.safetensors` contains 549 vision tensors (`model.visual.*`), ComfyUI Core's `MOSSImageTokenizer` and text encoder only process text conditioning tokens; the vision tower is dormant.
+  3. Flow matching in a 128-channel latent space cannot perform partial-denoise img2img without an explicit reference training regime. OpenMOSS explicitly marks Reference-to-Image (R2I / 参考生图) as an unreleased future roadmap item in `USERGUIDE.md`.
+* **The Rule**: MOSS-Image is strictly a Text-to-Image and Layout-to-Image model. Never attempt partial-denoise img2img, never wrap with `ModelSamplingSD3`, and always pair `er_sde` / `euler` with `scheduler: "simple"`.
+
+
+## 32. The Asymmetric Residential Bandwidth Trap & Cloud-to-Cloud Weight Conversion Rule (confirmed 2026-10-17, video-wanq)
+
+* **Failure Mode (Local Quantization)**: Attempting to download large model weights (> 4 GB, e.g. Wan 2.2 5B BF16 at 9.99 GB) to a local consumer workstation, quantize to native FP8 (`float8_e4m3fn`), and upload the resulting 5.0 GB `.safetensors` to Hugging Face over a residential internet connection (~0.5–1.0 Mbps / ~80 kB/s upstream).
+  1. At 80 kB/s, 5 GB mathematically takes **18+ hours**.
+  2. Hugging Face large file transfers (LFS) upload to AWS S3/CloudFront in ~200 MB multipart chunks. Because a single 200 MB chunk takes ~40 minutes at 80 kB/s, AWS S3/CloudFront's 10–15 minute HTTP connection timeout cuts off the socket (`CloseWait`), causing the upload to stall indefinitely at ~40 MB (1%).
+  3. Peak memory usage during in-memory BF16 &rarr; FP8 serialization consumes ~15–20 GB of RAM, causing system-wide swap thrashing.
+* **The Proven Solution (Cloud-to-Cloud via ZeroGPU Space)**:
+  Execute the conversion directly on the AWS us-east-1 datacenter backbone inside a Hugging Face Space (e.g. `Jacob121294/pinkcherryltx25` or an ephemeral ZeroGPU space):
+  1. **Download**: Pulls 10 GB from `Kijai/WanVideo_comfy` at **630–770 MB/s** (~12 seconds).
+  2. **In-Memory Quantization**: Quantizes 2D+ matrices to native FP8 (`torch.float8_e4m3fn`) in RAM/VRAM while keeping 1D norm/biases in BF16 (~20 seconds). Deletes source weights from `/tmp` immediately to keep root storage well below the 50 GB ephemeral limit.
+  3. **Upload**: Pushes the 5.00 GB safetensors directly to `Jacob121294/FastWan-5B-FP8` at **325 MB/s** (~15.4 seconds).
+  4. **Total Turnaround**: **Under 2 minutes flat** with zero local bandwidth or disk burned.
+* **ZeroGPU Hard Constraint**:
+  ZeroGPU spaces (`zero-a10g`) inspect the app AST during container startup. The app **MUST** contain a function decorated with `@spaces.GPU` (e.g. `import spaces; @spaces.GPU def _noop(): return None`). If missing, the container supervisor terminates execution with `RUNTIME_ERROR: No @spaces.GPU function detected during startup`.
+* **The Rule**: Never quantize or upload large model weights locally. When model weights lack an FP8 release on Hugging Face, deploy the converter script to a cloud transfer Space and publish directly repo-to-repo.
+
+
+## 33. FastWan 1.3B QAD: 720p Architecture & Latent Refiner Pitfalls (confirmed 2026-10-18, video-turbo-wanq WFEVAxZX v9 / job BKqye9)
+
+* **Reference Implementation**: `gen_fastwan13_720p.py` -> `GraydientWorkflow-video-turbo-wanq-v1.json` (deployed to private archive `video-turbo-wanq` WFEVAxZX v9).
+* **The Failure of 2-Stage Latent Upscale on Wan 1.3B**:
+  - A theoretical 3-step base (480p) + 1-step refiner (720p, `flowmatch_pusa` / `denoise: 0.12-0.28`) was tested across renders `y9zx0L` (v4), `Myj64z` (v5), and `gG0jG8` (v7).
+  - All three exhibited severe **vertical waterfall streaking, melted fur, and ghosted double contours**.
+  - **Root Cause**:
+    1. FastWan 1.3B spatial attention was trained exclusively at 480p ($60 \times 104$ latent tokens). Evaluating $90 \times 160$ tokens in 1 step causes spatial RoPE frequency aliasing.
+    2. Slicing with `steps=3` and `denoise=0.12` injected 17.2% flow noise and forced the model to jump all the way to clean $x_0$ in a single forward pass, pulling the latent downward along the vertical token axis.
+    3. `flowmatch_pusa` is Tencent PUSA's scheduler, which expects Pusa noise patterns, rather than Alibaba's native `FlowUniPCMultistepScheduler` (`unipc`).
+* **Confirmed Solution (Path A - Native 480p Generation + Pixel Upscaling)**:
+  1. **Pass 1 (Base Generation)**: `WanVideoEmptyEmbeds` (832x480, 81 frames) -> `WanVideoSampler` (3 steps, `cfg: 1.0`, `shift: 5.0`, `scheduler: "unipc"`).
+  2. **Pass 2 (Pristine 3D Causal Decode)**: `WanVideoVAELoader` (`Wan2_1_VAE_bf16.safetensors`) -> `WanVideoDecode` (`enable_vae_tiling: True`, tile 512, stride 256).
+  3. **Pass 3 (High-Fidelity Spatial Upscale)**: ComfyUI stock `ImageScale` (`upscale_method: "bicubic"`, `width: 1280`, `height: 720`, `crop: "disabled"`).
+  4. **Output**: `VHS_VideoCombine` (16 fps MP4).
+* **Confirmed Results (Job `BKqye9`)**:
+  - Vertical streaking autocorrelation spike at `lag=9px` dropped from `0.1759` to `<0.04` (zero artificial striping).
+  - Fur texture, whiskers, and black stripes rendered with natural anatomical sharpness and zero ghosting.
+  - Total inference time: ~35 seconds on an RTX 4090 / A100 (~4.3× faster than 2-stage latent refiner).
+* **The Rule**: For FastWan 1.3B, do NOT perform secondary latent refinement at 720p. Generate natively at 480p with Alibaba `unipc`, decode with official Wan 2.1 VAE, and upscale to 720p/1080p in pixel space using `ImageScale`.
+
+
+## 34. MOSS-Image 8-Step DMD Turbo Distillation Stack (confirmed 2026-10-18, turbo-moss WFEjObAa / job kDJoyz)
+
+* **Reference Implementation**: `gen_turbo_moss.py` -> `GraydientWorkflow-turbo-moss-v1.json` (deployed to private archive `turbo-moss` WFEjObAa).
+* **Pipeline Structure**:
+  1. Base Checkpoint: `UNETLoader` with `moss_image_sft_int8_convrot.safetensors` (5.41 GB).
+  2. Adapter: ComfyUI stock `LoraLoaderModelOnly` loading `loras/moss_image_sft_8_steps_dmd.safetensors` (`lodestones/MOSS-Image-SFT-8-steps-dmd`, 1.19 GB, float32 Data-space DMD weights, Civitai version 3411385) at `strength_model: 1.0`.
+  3. Guidance: `SkipLayerGuidanceDiTSimple` (`single_layers: "22"`, `double_layers: ""`, `start_percent: 0.0`, `end_percent: 0.5`).
+  4. Sampler: `KSampler` with `steps: 8`, `cfg: 2.5`, `sampler_name: "er_sde"`, `scheduler: "simple"`, `denoise: 1.0`.
+  5. Text Encoder: `CLIPLoader` (`type: "moss_image"`, `qwen3.5_9b_int8_convrot.safetensors`).
+  6. Latent/Decode: `EmptyFlux2LatentImage` (1024x1024, 128 channels) -> `VAEDecode` (`flux2-vae.safetensors`) -> `SaveImage`.
+* **Confirmed Performance**:
+  - Live Graydient job `kDJoyz` on RTX 4090 executed end-to-end within ~2.5 minutes including cold-machine staging of all 4 models (~16.7 GB total).
+  - Pure inference time for 8 steps is ~12-15 seconds (compared to ~45-50 seconds for 25-50 steps on baseline MOSS).
+  - Visual output confirmed sharp, detailed, and artifact-free with rich natural lighting and accurate layout.
+* **Archive Deployment Gotchas**:
+  - Uploading a large PNG directly via `archive meta --image` can exceed the 20s Playwright timeout while Phoenix LiveView handles the upload. Pre-converting to JPEG (e.g. `quality=85`, ~200 KB) resolves immediately with `public=false image=true`.
+* **The Rule**: For rapid few-step MOSS-Image generation, use the 8-step DMD Turbo LoRA with `LoraLoaderModelOnly` (strength 1.0) and `KSampler(steps=8, cfg=2.5, sampler="er_sde", scheduler="simple")`.
+
+
+

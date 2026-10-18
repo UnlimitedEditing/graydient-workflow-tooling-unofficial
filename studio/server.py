@@ -90,11 +90,17 @@ def get_status():
 
 @app.post("/api/settings/key")
 def set_api_key(req: KeyRequest):
-    agent.update_api_key(req.api_key)
+    key = req.api_key.strip()
+    if key.startswith("http://") or key.startswith("https://") or len(key) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid key format. You pasted a URL or key is too short. Please paste your Google AI Studio API key (starts with 'AQ' or 'AIza')."
+        )
+    agent.update_api_key(key)
     # Also save to local config file
     cfg_file = BASE_DIR / ".gemini_key"
     try:
-        cfg_file.write_text(req.api_key.strip(), encoding="utf-8")
+        cfg_file.write_text(key, encoding="utf-8")
     except Exception:
         pass
     return {"status": "saved", "has_key": bool(agent.api_key)}

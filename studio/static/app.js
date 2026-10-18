@@ -566,11 +566,11 @@ async function checkStatus() {
     const pill = document.getElementById('pill-ai');
     const text = document.getElementById('ai-status-text');
     if (data.has_gemini_key) {
-      text.textContent = 'Gemini 2.0 Flash: Active (1M)';
+      text.textContent = 'Gemini 3.8 Flash: Active (1M)';
       pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
       pill.style.color = 'var(--accent-emerald)';
     } else {
-      text.textContent = 'Gemini 2.0 Flash: Key Needed';
+      text.textContent = 'Gemini 3.8 Flash: Key Needed';
       pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
       pill.style.color = 'var(--accent-amber)';
     }

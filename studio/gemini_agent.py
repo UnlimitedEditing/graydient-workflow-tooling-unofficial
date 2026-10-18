@@ -215,11 +215,11 @@ and directly renders it in the interactive 3D WebGL viewer!
             return
 
         try:
-            # We call Gemini 2.0 Flash (or 1.5 Flash as fallback)
-            model_name = "gemini-2.0-flash"
+            # Use Google's latest Gemini 3.8 Flash model
+            model_name = "gemini-3.8-flash"
 
             prompt = f"{self.system_instruction}\n\nUser Request: {user_message}"
-            yield {"type": "status", "message": "Reasoning with Gemini Flash 1M context..."}
+            yield {"type": "status", "message": "Reasoning with Gemini 3.8 Flash 1M context..."}
 
             # Generate content
             response = self.client.models.generate_content(

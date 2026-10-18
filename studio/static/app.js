@@ -10,7 +10,11 @@ let viewer = null;
 let currentExtractedAsset = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  initViewer();
+  try {
+    initViewer();
+  } catch (err) {
+    console.error("Three.js Viewer initialization error:", err);
+  }
   initTabs();
   initM3DS();
   initAgent();

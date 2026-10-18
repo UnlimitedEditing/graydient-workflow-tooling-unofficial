@@ -39,8 +39,8 @@ def open_desktop_window(url: str):
     print(f"🚀 Opened in default web browser: {url}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Graydient Studio — Desktop Application")
-    parser.add_argument("--port", type=int, default=8765, help="Port to run Studio server on (default 8765)")
+    parser = argparse.ArgumentParser(description="PirateUI — Autonomous Workflow Studio")
+    parser.add_argument("--port", type=int, default=8765, help="Port to run PirateUI on (default 8765)")
     parser.add_argument("--host", default="127.0.0.1", help="Host address (default 127.0.0.1)")
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically launch browser window")
     args = parser.parse_args()
@@ -50,7 +50,7 @@ def main():
 
     url = f"http://{args.host}:{args.port}"
     print("=" * 65)
-    print("  [*] GRAYDIENT STUDIO -- UNIFIED WORKFLOW & M3DS DESKTOP SUITE")
+    print("  [*] PIRATEUI -- AUTONOMOUS WORKFLOW & M3DS STUDIO")
     print("=" * 65)
     print(f"  * Studio UI:        {url}")
     print(f"  * AI Engine:        Google Gemini 2.0 Flash (1M Context)")

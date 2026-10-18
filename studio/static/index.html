@@ -3,27 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graydient Studio — Autonomous Workflow Engineering & M3DS Studio</title>
+  <title>PirateUI — Autonomous Workflow Studio & M3DS Converter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="app-layout">
     <!-- Top Navigation Bar -->
     <header class="app-header">
       <div class="logo-area">
-        <div class="logo-gem">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-            <polyline points="2 17 12 22 22 17"></polyline>
-            <polyline points="2 12 12 17 22 12"></polyline>
+        <div class="logo-gem" title="PirateUI: Unofficial Tooling Suite">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a6 6 0 0 0-6 6c0 2.2 1.2 4.1 3 5.1V17h6v-3.9c1.8-1 3-2.9 3-5.1a6 6 0 0 0-6-6z"></path>
+            <circle cx="10" cy="8" r="1.2" fill="currentColor"></circle>
+            <circle cx="14" cy="8" r="1.2" fill="currentColor"></circle>
+            <line x1="3" y1="21" x2="21" y2="3"></line>
+            <line x1="21" y1="21" x2="3" y2="3"></line>
           </svg>
         </div>
         <div>
-          <h1 class="logo-title">GRAYDIENT <span>STUDIO</span></h1>
-          <span class="logo-subtitle">Autonomous Workflow Engineer & M3DS Converter</span>
+          <h1 class="logo-title">PIRATE<span>UI</span></h1>
+          <span class="logo-subtitle">Autonomous Workflow Studio & M3DS Smuggler</span>
         </div>
       </div>
 
@@ -189,7 +199,7 @@
             <div class="chat-messages" id="chat-messages">
               <div class="message msg-assistant">
                 <div class="msg-bubble">
-                  👋 <strong>Welcome to Graydient Studio!</strong> I am your zero-cost autonomous workflow engineer.<br><br>
+                  👋 <strong>Welcome to PirateUI!</strong> I am your zero-cost autonomous workflow engineer.<br><br>
                   I have your entire repository embedded into my 1M-token context — including <strong>all 34 Graveyard rules</strong> (`KI-007`), the complete <strong>ComfyUI node schema catalog</strong> (`node_schema_db.json`), and verified model CDN staging URLs (`concept_db.json`).<br><br>
                   What would you like to build or diagnose today?
                 </div>
@@ -326,7 +336,7 @@
   <div class="modal-overlay" id="settings-modal" style="display:none;">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Studio Settings</h3>
+        <h3>PirateUI Settings</h3>
         <button class="close-modal-btn" id="close-settings-btn">&times;</button>
       </div>
       <div class="modal-body">

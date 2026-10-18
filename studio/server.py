@@ -24,7 +24,7 @@ STUDIO_DIR = Path(__file__).resolve().parent
 STATIC_DIR = STUDIO_DIR / "static"
 RENDERS_DIR = BASE_DIR / "renders"
 
-app = FastAPI(title="Graydient Studio", version="1.0.0")
+app = FastAPI(title="PirateUI", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

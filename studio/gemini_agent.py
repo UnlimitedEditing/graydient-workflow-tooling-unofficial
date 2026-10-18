@@ -15,7 +15,17 @@ REPO_ROOT = BASE_DIR
 
 class GeminiStudioAgent:
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not key:
+            # Check local key files
+            for kf in [BASE_DIR / ".gemini_key", BASE_DIR.parent / ".gemini_key", Path.home() / ".gemini_key"]:
+                if kf.exists():
+                    try:
+                        key = kf.read_text(encoding="utf-8").strip()
+                        if key: break
+                    except Exception:
+                        pass
+        self.api_key = key
         self.client = None
         self.system_instruction = self._build_system_instruction()
         self._init_client()

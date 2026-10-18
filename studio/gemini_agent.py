@@ -139,10 +139,17 @@ You are deliberately kept LEAN and UNBLOATED: you do NOT carry ComfyUI workflow 
      • Mutation: `vail_set_property`, `vail_level_spawn_actor`, `vail_component_add`, `vail_input_map_key`.
      • C++ Live Coding: `vail_trigger_live_coding` to compile C++ inside Unreal Engine.
      • Offline Guidance: If Unreal is offline, inform the user to start their Unreal project (e.g. D:\\UE5.8\\vailtest).
-3. 3D Game Asset Staging:
+3. Unity Engine 2022.3 LTS & Unity 6 via PirateUIBridge:
+   - Protocol: Local HTTP socket on 127.0.0.1:55558.
+   - Tool: `unity_execute_command(command, payload_json)`
+   - Capabilities:
+     • Inspection: `get_status` (version, active project), `get_scene_hierarchy` (root GameObjects in active scene).
+     • Mutation: `create_gameobject` (spawn entity), `refresh_assets` (AssetDatabase.Refresh).
+     • Scripting: Write modern, production-grade Unity C# (MonoBehaviour lifecycle, ScriptableObjects, Transform hierarchy, Prefabs, `[SerializeField]`, and Unity 6 DOTS/JobSystem conventions).
+4. 3D Game Asset Staging:
    - Tool: `deploy_3d_asset_to_game(mesh_name_or_path, target_engine, custom_project_dir)`
-   - Directly ships generated/decoded 3D meshes (.glb, .ply) from PirateUI into Godot (`res://assets`) or Unreal Content directories.
-4. Workspace Tools:
+   - Directly ships generated/decoded 3D meshes (.glb, .ply) from PirateUI into Godot (`res://assets`), Unreal Content, or Unity (`Assets/Imports/PirateUI`).
+5. Workspace Tools:
    - `read_workspace_file`, `write_workspace_file`, `run_terminal_command`, `game_dev_probe`.
 
 === STANDARDS ===
@@ -283,15 +290,26 @@ You are deliberately kept LEAN and UNBLOATED: you do NOT carry ComfyUI workflow 
             res = send_godot_tool(tool_name, p)
             return json.dumps(res, indent=2)
 
+        def unity_execute_command(command: str, payload_json: str = "{}") -> str:
+            """Executes an editor command on Unity 2022.3 / Unity 6 via PirateUIBridge on port 55558 (get_status, get_scene_hierarchy, refresh_assets, create_gameobject, ping)."""
+            from .game_dev_bridge import send_unity_command
+            try:
+                p = json.loads(payload_json) if payload_json.strip() else {}
+            except Exception:
+                p = payload_json
+            res = send_unity_command(command, p)
+            return json.dumps(res, indent=2)
+
         def game_dev_probe() -> str:
-            """Probes the live status of Unreal Engine 5.8 (VAIL on port 55557) and Godot Engine / Godot MCP."""
-            from .game_dev_bridge import check_vail_connection, check_godot_status
+            """Probes the live status of Unreal Engine 5.8 (VAIL on port 55557), Godot Engine / Godot MCP, and Unity 2022.3/Unity 6 (PirateUIBridge on port 55558)."""
+            from .game_dev_bridge import check_vail_connection, check_godot_status, check_unity_connection
             vail = check_vail_connection()
             godot = check_godot_status()
-            return json.dumps({"unreal_vail": vail, "godot_mcp": godot}, indent=2)
+            unity = check_unity_connection()
+            return json.dumps({"unreal_vail": vail, "godot_mcp": godot, "unity_bridge": unity}, indent=2)
 
         def deploy_3d_asset_to_game(mesh_name_or_path: str, target_engine: str = "godot", custom_project_dir: str = "") -> str:
-            """Deploys a generated 3D model (.glb/.ply) into a Godot or Unreal Engine project folder."""
+            """Deploys a generated 3D model (.glb/.ply) into a Godot, Unreal Engine, or Unity project folder."""
             from .game_dev_bridge import deploy_mesh_to_game
             res = deploy_mesh_to_game(mesh_name_or_path, target_engine, custom_project_dir or None)
             return json.dumps(res, indent=2)
@@ -310,6 +328,7 @@ You are deliberately kept LEAN and UNBLOATED: you do NOT carry ComfyUI workflow 
         self.gamedev_tools = [
             vail_execute_command,
             godot_mcp_execute,
+            unity_execute_command,
             game_dev_probe,
             deploy_3d_asset_to_game,
             read_workspace_file,

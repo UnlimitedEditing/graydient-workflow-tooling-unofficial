@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PirateUI — Autonomous Workflow Studio & M3DS Converter</title>
+  <title>PirateUI — Autonomous Workflow Studio &amp; M3DS Converter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <script type="importmap">
     {
@@ -19,76 +19,46 @@
 </head>
 <body>
   <div class="app-layout">
-    <!-- Top Navigation Bar -->
-    <header class="app-header">
-      <div class="logo-area">
-        <div class="logo-gem" title="PirateUI: Unofficial Tooling Suite">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a6 6 0 0 0-6 6c0 2.2 1.2 4.1 3 5.1V17h6v-3.9c1.8-1 3-2.9 3-5.1a6 6 0 0 0-6-6z"></path>
-            <circle cx="10" cy="8" r="1.2" fill="currentColor"></circle>
-            <circle cx="14" cy="8" r="1.2" fill="currentColor"></circle>
-            <line x1="3" y1="21" x2="21" y2="3"></line>
-            <line x1="21" y1="21" x2="3" y2="3"></line>
-          </svg>
-        </div>
-        <div>
-          <h1 class="logo-title">PIRATE<span>UI</span></h1>
-          <span class="logo-subtitle">Autonomous Workflow Studio & M3DS Smuggler</span>
-        </div>
+    <!-- Top Architectural Masthead -->
+    <header class="masthead">
+      <div class="masthead-brand">
+        <span class="masthead-title">PIRATE UI</span>
+        <span class="masthead-issue">[ VOL. 01 — RUNTIME STAGING &amp; SMUGGLING ]</span>
       </div>
 
-      <div class="header-pills">
-        <div class="status-pill pill-ai" id="pill-ai" title="Google Gemini 3.8 Flash (1M Context) zero-cost driver">
-          <span class="status-dot"></span>
-          <span id="ai-status-text">Gemini 3.8 Flash: Ready</span>
+      <div class="masthead-telemetry">
+        <div class="status-box" id="pill-ai" title="Google Gemini 3.8 Flash (1M Context) zero-cost driver">
+          <span class="box-key">AI</span>
+          <span class="box-val" id="ai-status-text">GEMINI 1M</span>
         </div>
-        <div class="status-pill pill-graveyard" title="34 Hardened Container Failure Rules">
-          <span class="pill-icon">🛡️</span>
-          <span>Graveyard: 34</span>
+        <div class="status-box" id="pill-graveyard" title="34 Hardened Container Failure Rules">
+          <span class="box-key">KI-007</span>
+          <span class="box-val">34 RULES</span>
         </div>
-        <div class="status-pill pill-vail" id="pill-vail" title="Unreal Engine 5.8 VAIL Socket (127.0.0.1:55557)">
-          <span class="status-dot dot-offline" id="vail-dot"></span>
-          <span id="vail-status-text">UE5 VAIL: Offline</span>
+        <div class="status-box" id="pill-vail" title="Unreal Engine 5.8 VAIL Socket (127.0.0.1:55557)">
+          <span class="box-key">UE5</span>
+          <span class="box-val" id="vail-status-text">OFFLINE</span>
         </div>
-        <div class="status-pill pill-godot" id="pill-godot" title="Godot Engine 4.6.1 & Godot MCP Bridge">
-          <span class="status-dot dot-online" id="godot-dot"></span>
-          <span id="godot-status-text">Godot MCP: Online</span>
+        <div class="status-box" id="pill-godot" title="Godot Engine 4.6.1 &amp; Godot MCP Bridge">
+          <span class="box-key">GODOT</span>
+          <span class="box-val" id="godot-status-text">4.6.1</span>
         </div>
-        <button class="settings-btn" id="open-settings-btn" title="Configure API Key">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-        </button>
+        <div class="status-box" id="pill-unity" title="Unity 2022.3 / Unity 6 Bridge (127.0.0.1:55558)">
+          <span class="box-key">UNITY</span>
+          <span class="box-val" id="unity-status-text">OFFLINE</span>
+        </div>
+        <button class="action-box" id="open-settings-btn" title="Configuration">[ PREFERENCES ]</button>
       </div>
     </header>
 
-    <!-- Main Navigation Tabs -->
+    <!-- Main Navigation Tabs (Serif/Mono Typographic Precision - Zero Emojis) -->
     <nav class="app-nav">
-      <button class="nav-tab active" data-tab="tab-m3ds">
-        <span class="tab-icon">🧊</span>
-        <span>M3DS 3D Viewer</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-agent">
-        <span class="tab-icon">🤖</span>
-        <span>Gemini AI Co-Pilot</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-gamedev">
-        <span class="tab-icon">🎮</span>
-        <span>Game Dev Agent</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-renders">
-        <span class="tab-icon">⚡</span>
-        <span>Render Studio</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-linter">
-        <span class="tab-icon">📐</span>
-        <span>Workflow Linter</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-diagnostics">
-        <span class="tab-icon">🩺</span>
-        <span>Diagnostics</span>
-      </button>
+      <button class="nav-tab active" data-tab="tab-m3ds">M3DS 3D VIEWER</button>
+      <button class="nav-tab" data-tab="tab-agent">GEMINI AI CO-PILOT</button>
+      <button class="nav-tab" data-tab="tab-gamedev">GAME DEV AGENT</button>
+      <button class="nav-tab" data-tab="tab-renders">RENDER STUDIO</button>
+      <button class="nav-tab" data-tab="tab-linter">WORKFLOW LINTER</button>
+      <button class="nav-tab" data-tab="tab-diagnostics">DIAGNOSTICS</button>
     </nav>
 
     <!-- Main Content Panels -->
@@ -105,25 +75,27 @@
 
             <div class="drop-zone" id="m3ds-drop-zone">
               <div class="drop-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                   <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                   <line x1="12" y1="22.08" x2="12" y2="12"></line>
                 </svg>
               </div>
-              <p>Drag & drop <strong>M3DS PNG image</strong></p>
-              <span class="drop-subtext">or click to browse local files</span>
+              <p>DRAG &amp; DROP <strong>M3DS PNG IMAGE</strong></p>
+              <span class="drop-subtext">OR CLICK TO BROWSE LOCAL ARTIFACTS</span>
               <input type="file" id="m3ds-file-input" accept=".png,image/png" style="display:none;">
             </div>
 
             <div class="quick-samples">
-              <span class="section-label">Quick Test on Local Samples:</span>
+              <span class="section-label">Canonical Local Samples:</span>
               <div class="sample-chips">
                 <button class="sample-chip" id="load-sample-splat">
-                  <span>✨ Gaussian Splat (.ply)</span>
+                  <span>GAUSSIAN SPLAT (.PLY)</span>
+                  <span class="sample-arrow">→</span>
                 </button>
                 <button class="sample-chip" id="load-sample-score">
-                  <span>🎵 YuE2 Song Score (.json)</span>
+                  <span>YUE2 SONG SCORE (.JSON)</span>
+                  <span class="sample-arrow">→</span>
                 </button>
               </div>
             </div>
@@ -131,7 +103,7 @@
             <!-- Decoded Metadata Card -->
             <div class="decoded-card" id="decoded-info-card" style="display:none;">
               <div class="card-header">
-                <span class="badge-tag" id="decoded-type-badge">3D Mesh</span>
+                <span class="badge-tag" id="decoded-type-badge">3D MESH</span>
                 <span class="file-size" id="decoded-size">0 KB</span>
               </div>
               <div class="meta-row">
@@ -140,10 +112,10 @@
               </div>
               <div class="meta-row">
                 <span class="meta-key">Container CRC32:</span>
-                <span class="meta-val meta-ok">✓ Verified Valid</span>
+                <span class="meta-val meta-ok">[ VERIFIED VALID ]</span>
               </div>
               <div class="action-buttons">
-                <button class="btn btn-primary" id="download-extracted-btn">⬇ Export Decoded Asset</button>
+                <button class="btn btn-primary btn-block" id="download-extracted-btn">[ EXPORT DECODED ASSET ]</button>
               </div>
             </div>
 
@@ -151,10 +123,10 @@
             <div class="scene-outliner-card" id="scene-outliner-card">
               <div class="card-header">
                 <span class="section-label" style="margin:0;">Environment Scene Outliner</span>
-                <button class="btn-sm" id="export-scene-btn" title="Export entire multi-mesh scene as single GLB">⬇ Export Scene (.glb)</button>
+                <button class="btn-sm" id="export-scene-btn" title="Export entire multi-mesh scene as single GLB">[ EXPORT SCENE (.GLB) ]</button>
               </div>
               <div class="staged-assets-list" id="staged-assets-list">
-                <div style="font-size:11.5px;color:var(--text-dim);padding:8px 0;">No props staged yet. Load or drop assets to build environments.</div>
+                <div class="empty-list-note">No props staged yet. Load or drop assets to assemble environments.</div>
               </div>
             </div>
           </div>
@@ -163,27 +135,27 @@
           <div class="panel-card viewport-panel">
             <div class="viewport-header">
               <div class="viewport-title">
-                <span class="dot-online"></span>
+                <span class="status-indicator"></span>
                 <span id="viewport-status">Interactive 3D WebGL Canvas</span>
               </div>
               <div class="viewport-controls">
                 <div class="gizmo-mode-group">
-                  <button class="btn-sm active" id="gizmo-translate-btn" title="Translate / Move [W]">Move (W)</button>
-                  <button class="btn-sm" id="gizmo-rotate-btn" title="Rotate [E]">Rotate (E)</button>
-                  <button class="btn-sm" id="gizmo-scale-btn" title="Scale [R]">Scale (R)</button>
+                  <button class="btn-sm active" id="gizmo-translate-btn" title="Translate / Move [W]">MOVE (W)</button>
+                  <button class="btn-sm" id="gizmo-rotate-btn" title="Rotate [E]">ROTATE (E)</button>
+                  <button class="btn-sm" id="gizmo-scale-btn" title="Scale [R]">SCALE (R)</button>
                 </div>
                 <label class="toggle-control">
                   <input type="checkbox" id="wireframe-toggle">
-                  <span>Wireframe</span>
+                  <span>WIREFRAME</span>
                 </label>
-                <button class="btn-sm" id="delete-asset-btn" style="color:var(--accent-rose);" title="Remove selected prop">✕ Delete</button>
-                <button class="btn-sm" id="reset-cam-btn">↺ Reset View</button>
+                <button class="btn-sm" id="delete-asset-btn" title="Remove selected prop">[ DELETE PROP ]</button>
+                <button class="btn-sm" id="reset-cam-btn">[ RESET VIEW ]</button>
               </div>
             </div>
 
-            <div class="canvas-wrapper" id="three-viewport">
+            <div class="canvas-wrapper texture-grid" id="three-viewport">
               <div class="empty-hint" id="three-hint">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                   <polyline points="2 17 12 22 22 17"></polyline>
                   <polyline points="2 12 12 17 22 12"></polyline>
@@ -206,27 +178,18 @@
         <div class="agent-layout">
           <div class="panel-card chat-panel">
             <div class="chat-header">
-              <div class="agent-avatar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path>
-                  <rect x="3" y="8" width="18" height="12" rx="2"></rect>
-                  <circle cx="9" cy="13" r="1.5"></circle>
-                  <circle cx="15" cy="13" r="1.5"></circle>
-                  <path d="M9 17h6"></path>
-                </svg>
-              </div>
               <div>
                 <h2 class="panel-title" style="margin:0;">Gemini 3.8 Flash Autonomous Co-Pilot</h2>
-                <span class="agent-badge">1,000,000 Token Context • Zero Cost • Autonomous Tool Calling</span>
+                <span class="agent-badge">1,000,000 TOKEN CONTEXT // ZERO-COST RUNTIME // AUTONOMOUS TOOL CALLING</span>
               </div>
             </div>
 
             <div class="chat-messages" id="chat-messages">
               <div class="message msg-assistant">
                 <div class="msg-bubble">
-                  👋 <strong>Welcome to PirateUI!</strong> I am your zero-cost autonomous workflow engineer.<br><br>
-                  I have your entire repository embedded into my 1M-token context — including <strong>all 34 Graveyard rules</strong> (`KI-007`), the complete <strong>ComfyUI node schema catalog</strong> (`node_schema_db.json`), and verified model CDN staging URLs (`concept_db.json`).<br><br>
-                  What would you like to build or diagnose today?
+                  <strong>PIRATE UI AUTONOMOUS WORKFLOW ENGINEER</strong><br><br>
+                  The entire repository architecture is loaded into active 1M-token context — including <strong>all 34 Graveyard container constraints</strong> (`KI-007`), the complete <strong>ComfyUI node schema catalog</strong> (`node_schema_db.json`), and verified model CDN staging URLs (`concept_db.json`).<br><br>
+                  Specify a generative pipeline to author, a container failure log to diagnose, or a node signature to inspect.
                 </div>
               </div>
             </div>
@@ -234,28 +197,22 @@
             <!-- Quick Suggestions -->
             <div class="chat-suggestions">
               <button class="chip-suggestion" data-prompt="Audit and explain the FastWan 1.3B 720p 2-stage latent upscale workflow">
-                ⚡ FastWan 720p Pipeline
+                [ FASTWAN 720P PIPELINE ]
               </button>
               <button class="chip-suggestion" data-prompt="How do I configure an M3DS text-to-3D mesh workflow so Graydient returns a valid GLB?">
-                🧊 M3DS Text-to-3D Mesh
+                [ M3DS TEXT-TO-3D MESH ]
               </button>
               <button class="chip-suggestion" data-prompt="What are the strict rules for slot4 through slot8 field mapping on Graydient?">
-                🔢 Slot Mapping Rules (KI-003)
+                [ SLOT MAPPING RULES (KI-003) ]
               </button>
               <button class="chip-suggestion" data-prompt="Why does my container fail with 'maturin: command not found'?">
-                🛡️ Graveyard Rule #1 (Banned Wheels)
+                [ GRAVEYARD RULE #1 (BANNED WHEELS) ]
               </button>
             </div>
 
             <div class="chat-input-bar">
-              <textarea id="agent-input" rows="1" placeholder="Ask Gemini Flash to author a workflow, inspect a failure, or check a model..."></textarea>
-              <button class="btn btn-primary" id="agent-send-btn">
-                <span>Send</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
+              <textarea id="agent-input" rows="1" placeholder="Instruct Gemini Flash to author a workflow, inspect a container failure, or audit a schema..."></textarea>
+              <button class="btn btn-primary" id="agent-send-btn">[ SEND ]</button>
             </div>
           </div>
         </div>
@@ -265,7 +222,7 @@
       <section class="tab-panel" id="tab-renders">
         <div class="split-view">
           <div class="panel-card sidebar-panel">
-            <h2 class="panel-title">Launch Render</h2>
+            <h2 class="panel-title">Dispatch Render</h2>
             <form id="render-form">
               <div class="form-group">
                 <label>Workflow Slug</label>
@@ -286,15 +243,15 @@
                 </div>
               </div>
               <button type="submit" class="btn btn-primary btn-block" id="submit-render-btn">
-                ⚡ Fire Render to Graydient
+                [ DISPATCH RENDER TO GRAYDIENT ]
               </button>
             </form>
           </div>
 
           <div class="panel-card viewport-panel">
             <div class="viewport-header">
-              <div class="viewport-title">Local Render History & Gallery</div>
-              <button class="btn-sm" id="refresh-renders-btn">↻ Refresh</button>
+              <div class="viewport-title">Local Render History &amp; Gallery</div>
+              <button class="btn-sm" id="refresh-renders-btn">[ REFRESH ]</button>
             </div>
             <div class="renders-grid" id="renders-grid">
               <!-- Render cards rendered via JS -->
@@ -312,14 +269,14 @@
               <!-- Loaded via JS -->
             </div>
             <button class="btn btn-primary btn-block" id="run-linter-btn" style="margin-top:16px;">
-              🔍 Run Zero-Defect Linter
+              [ EXECUTE ZERO-DEFECT AUDIT ]
             </button>
           </div>
 
           <div class="panel-card viewport-panel">
             <div class="viewport-header">
               <div class="viewport-title">Workflow Generator Script</div>
-              <span class="badge-tag" id="linter-status-badge">Ready to Lint</span>
+              <span class="badge-tag" id="linter-status-badge">STANDBY</span>
             </div>
             <div class="editor-wrapper">
               <textarea id="code-editor" class="code-area" spellcheck="false"></textarea>
@@ -343,7 +300,7 @@
             <div class="form-group">
               <textarea id="diagnose-input" rows="8" class="code-area" placeholder="Paste workflow-failure-R*.txt log or Python traceback here..."></textarea>
             </div>
-            <button class="btn btn-primary" id="run-diagnose-btn">🩺 Diagnose Against KI-007 Graveyard</button>
+            <button class="btn btn-primary" id="run-diagnose-btn">[ RUN KI-007 DIAGNOSTIC ]</button>
 
             <div class="diagnose-result" id="diagnose-result" style="display:none; margin-top:20px;">
               <div class="diagnose-header">
@@ -355,7 +312,7 @@
         </div>
       </section>
 
-      <!-- 6. GAME DEV AGENT TAB (VAIL + GODOT MCP) -->
+      <!-- 6. GAME DEV AGENT TAB (VAIL + GODOT MCP + UNITY BRIDGE) -->
       <section class="tab-panel" id="tab-gamedev">
         <div class="split-view gamedev-split">
           <!-- Left: Engine Deck & Tool Dispatchers -->
@@ -363,20 +320,17 @@
             <!-- Unreal Engine 5.8 VAIL Card -->
             <div class="engine-card">
               <div class="engine-card-header">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:18px;">🎮</span>
-                  <div>
-                    <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">Unreal Engine 5.8</h3>
-                    <span style="font-size:11px;color:var(--text-dim);">VAIL TCP: 127.0.0.1:55557</span>
-                  </div>
+                <div>
+                  <h3 class="engine-card-title">Unreal Engine 5.8</h3>
+                  <span class="engine-card-sub">VAIL TCP: 127.0.0.1:55557</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <span class="badge-tag badge-err" id="vail-deck-badge">Offline</span>
-                  <button class="btn-sm" id="probe-vail-btn" title="Probe port 55557">↺ Probe</button>
+                  <span class="badge-tag badge-err" id="vail-deck-badge">OFFLINE</span>
+                  <button class="btn-sm" id="probe-vail-btn" title="Probe port 55557">[ PROBE ]</button>
                 </div>
               </div>
               <div class="engine-card-body">
-                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Command</label>
+                <label class="form-field-label">Command</label>
                 <select id="vail-cmd-select" class="form-select" style="margin-bottom:8px;">
                   <option value="vail_plugin_version">vail_plugin_version</option>
                   <option value="vail_get_tree">vail_get_tree (Inspect scene/actor tree)</option>
@@ -386,27 +340,24 @@
                   <option value="vail_set_property">vail_set_property</option>
                 </select>
                 <textarea id="vail-cmd-args" class="code-area" rows="2" style="font-size:11px;margin-bottom:8px;" placeholder='{"max_depth": 2}'></textarea>
-                <button class="btn btn-primary btn-block btn-sm" id="dispatch-vail-btn">⚡ Dispatch VAIL</button>
+                <button class="btn btn-primary btn-block btn-sm" id="dispatch-vail-btn">[ DISPATCH VAIL ]</button>
               </div>
             </div>
 
             <!-- Godot 4.x Godot-MCP Card -->
             <div class="engine-card" style="margin-top:16px;">
               <div class="engine-card-header">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:18px;">👾</span>
-                  <div>
-                    <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">Godot Engine 4.x</h3>
-                    <span style="font-size:11px;color:var(--text-dim);">Godot MCP ToolRegistry</span>
-                  </div>
+                <div>
+                  <h3 class="engine-card-title">Godot Engine 4.x</h3>
+                  <span class="engine-card-sub">Godot MCP ToolRegistry</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <span class="badge-tag" id="godot-deck-badge" style="background:rgba(0,242,254,0.15);color:var(--accent-cyan);border-color:var(--accent-cyan);">Ready</span>
-                  <button class="btn-sm" id="probe-godot-btn" title="Probe Godot MCP">↺ Probe</button>
+                  <span class="badge-tag" id="godot-deck-badge">READY</span>
+                  <button class="btn-sm" id="probe-godot-btn" title="Probe Godot MCP">[ PROBE ]</button>
                 </div>
               </div>
               <div class="engine-card-body">
-                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">MCP Tool</label>
+                <label class="form-field-label">MCP Tool</label>
                 <select id="godot-tool-select" class="form-select" style="margin-bottom:8px;">
                   <option value="get_godot_version">get_godot_version</option>
                   <option value="list_projects">list_projects (Scan projects)</option>
@@ -417,30 +368,54 @@
                   <option value="get_debug_output">get_debug_output</option>
                 </select>
                 <textarea id="godot-tool-args" class="code-area" rows="2" style="font-size:11px;margin-bottom:8px;" placeholder='{}'></textarea>
-                <button class="btn btn-primary btn-block btn-sm" id="dispatch-godot-btn">🚀 Run Godot Tool</button>
+                <button class="btn btn-primary btn-block btn-sm" id="dispatch-godot-btn">[ RUN GODOT TOOL ]</button>
+              </div>
+            </div>
+
+            <!-- Unity Engine Card -->
+            <div class="engine-card" style="margin-top:16px;">
+              <div class="engine-card-header">
+                <div>
+                  <h3 class="engine-card-title">Unity 2022.3 / 6</h3>
+                  <span class="engine-card-sub">Unity HTTP: 127.0.0.1:55558</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="badge-tag badge-err" id="unity-deck-badge">OFFLINE</span>
+                  <button class="btn-sm" id="probe-unity-btn" title="Probe port 55558">[ PROBE ]</button>
+                </div>
+              </div>
+              <div class="engine-card-body">
+                <label class="form-field-label">Command</label>
+                <select id="unity-cmd-select" class="form-select" style="margin-bottom:8px;">
+                  <option value="get_status">get_status (Version &amp; Project)</option>
+                  <option value="get_scene_hierarchy">get_scene_hierarchy (Root GameObjects)</option>
+                  <option value="refresh_assets">refresh_assets (AssetDatabase.Refresh)</option>
+                  <option value="create_gameobject">create_gameobject (New GameObject)</option>
+                  <option value="ping">ping (Connection verification)</option>
+                </select>
+                <textarea id="unity-cmd-args" class="code-area" rows="2" style="font-size:11px;margin-bottom:8px;" placeholder='{"name": "PirateUI_Mesh"}'></textarea>
+                <button class="btn btn-primary btn-block btn-sm" id="dispatch-unity-btn">[ DISPATCH UNITY ]</button>
               </div>
             </div>
 
             <!-- 3D Asset Bridge Card -->
             <div class="engine-card" style="margin-top:16px;">
               <div class="engine-card-header">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:18px;">🧊</span>
-                  <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--text-main);">3D Asset Pipeline Bridge</h3>
-                </div>
+                <h3 class="engine-card-title">3D Asset Pipeline Bridge</h3>
               </div>
               <div class="engine-card-body">
-                <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 8px 0;">
+                <p style="font-size:11.5px;color:var(--fg-muted);margin:0 0 8px 0;">
                   Deploy the current decoded 3D asset directly into your game project:
                 </p>
                 <div style="display:flex;gap:6px;margin-bottom:8px;">
                   <select id="bridge-engine-select" class="form-select" style="flex:1;">
                     <option value="godot">Godot (res://assets/)</option>
                     <option value="unreal">Unreal (Content/Imported/)</option>
+                    <option value="unity">Unity (Assets/Imports/PirateUI/)</option>
                   </select>
-                  <button class="btn btn-sm btn-primary" id="bridge-deploy-btn">Deploy Asset</button>
+                  <button class="btn btn-sm btn-primary" id="bridge-deploy-btn">[ DEPLOY ASSET ]</button>
                 </div>
-                <div id="bridge-status-note" style="font-size:11px;color:var(--text-dim);"></div>
+                <div id="bridge-status-note" style="font-size:11px;color:var(--fg-muted);"></div>
               </div>
             </div>
           </div>
@@ -448,53 +423,48 @@
           <!-- Right: Autonomous Game Dev Agent Chat -->
           <div class="panel-card viewport-panel gamedev-viewport">
             <div class="chat-header">
-              <div class="agent-avatar" style="background:linear-gradient(135deg, #a855f7, #6366f1);">
-                <span style="font-size:18px;">🎮</span>
-              </div>
               <div>
-                <h2 class="panel-title" style="margin:0;">Game Dev Agent (VAIL + Godot MCP)</h2>
-                <span class="agent-badge">Gemini 3.8 Flash • Unreal 5.8 Blueprints/VAIL • Godot 4.6.1 GDScript • Asset Pipeline</span>
+                <h2 class="panel-title" style="margin:0;">Game Dev Agent (Multi-Engine Bridge)</h2>
+                <span class="agent-badge">GEMINI 3.8 FLASH // UNREAL 5.8 VAIL // GODOT 4.6.1 MCP // UNITY 6 BRIDGE</span>
               </div>
             </div>
 
             <div class="chat-messages" id="gamedev-messages">
               <div class="message msg-assistant">
                 <div class="msg-bubble">
-                  🕹️ <strong>Game Dev Agent Online!</strong><br><br>
-                  I am equipped with direct bridges into your local game engines:<br>
-                  • <strong>Unreal Engine 5.8 via VAIL</strong>: Communicating directly over TCP (`127.0.0.1:55557`) for headless actor inspection, property mutation, and live coding compilation.<br>
-                  • <strong>Godot Engine 4.x via Godot MCP</strong>: ToolRegistry integrated with Godot 4.6.1 Mono for scene generation, node authoring, and project playtesting.<br>
-                  • <strong>3D Model Pipeline</strong>: Direct shipping of generated meshes from the 3D viewer to your game projects.<br><br>
-                  What game feature or scene would you like to build?
+                  <strong>GAME DEV AGENT ONLINE</strong><br><br>
+                  Equipped with live IPC interfaces into local game engines:<br>
+                  ■ <strong>Unreal Engine 5.8 via VAIL</strong>: TCP socket (`127.0.0.1:55557`) for actor inspection, property mutation, and live coding compilation.<br>
+                  ■ <strong>Godot Engine 4.x via Godot MCP</strong>: ToolRegistry integrated with Godot 4.6.1 Mono for scene generation, node authoring, and playtesting.<br>
+                  ■ <strong>Unity Engine 2022.3 / Unity 6</strong>: Local HTTP socket (`127.0.0.1:55558`) for editor hierarchy reflection and asset compiling.<br>
+                  ■ <strong>3D Model Pipeline</strong>: Direct shipping of generated meshes from the M3DS viewer to game engine asset directories.<br><br>
+                  Specify an engine action, script to author, or scene to stage.
                 </div>
               </div>
             </div>
 
             <!-- Suggestions -->
             <div class="chat-suggestions">
-              <button class="chip-suggestion-gd" data-prompt="Probe the live status of Unreal Engine 5.8 VAIL and Godot MCP and report the findings.">
-                🔍 Probe Engines
+              <button class="chip-suggestion-gd" data-prompt="Probe the live status of Unreal Engine 5.8 VAIL, Godot MCP, and Unity 6 and report findings.">
+                [ PROBE ENGINES ]
               </button>
               <button class="chip-suggestion-gd" data-prompt="List all known projects and get the Godot engine version using the Godot MCP tool.">
-                👾 Godot Projects & Version
+                [ GODOT PROJECTS &amp; VERSION ]
               </button>
               <button class="chip-suggestion-gd" data-prompt="Generate a complete CharacterBody3D player controller in GDScript 2.0 with smooth WASD movement, jumping, and mouse look.">
-                📜 GDScript 3D Controller
+                [ GDSCRIPT 3D CONTROLLER ]
               </button>
               <button class="chip-suggestion-gd" data-prompt="Explain how VAIL controls Blueprint graphs and how to trigger a live coding compile.">
-                ⚡ VAIL Blueprint Control
+                [ VAIL BLUEPRINT CONTROL ]
+              </button>
+              <button class="chip-suggestion-gd" data-prompt="Author a Unity C# MonoBehaviour script that smoothly rotates a staged GLB prop with customizable speed.">
+                [ UNITY MONOBEHAVIOUR ]
               </button>
             </div>
 
             <div class="chat-input-bar">
-              <textarea id="gamedev-input" rows="1" placeholder="Ask Game Dev Agent to author GDScript, inspect VAIL actors, or stage scenes..."></textarea>
-              <button class="btn btn-primary" id="gamedev-send-btn">
-                <span>Send</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
+              <textarea id="gamedev-input" rows="1" placeholder="Instruct Game Dev Agent to author GDScript/C#, inspect VAIL/Unity actors, or stage scenes..."></textarea>
+              <button class="btn btn-primary" id="gamedev-send-btn">[ SEND ]</button>
             </div>
           </div>
         </div>
@@ -506,18 +476,18 @@
   <div class="modal-overlay" id="settings-modal" style="display:none;">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>PirateUI Settings</h3>
-        <button class="close-modal-btn" id="close-settings-btn">&times;</button>
+        <h3 class="modal-title">PREFERENCES // GEMINI API KEY</h3>
+        <button class="close-modal-btn" id="close-settings-btn">[ X ]</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>Google AI Studio API Key (Gemini Flash)</label>
           <p class="field-hint">
-            Get a 100% free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com</a>. Gives 1,500 free requests per day with 1M context.
+            Direct zero-cost key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--fg-primary);text-decoration:underline;">aistudio.google.com</a>. Provides 1,500 requests/day at 1M context.
           </p>
           <input type="password" id="settings-key-input" placeholder="AIzaSy...">
         </div>
-        <button class="btn btn-primary" id="save-key-btn">Save Key</button>
+        <button class="btn btn-primary btn-block" id="save-key-btn">[ SAVE PREFERENCES ]</button>
       </div>
     </div>
   </div>

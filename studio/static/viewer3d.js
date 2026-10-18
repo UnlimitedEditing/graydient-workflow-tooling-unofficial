@@ -40,23 +40,27 @@ export class StudioViewer3D {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a0e17);
+    this.scene.background = new THREE.Color(0xffffff);
 
-    // PBR Environment & Grid
+    // PBR Environment & Grid (hairline monochrome)
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-    const grid = new THREE.GridHelper(10, 20, 0x00f2fe, 0x1e293b);
+    const grid = new THREE.GridHelper(20, 40, 0x000000, 0xe5e5e5);
     grid.position.y = -0.01;
     this.scene.add(grid);
 
-    // Lights
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.2);
+    // High-Contrast Studio Key/Rim Lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xf5f5f5, 1.0);
     this.scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(5, 10, 7);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    dirLight.position.set(8, 14, 10);
     this.scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    rimLight.position.set(-8, 6, -10);
+    this.scene.add(rimLight);
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1000);
@@ -201,7 +205,7 @@ export class StudioViewer3D {
         if (geometry.hasAttribute('color')) {
           material = new THREE.PointsMaterial({ size: 0.015, vertexColors: true });
         } else {
-          material = new THREE.PointsMaterial({ size: 0.015, color: 0x00f2fe });
+          material = new THREE.PointsMaterial({ size: 0.015, color: 0x000000 });
         }
         this.currentModel = new THREE.Points(geometry, material);
         this.scene.add(this.currentModel);
@@ -253,10 +257,20 @@ export class StudioViewer3D {
   }
 
   toggleWireframe(enabled) {
-    if (!this.currentModel) return;
-    this.currentModel.traverse((child) => {
-      if (child.isMesh && child.material) {
-        child.material.wireframe = enabled;
+    if (this.currentModel) {
+      this.currentModel.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material.wireframe = enabled;
+        }
+      });
+    }
+    this.assets.forEach(a => {
+      if (a.object) {
+        a.object.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.wireframe = enabled;
+          }
+        });
       }
     });
   }

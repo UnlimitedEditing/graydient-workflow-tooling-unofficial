@@ -1,7 +1,7 @@
 /**
- * Graydient Studio Frontend Application Logic.
+ * PirateUI Frontend Application Logic — Minimalist Monochrome System.
  * Orchestrates Three.js 3D Viewport, Gemini Agent Chat, M3DS Auto-Decoder,
- * Render Library, and Zero-Defect Linter.
+ * Render Library, Workflow Linter, and Multi-Engine Bridge (Unreal VAIL, Godot MCP, Unity).
  */
 
 import { StudioViewer3D } from './viewer3d.js';
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initViewer() {
   viewer = new StudioViewer3D('three-viewport');
 
-  // Controls
+  // Wireframe toggle
   const wireframeToggle = document.getElementById('wireframe-toggle');
   if (wireframeToggle) {
     wireframeToggle.addEventListener('change', (e) => {
@@ -38,6 +38,7 @@ function initViewer() {
     });
   }
 
+  // Camera reset
   const resetCamBtn = document.getElementById('reset-cam-btn');
   if (resetCamBtn) {
     resetCamBtn.addEventListener('click', () => {
@@ -88,7 +89,7 @@ function updateSceneOutliner() {
   listEl.innerHTML = '';
 
   if (viewer.assets.length === 0) {
-    listEl.innerHTML = '<div style="font-size:11.5px;color:var(--text-dim);padding:8px 0;">No props staged yet. Load or drop assets to build environments.</div>';
+    listEl.innerHTML = '<div class="empty-list-note">No props staged yet. Load or drop assets to assemble environments.</div>';
     return;
   }
 
@@ -96,8 +97,8 @@ function updateSceneOutliner() {
     const item = document.createElement('div');
     item.className = 'staged-asset-item' + (viewer.selectedAsset && viewer.selectedAsset.id === a.id ? ' selected' : '');
     item.innerHTML = `
-      <span>📦 ${a.name || 'Prop ' + (idx + 1)}</span>
-      <span style="font-size:10px;color:var(--text-dim);text-transform:uppercase;">${a.type}</span>
+      <span>${escapeHtml(a.name || 'Prop ' + (idx + 1))}</span>
+      <span style="font-size:10px;color:var(--fg-muted);text-transform:uppercase;">[ ${escapeHtml(a.type)} ]</span>
     `;
     item.addEventListener('click', () => {
       viewer.selectAsset(a.id);
@@ -120,83 +121,83 @@ function initTabs() {
       const panel = document.getElementById(targetId);
       if (panel) {
         panel.classList.add('active');
+        // Trigger resize on 3D viewer if switching to M3DS tab
         if (targetId === 'tab-m3ds' && viewer) {
           setTimeout(() => viewer.onResize(), 50);
         }
-        if (targetId === 'tab-gamedev' && window.probeGameDevEngines) {
-          window.probeGameDevEngines();
-        }
       }
     });
   });
 }
 
-// ── 3. M3DS Auto-Decoder & Converter ──────────────────────────────────────
+// ── 3. M3DS Auto-Decoder & Drag-Drop ───────────────────────────────────────
 function initM3DS() {
   const dropZone = document.getElementById('m3ds-drop-zone');
   const fileInput = document.getElementById('m3ds-file-input');
+  const exportBtn = document.getElementById('download-extracted-btn');
+
+  // Drag and drop events
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) uploadAndDecodeImage(files[0]);
+  });
 
   dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-      await uploadAndProcessM3DS(e.dataTransfer.files[0]);
-    }
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) uploadAndDecodeImage(e.target.files[0]);
   });
 
-  fileInput.addEventListener('change', async () => {
-    if (fileInput.files.length > 0) {
-      await uploadAndProcessM3DS(fileInput.files[0]);
-    }
+  // Export decoded asset button
+  exportBtn.addEventListener('click', () => {
+    if (!currentExtractedAsset || !currentExtractedAsset.extracted_filename) return;
+    const downloadUrl = `/files/${encodeURIComponent(currentExtractedAsset.extracted_filename)}`;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = currentExtractedAsset.extracted_filename;
+    a.click();
   });
 
-  // Quick Test Buttons
-  const sampleSplatBtn = document.getElementById('load-sample-splat');
-  if (sampleSplatBtn) {
-    sampleSplatBtn.addEventListener('click', () => loadSampleByName('v9oKd0-workflow3848v4-0-Z3G2OT8A7.png'));
-  }
+  // Sample buttons
+  const splatBtn = document.getElementById('load-sample-splat');
+  const scoreBtn = document.getElementById('load-sample-score');
 
-  const sampleScoreBtn = document.getElementById('load-sample-score');
-  if (sampleScoreBtn) {
-    sampleScoreBtn.addEventListener('click', () => loadSampleByName('fur_elise_metal_score.png'));
-  }
-
-  // Export Decoded Asset Button
-  const dlBtn = document.getElementById('download-extracted-btn');
-  if (dlBtn) {
-    dlBtn.addEventListener('click', () => {
-      if (currentExtractedAsset && currentExtractedAsset.extracted_path) {
-        const url = `/files/${encodeURIComponent(currentExtractedAsset.extracted_filename)}`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = currentExtractedAsset.extracted_filename;
-        a.click();
-      }
-    });
-  }
+  if (splatBtn) splatBtn.addEventListener('click', () => loadLocalSample('sample_gaussian_splat.png'));
+  if (scoreBtn) scoreBtn.addEventListener('click', () => loadLocalSample('sample_song_score.png'));
 }
 
-async function uploadAndProcessM3DS(file) {
-  const formData = new FormData();
-  formData.append('file', file);
+async function uploadAndDecodeImage(file) {
+  updateViewportStatus(`Decoding container: ${file.name}...`);
+  const fd = new FormData();
+  fd.append('file', file);
 
-  updateViewportStatus(`Unpacking M3DS steganography: ${file.name}...`);
   try {
-    const res = await fetch('/api/m3ds/upload', { method: 'POST', body: formData });
+    const res = await fetch('/api/m3ds/decode', { method: 'POST', body: fd });
     const data = await res.json();
     handleM3DSResult(data);
   } catch (err) {
-    alert('Failed to decode M3DS: ' + err.message);
+    alert('Failed to decode image: ' + err.message);
   }
 }
 
-async function loadSampleByName(filename) {
+async function loadLocalSample(filename) {
   updateViewportStatus(`Loading local sample: ${filename}...`);
   try {
     const fd = new FormData();
@@ -228,8 +229,8 @@ function handleM3DSResult(meta) {
   }
 
   infoCard.style.display = 'block';
-  typeBadge.textContent = meta.category === '3d_mesh' ? '3D GLB Mesh' :
-                          meta.category === '3d_pointcloud' ? 'Gaussian Splat (.ply)' : 'Score JSON';
+  typeBadge.textContent = meta.category === '3d_mesh' ? '3D GLB MESH' :
+                          meta.category === '3d_pointcloud' ? 'GAUSSIAN SPLAT (.PLY)' : 'SCORE JSON';
   sizeLabel.textContent = `${(meta.size_bytes / 1024).toFixed(1)} KB`;
   fnameLabel.textContent = meta.extracted_filename;
 
@@ -271,7 +272,6 @@ function updateViewportStatus(text) {
 function initAgent() {
   const input = document.getElementById('agent-input');
   const sendBtn = document.getElementById('agent-send-btn');
-  const messages = document.getElementById('chat-messages');
 
   async function sendMessage(text) {
     const msg = text || input.value.trim();
@@ -300,19 +300,21 @@ function initAgent() {
       }
       typingMsg.innerHTML = formatMarkdown(fullText || 'No response returned.');
     } catch (err) {
-      typingMsg.innerHTML = `<span style="color:var(--accent-rose)">Error calling Gemini Flash: ${err.message}</span>`;
+      typingMsg.innerHTML = `<span>[ Error calling Gemini Flash: ${escapeHtml(err.message)} ]</span>`;
     }
   }
 
-  sendBtn.addEventListener('click', () => sendMessage());
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+  if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
 
-  // Suggestion Chips
+  // Suggestion chips
   document.querySelectorAll('.chip-suggestion').forEach(chip => {
     chip.addEventListener('click', () => {
       const prompt = chip.getAttribute('data-prompt');
@@ -323,6 +325,7 @@ function initAgent() {
 
 function appendMessage(role, text) {
   const messages = document.getElementById('chat-messages');
+  if (!messages) return null;
   const msgEl = document.createElement('div');
   msgEl.className = `message msg-${role}`;
   const bubble = document.createElement('div');
@@ -338,19 +341,20 @@ function formatMarkdown(text) {
   if (!text) return '';
   // 1. Triple backtick code blocks
   let formatted = text.replace(/```([a-zA-Z0-9_\-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
-    return `<pre style="background:rgba(0,0,0,0.5);border:1px solid var(--border-color);padding:10px;border-radius:6px;overflow-x:auto;margin:8px 0;"><code style="font-family:'Fira Code',monospace;font-size:11.5px;color:var(--accent-cyan);">${escapeHtml(code)}</code></pre>`;
+    return `<pre><code class="lang-${lang}">${escapeHtml(code)}</code></pre>`;
   });
   // 2. Bold & Italic
   formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
   // 3. Inline backtick code
-  formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.4);padding:2px 5px;border-radius:4px;color:var(--accent-cyan);font-family:\'Fira Code\',monospace;font-size:11.5px;">$1</code>');
+  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
   // 4. Line breaks
   formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
   return formatted;
 }
 
 function escapeHtml(str) {
+  if (typeof str !== 'string') return String(str);
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -359,42 +363,46 @@ function initRenders() {
   const form = document.getElementById('render-form');
   const refreshBtn = document.getElementById('refresh-renders-btn');
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-      workflow_slug: document.getElementById('render-slug').value.trim(),
-      prompt: document.getElementById('render-prompt').value.trim(),
-      slot1: document.getElementById('render-slot1').value.trim() || null,
-      slot2: document.getElementById('render-slot2').value.trim() || null
-    };
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        workflow_slug: document.getElementById('render-slug').value.trim(),
+        prompt: document.getElementById('render-prompt').value.trim(),
+        slot1: document.getElementById('render-slot1').value.trim() || null,
+        slot2: document.getElementById('render-slot2').value.trim() || null
+      };
 
-    try {
-      const res = await fetch('/api/render/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const job = await res.json();
-      alert(`Render launched! Job ID: ${job.id}`);
-      loadRenders();
-    } catch (err) {
-      alert('Error submitting render: ' + err.message);
-    }
-  });
+      try {
+        const res = await fetch('/api/render/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const job = await res.json();
+        alert(`Render launched: Job ID ${job.id}`);
+        loadRenders();
+      } catch (err) {
+        alert('Error submitting render: ' + err.message);
+      }
+    });
+  }
 
-  refreshBtn.addEventListener('click', () => loadRenders());
+  if (refreshBtn) refreshBtn.addEventListener('click', () => loadRenders());
   loadRenders();
 }
 
 async function loadRenders() {
   const grid = document.getElementById('renders-grid');
+  if (!grid) return;
+
   try {
     const res = await fetch('/api/renders');
     const data = await res.json();
     grid.innerHTML = '';
 
     if (!data.renders || data.renders.length === 0) {
-      grid.innerHTML = '<div style="color:var(--text-dim);grid-column:1/-1;padding:20px;text-align:center;">No renders in library yet. Launch one on the left or drop an M3DS image in the 3D Viewer tab!</div>';
+      grid.innerHTML = '<div style="color:var(--fg-muted);grid-column:1/-1;padding:24px;text-align:center;font-style:italic;">No renders in local library. Dispatch one on the left or drop an M3DS image in 3D Viewer.</div>';
       return;
     }
 
@@ -403,25 +411,23 @@ async function loadRenders() {
       card.className = 'render-card';
 
       const has3D = job.m3ds_assets && job.m3ds_assets.length > 0;
-      const statusColor = job.status === 'SUCCESS' ? 'var(--accent-emerald)' :
-                          job.status === 'RUNNING' ? 'var(--accent-amber)' : 'var(--accent-rose)';
+      const isSuccess = job.status === 'SUCCESS';
 
       card.innerHTML = `
         <div class="render-card-thumb">
-          ${has3D ? '<span style="font-size:32px;">🧊</span>' : '<span style="font-size:32px;">🖼️</span>'}
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.08em;color:var(--fg-muted);">[ ${has3D ? '3D MESH' : '2D RENDER'} ]</span>
         </div>
-        <div style="font-weight:700;font-size:12px;color:var(--accent-cyan);">${job.workflow}</div>
-        <div style="font-size:11.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${job.prompt}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;">
-          <span style="font-size:10px;font-weight:700;color:${statusColor};">${job.status}</span>
-          ${has3D ? `<button class="btn-sm inspect-3d-btn" style="color:var(--accent-cyan);border-color:var(--accent-cyan);">Inspect 3D</button>` : ''}
+        <div style="font-family:var(--font-mono);font-weight:700;font-size:12px;color:var(--fg-primary);">${escapeHtml(job.workflow)}</div>
+        <div style="font-family:var(--font-body);font-size:11.5px;color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(job.prompt)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:6px;border-top:var(--border-hairline);">
+          <span class="badge-tag ${isSuccess ? 'active' : ''}">${escapeHtml(job.status)}</span>
+          ${has3D ? `<button class="btn-sm inspect-3d-btn">[ INSPECT 3D ]</button>` : ''}
         </div>
       `;
 
       if (has3D) {
         const btn = card.querySelector('.inspect-3d-btn');
         btn.addEventListener('click', () => {
-          // Switch to M3DS tab
           document.querySelector('[data-tab="tab-m3ds"]').click();
           handleM3DSResult(job.m3ds_assets[0]);
         });
@@ -447,6 +453,7 @@ function initLinter() {
   fetch('/api/templates')
     .then(r => r.json())
     .then(data => {
+      if (!tplList) return;
       tplList.innerHTML = '';
       data.templates.forEach((tpl, idx) => {
         const item = document.createElement('div');
@@ -463,46 +470,48 @@ function initLinter() {
       });
 
       // Load first template by default
-      if (data.templates.length > 0) {
+      if (data.templates.length > 0 && editor) {
         fetch(`/api/template/${data.templates[0].name}`)
           .then(r => r.json())
           .then(d => { editor.value = d.content; });
       }
     });
 
-  runLintBtn.addEventListener('click', async () => {
-    const code = editor.value;
-    statusBadge.textContent = 'Linting...';
-    try {
-      const res = await fetch('/api/agent/lint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      const data = await res.json();
-      resultsArea.style.display = 'block';
+  if (runLintBtn) {
+    runLintBtn.addEventListener('click', async () => {
+      const code = editor.value;
+      statusBadge.textContent = 'LINTING...';
+      try {
+        const res = await fetch('/api/agent/lint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        resultsArea.style.display = 'block';
 
-      if (data.is_valid) {
-        statusBadge.textContent = '✓ PASS (0 Errors)';
-        statusBadge.className = 'badge-tag';
-        issuesList.innerHTML = '<div style="color:var(--accent-emerald);font-size:12px;">All 25+ pre-flight checks passed! Workflow graph conforms to Graydient standards.</div>';
-      } else {
-        statusBadge.textContent = `⚠ ${data.error_count || 1} Errors`;
-        statusBadge.className = 'badge-tag badge-err';
-        issuesList.innerHTML = '';
-        if (data.issues) {
-          data.issues.forEach(iss => {
-            const el = document.createElement('div');
-            el.style.cssText = 'padding:6px;border-bottom:1px solid var(--border-color);font-size:11.5px;';
-            el.innerHTML = `<span style="color:var(--accent-rose);font-weight:700;">[${iss.rule}]</span> ${iss.message}`;
-            issuesList.appendChild(el);
-          });
+        if (data.is_valid) {
+          statusBadge.textContent = 'PASS (0 ERRORS)';
+          statusBadge.className = 'badge-tag active';
+          issuesList.innerHTML = '<div style="font-family:var(--font-mono);font-size:12px;padding:8px 0;font-weight:700;">[ ALL 25+ PRE-FLIGHT CHECKS PASSED — GRAPH CONFORMS TO KI STANDARDS ]</div>';
+        } else {
+          statusBadge.textContent = `${data.error_count || 1} ERRORS`;
+          statusBadge.className = 'badge-tag badge-err';
+          issuesList.innerHTML = '';
+          if (data.issues) {
+            data.issues.forEach(iss => {
+              const el = document.createElement('div');
+              el.style.cssText = 'padding:6px;border-bottom:1px solid #E5E5E5;font-size:11.5px;font-family:var(--font-mono);';
+              el.innerHTML = `<span style="font-weight:700;">[${escapeHtml(iss.rule)}]</span> ${escapeHtml(iss.message)}`;
+              issuesList.appendChild(el);
+            });
+          }
         }
+      } catch (err) {
+        alert('Lint error: ' + err.message);
       }
-    } catch (err) {
-      alert('Lint error: ' + err.message);
-    }
-  });
+    });
+  }
 }
 
 // ── 7. Diagnostics ────────────────────────────────────────────────────────
@@ -512,32 +521,34 @@ function initDiagnostics() {
   const resultCard = document.getElementById('diagnose-result');
   const bodyEl = document.getElementById('diag-body');
 
-  runBtn.addEventListener('click', async () => {
-    const text = input.value.trim();
-    if (!text) {
-      alert('Please paste a log to diagnose.');
-      return;
-    }
+  if (runBtn) {
+    runBtn.addEventListener('click', async () => {
+      const text = input.value.trim();
+      if (!text) {
+        alert('Please paste a log to diagnose.');
+        return;
+      }
 
-    try {
-      const res = await fetch('/api/agent/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log_text: text })
-      });
-      const data = await res.json();
-      resultCard.style.display = 'block';
-      bodyEl.innerHTML = `
-        <div style="font-weight:700;color:var(--accent-cyan);margin-bottom:6px;">${data.summary || 'Graveyard Diagnostic Match'}</div>
-        <div style="color:var(--text-main);font-size:12px;margin-bottom:8px;">${data.root_cause || data.analysis || 'Identified pattern.'}</div>
-        <div style="background:rgba(0,242,254,0.05);border:1px solid var(--accent-cyan);padding:10px;border-radius:6px;color:var(--accent-emerald);font-size:12px;">
-          <strong>Recommended Fix:</strong> ${data.recommendation || data.fix || 'Check container requirements.'}
-        </div>
-      `;
-    } catch (err) {
-      alert('Diagnosis failed: ' + err.message);
-    }
-  });
+      try {
+        const res = await fetch('/api/agent/diagnose', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log_text: text })
+        });
+        const data = await res.json();
+        resultCard.style.display = 'block';
+        bodyEl.innerHTML = `
+          <div style="font-weight:700;font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">${escapeHtml(data.summary || 'Graveyard Diagnostic Match')}</div>
+          <div style="color:var(--fg-primary);font-size:12px;margin-bottom:8px;">${escapeHtml(data.root_cause || data.analysis || 'Identified pattern.')}</div>
+          <div style="background:var(--bg-secondary);border:var(--border-thin);padding:10px;font-size:12px;">
+            <strong>RECOMMENDED FIX:</strong> ${escapeHtml(data.recommendation || data.fix || 'Check container requirements.')}
+          </div>
+        `;
+      } catch (err) {
+        alert('Diagnosis failed: ' + err.message);
+      }
+    });
+  }
 }
 
 // ── 8. Settings Modal ─────────────────────────────────────────────────────
@@ -548,30 +559,33 @@ function initSettings() {
   const saveBtn = document.getElementById('save-key-btn');
   const keyInput = document.getElementById('settings-key-input');
 
-  openBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
-  closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.style.display = 'none';
-  });
+  if (openBtn) openBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
+  if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+  }
 
-  saveBtn.addEventListener('click', async () => {
-    const key = keyInput.value.trim();
-    if (!key) return;
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const key = keyInput.value.trim();
+      if (!key) return;
 
-    try {
-      const res = await fetch('/api/settings/key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: key })
-      });
-      const data = await res.json();
-      modal.style.display = 'none';
-      checkStatus();
-      alert('Gemini API Key saved successfully!');
-    } catch (err) {
-      alert('Failed to save key: ' + err.message);
-    }
-  });
+      try {
+        await fetch('/api/settings/key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key })
+        });
+        modal.style.display = 'none';
+        checkStatus();
+        alert('Gemini API Key saved successfully.');
+      } catch (err) {
+        alert('Failed to save key: ' + err.message);
+      }
+    });
+  }
 }
 
 async function checkStatus() {
@@ -580,26 +594,32 @@ async function checkStatus() {
     const data = await res.json();
     const pill = document.getElementById('pill-ai');
     const text = document.getElementById('ai-status-text');
-    if (data.has_gemini_key) {
-      text.textContent = 'Gemini 3.8 Flash: Active (1M)';
-      pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-      pill.style.color = 'var(--accent-emerald)';
-    } else {
-      text.textContent = 'Gemini 3.8 Flash: Key Needed';
-      pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-      pill.style.color = 'var(--accent-amber)';
+
+    if (pill && text) {
+      if (data.has_gemini_key) {
+        text.textContent = 'ACTIVE (1M)';
+        pill.classList.add('active');
+        pill.classList.remove('offline');
+      } else {
+        text.textContent = 'KEY NEEDED';
+        pill.classList.remove('active');
+        pill.classList.add('offline');
+      }
     }
   } catch (err) {
     console.error('Status check error:', err);
   }
 }
 
-// ── 9. Game Dev Agent (VAIL + Godot MCP) ──────────────────────────────────
+// ── 9. Game Dev Agent (VAIL + Godot MCP + Unity Bridge) ────────────────────
 function initGameDev() {
   const vailBadge = document.getElementById('vail-deck-badge');
   const godotBadge = document.getElementById('godot-deck-badge');
+  const unityBadge = document.getElementById('unity-deck-badge');
+
   const probeVailBtn = document.getElementById('probe-vail-btn');
   const probeGodotBtn = document.getElementById('probe-godot-btn');
+  const probeUnityBtn = document.getElementById('probe-unity-btn');
 
   const vailCmdSelect = document.getElementById('vail-cmd-select');
   const vailCmdArgs = document.getElementById('vail-cmd-args');
@@ -609,6 +629,10 @@ function initGameDev() {
   const godotToolArgs = document.getElementById('godot-tool-args');
   const dispatchGodotBtn = document.getElementById('dispatch-godot-btn');
 
+  const unityCmdSelect = document.getElementById('unity-cmd-select');
+  const unityCmdArgs = document.getElementById('unity-cmd-args');
+  const dispatchUnityBtn = document.getElementById('dispatch-unity-btn');
+
   const bridgeDeployBtn = document.getElementById('bridge-deploy-btn');
   const bridgeEngineSelect = document.getElementById('bridge-engine-select');
   const bridgeStatusNote = document.getElementById('bridge-status-note');
@@ -616,50 +640,85 @@ function initGameDev() {
   const gdInput = document.getElementById('gamedev-input');
   const gdSendBtn = document.getElementById('gamedev-send-btn');
 
-  // Probe engines
+  // Probe all engines
   async function probeEngines() {
     try {
       const res = await fetch('/api/gamedev/status');
       const data = await res.json();
 
-      // VAIL
-      const vailDot = document.getElementById('vail-dot');
+      // Unreal Engine VAIL
+      const pillVail = document.getElementById('pill-vail');
       const vailText = document.getElementById('vail-status-text');
       if (data.vail && data.vail.online) {
         if (vailBadge) {
-          vailBadge.textContent = 'Online (55557)';
-          vailBadge.className = 'badge-tag';
-          vailBadge.style.color = 'var(--accent-emerald)';
+          vailBadge.textContent = 'ONLINE (55557)';
+          vailBadge.className = 'badge-tag active';
         }
-        if (vailDot) vailDot.className = 'status-dot dot-online';
-        if (vailText) vailText.textContent = 'UE5 VAIL: Online';
+        if (pillVail) {
+          pillVail.classList.add('active');
+          pillVail.classList.remove('offline');
+        }
+        if (vailText) vailText.textContent = 'ONLINE';
       } else {
         if (vailBadge) {
-          vailBadge.textContent = 'Offline';
+          vailBadge.textContent = 'OFFLINE';
           vailBadge.className = 'badge-tag badge-err';
         }
-        if (vailDot) vailDot.className = 'status-dot dot-offline';
-        if (vailText) vailText.textContent = 'UE5 VAIL: Offline';
+        if (pillVail) {
+          pillVail.classList.remove('active');
+          pillVail.classList.add('offline');
+        }
+        if (vailText) vailText.textContent = 'OFFLINE';
       }
 
-      // Godot
-      const godotDot = document.getElementById('godot-dot');
+      // Godot MCP
+      const pillGodot = document.getElementById('pill-godot');
       const godotText = document.getElementById('godot-status-text');
       if (data.godot && data.godot.online) {
         if (godotBadge) {
-          godotBadge.textContent = `Online (${data.godot.version || '4.6.1'})`;
-          godotBadge.className = 'badge-tag';
-          godotBadge.style.color = 'var(--accent-cyan)';
+          godotBadge.textContent = `ONLINE (${data.godot.version || '4.6.1'})`;
+          godotBadge.className = 'badge-tag active';
         }
-        if (godotDot) godotDot.className = 'status-dot dot-online';
-        if (godotText) godotText.textContent = `Godot MCP: ${data.godot.version || '4.6.1'}`;
+        if (pillGodot) {
+          pillGodot.classList.add('active');
+          pillGodot.classList.remove('offline');
+        }
+        if (godotText) godotText.textContent = `${data.godot.version || '4.6.1'}`;
       } else {
         if (godotBadge) {
-          godotBadge.textContent = 'Missing Config';
+          godotBadge.textContent = 'OFFLINE';
           godotBadge.className = 'badge-tag badge-err';
         }
-        if (godotDot) godotDot.className = 'status-dot dot-offline';
-        if (godotText) godotText.textContent = 'Godot MCP: Offline';
+        if (pillGodot) {
+          pillGodot.classList.remove('active');
+          pillGodot.classList.add('offline');
+        }
+        if (godotText) godotText.textContent = 'OFFLINE';
+      }
+
+      // Unity Engine
+      const pillUnity = document.getElementById('pill-unity');
+      const unityText = document.getElementById('unity-status-text');
+      if (data.unity && data.unity.online) {
+        if (unityBadge) {
+          unityBadge.textContent = 'ONLINE (55558)';
+          unityBadge.className = 'badge-tag active';
+        }
+        if (pillUnity) {
+          pillUnity.classList.add('active');
+          pillUnity.classList.remove('offline');
+        }
+        if (unityText) unityText.textContent = 'ONLINE';
+      } else {
+        if (unityBadge) {
+          unityBadge.textContent = 'OFFLINE';
+          unityBadge.className = 'badge-tag badge-err';
+        }
+        if (pillUnity) {
+          pillUnity.classList.remove('active');
+          pillUnity.classList.add('offline');
+        }
+        if (unityText) unityText.textContent = 'OFFLINE';
       }
     } catch (err) {
       console.error('Failed to probe engines:', err);
@@ -669,6 +728,7 @@ function initGameDev() {
   window.probeGameDevEngines = probeEngines;
   if (probeVailBtn) probeVailBtn.addEventListener('click', probeEngines);
   if (probeGodotBtn) probeGodotBtn.addEventListener('click', probeEngines);
+  if (probeUnityBtn) probeUnityBtn.addEventListener('click', probeEngines);
 
   // Dispatch VAIL command
   if (dispatchVailBtn) {
@@ -682,8 +742,8 @@ function initGameDev() {
         return;
       }
 
-      appendGameDevMessage('user', `Dispatch VAIL Command: <code>${cmd}</code>`);
-      const bubble = appendGameDevMessage('assistant', `Dispatching <code>${cmd}</code> to Unreal Engine (TCP 55557)...`);
+      appendGameDevMessage('user', `Dispatch VAIL Command: <code>${escapeHtml(cmd)}</code>`);
+      const bubble = appendGameDevMessage('assistant', `Dispatching <code>${escapeHtml(cmd)}</code> to Unreal Engine (TCP 55557)...`);
 
       try {
         const res = await fetch('/api/gamedev/vail/exec', {
@@ -694,7 +754,7 @@ function initGameDev() {
         const data = await res.json();
         bubble.innerHTML = formatMarkdown(`**VAIL Response for \`${cmd}\`:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
       } catch (err) {
-        bubble.innerHTML = `<span style="color:var(--accent-rose)">VAIL Error: ${err.message}</span>`;
+        bubble.innerHTML = `<span>[ VAIL Error: ${escapeHtml(err.message)} ]</span>`;
       }
     });
   }
@@ -711,8 +771,8 @@ function initGameDev() {
         return;
       }
 
-      appendGameDevMessage('user', `Run Godot MCP Tool: <code>${tool}</code>`);
-      const bubble = appendGameDevMessage('assistant', `Executing Godot MCP Tool <code>${tool}</code>...`);
+      appendGameDevMessage('user', `Run Godot MCP Tool: <code>${escapeHtml(tool)}</code>`);
+      const bubble = appendGameDevMessage('assistant', `Executing Godot MCP Tool <code>${escapeHtml(tool)}</code>...`);
 
       try {
         const res = await fetch('/api/gamedev/godot/exec', {
@@ -723,7 +783,36 @@ function initGameDev() {
         const data = await res.json();
         bubble.innerHTML = formatMarkdown(`**Godot MCP Tool Result for \`${tool}\`:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
       } catch (err) {
-        bubble.innerHTML = `<span style="color:var(--accent-rose)">Godot MCP Error: ${err.message}</span>`;
+        bubble.innerHTML = `<span>[ Godot MCP Error: ${escapeHtml(err.message)} ]</span>`;
+      }
+    });
+  }
+
+  // Dispatch Unity Command
+  if (dispatchUnityBtn) {
+    dispatchUnityBtn.addEventListener('click', async () => {
+      const cmd = unityCmdSelect.value;
+      let params = {};
+      try {
+        if (unityCmdArgs.value.trim()) params = JSON.parse(unityCmdArgs.value.trim());
+      } catch (err) {
+        alert('Invalid JSON in arguments: ' + err.message);
+        return;
+      }
+
+      appendGameDevMessage('user', `Dispatch Unity Command: <code>${escapeHtml(cmd)}</code>`);
+      const bubble = appendGameDevMessage('assistant', `Dispatching <code>${escapeHtml(cmd)}</code> to Unity Editor (HTTP 127.0.0.1:55558)...`);
+
+      try {
+        const res = await fetch('/api/gamedev/unity/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd, payload: params })
+        });
+        const data = await res.json();
+        bubble.innerHTML = formatMarkdown(`**Unity Response for \`${cmd}\`:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``);
+      } catch (err) {
+        bubble.innerHTML = `<span>[ Unity Error: ${escapeHtml(err.message)} ]</span>`;
       }
     });
   }
@@ -749,10 +838,10 @@ function initGameDev() {
         });
         const data = await res.json();
         if (data.status === 'success') {
-          bridgeStatusNote.innerHTML = `<span style="color:var(--accent-emerald)">✓ Deployed to ${data.destination}</span>`;
-          appendGameDevMessage('assistant', `📦 **Asset Deployed!**\nCopied \`${currentExtractedAsset.extracted_filename}\` to **${engine.toUpperCase()}** at:\n\`${data.destination}\``);
+          bridgeStatusNote.innerHTML = `<span style="font-weight:700;">[ DEPLOYED TO ${escapeHtml(data.destination)} ]</span>`;
+          appendGameDevMessage('assistant', `**ASSET DEPLOYED**\nCopied \`${currentExtractedAsset.extracted_filename}\` to **${engine.toUpperCase()}** at:\n\`${data.destination}\``);
         } else {
-          bridgeStatusNote.innerHTML = `<span style="color:var(--accent-rose)">❌ ${data.message}</span>`;
+          bridgeStatusNote.innerHTML = `<span style="font-weight:700;">[ DEPLOY FAILED: ${escapeHtml(data.message)} ]</span>`;
         }
       } catch (err) {
         bridgeStatusNote.textContent = 'Deploy failed: ' + err.message;
@@ -786,7 +875,7 @@ function initGameDev() {
       }
       typingMsg.innerHTML = formatMarkdown(fullText || 'No response returned.');
     } catch (err) {
-      typingMsg.innerHTML = `<span style="color:var(--accent-rose)">Game Dev Agent error: ${err.message}</span>`;
+      typingMsg.innerHTML = `<span>[ Game Dev Agent error: ${escapeHtml(err.message)} ]</span>`;
     }
   }
 

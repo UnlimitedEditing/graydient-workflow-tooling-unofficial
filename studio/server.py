@@ -83,9 +83,14 @@ class DeployAssetRequest(BaseModel):
     target_engine: Optional[str] = "godot"
     custom_project_dir: Optional[str] = None
 
+class UnityExecRequest(BaseModel):
+    command: str
+    payload: Optional[Any] = ""
+
 VailExecRequest.model_rebuild()
 GodotExecRequest.model_rebuild()
 DeployAssetRequest.model_rebuild()
+UnityExecRequest.model_rebuild()
 
 # ── API Endpoints ──────────────────────────────────────────────────────────
 
@@ -243,11 +248,22 @@ def sync_repository(req: SyncRequest):
 
 @app.get("/api/gamedev/status")
 def get_gamedev_status():
-    from .game_dev_bridge import check_vail_connection, check_godot_status
+    from .game_dev_bridge import check_vail_connection, check_godot_status, check_unity_connection
     return {
         "vail": check_vail_connection(),
-        "godot": check_godot_status()
+        "godot": check_godot_status(),
+        "unity": check_unity_connection()
     }
+
+@app.get("/api/gamedev/unity/status")
+def get_unity_status():
+    from .game_dev_bridge import check_unity_connection
+    return check_unity_connection()
+
+@app.post("/api/gamedev/unity/command")
+def exec_unity_command(req: UnityExecRequest):
+    from .game_dev_bridge import send_unity_command
+    return send_unity_command(req.command, req.payload)
 
 @app.post("/api/gamedev/vail/exec")
 def exec_vail_command(req: VailExecRequest):

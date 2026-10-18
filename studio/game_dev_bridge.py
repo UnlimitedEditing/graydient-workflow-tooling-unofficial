@@ -28,6 +28,11 @@ VAIL_CLI = Path(r"D:\UE5.8\VAIL\python\vail_cli.py")
 GODOT_EXE = Path(r"D:\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe")
 GODOT_MCP_DIR = Path(r"D:\godot-mcp")
 
+# Unity Bridge Configuration (PirateUIBridge.cs HTTP listener)
+UNITY_HOST = "127.0.0.1"
+UNITY_PORT = 55558
+UNITY_HUB_PATH = Path(r"C:\Program Files\Unity\Hub\Editor")
+
 def check_vail_connection(timeout: float = 1.0) -> Dict[str, Any]:
     """Probes whether Unreal Engine 5.8 is currently running with the VAIL plugin active."""
     status = {
@@ -159,6 +164,42 @@ def send_godot_tool(tool_name: str, params: Optional[Dict[str, Any]] = None) -> 
     except Exception as e:
         return {"status": "error", "message": f"Error running Godot MCP tool: {str(e)}"}
 
+def check_unity_connection(timeout: float = 1.0) -> Dict[str, Any]:
+    """Probes whether Unity Editor is active with PirateUIBridge listening on 55558."""
+    import urllib.request
+    status = {
+        "engine": "Unity",
+        "plugin": "PirateUI Unity Bridge",
+        "host": UNITY_HOST,
+        "port": UNITY_PORT,
+        "online": False,
+        "details": None
+    }
+    try:
+        url = f"http://{UNITY_HOST}:{UNITY_PORT}/status"
+        req = urllib.request.Request(url, headers={"User-Agent": "PirateUI"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                status["online"] = True
+                status["details"] = data
+    except Exception as e:
+        status["error"] = str(e)
+    return status
+
+def send_unity_command(command: str, payload: Any = "", timeout: float = 10.0) -> Dict[str, Any]:
+    """Sends an editor command to Unity via the local bridge (http://127.0.0.1:55558/command)."""
+    import urllib.request
+    url = f"http://{UNITY_HOST}:{UNITY_PORT}/command"
+    payload_str = json.dumps(payload) if isinstance(payload, (dict, list)) else str(payload or "")
+    body = json.dumps({"command": command, "payload": payload_str}).encode("utf-8")
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        return {"status": "error", "message": f"Unity bridge error: {str(e)}"}
+
 def deploy_mesh_to_game(
     mesh_path: str,
     target_engine: str = "godot",
@@ -185,6 +226,8 @@ def deploy_mesh_to_game(
         dest_dir = Path(custom_project_dir) if custom_project_dir else (BASE_DIR / "game_exports" / "godot_assets")
     elif target_engine in ["unreal", "ue", "ue5", "vail"]:
         dest_dir = Path(custom_project_dir) if custom_project_dir else (Path(r"D:\UE5.8\vailtest\Content\Imported_PirateUI"))
+    elif target_engine in ["unity", "unity-engine", "unity6", "unity2022"]:
+        dest_dir = Path(custom_project_dir) if custom_project_dir else (BASE_DIR / "game_exports" / "unity_assets")
     else:
         dest_dir = BASE_DIR / "game_exports" / target_engine
 
@@ -192,6 +235,16 @@ def deploy_mesh_to_game(
         os.makedirs(dest_dir, exist_ok=True)
         dest_file = dest_dir / src.name
         shutil.copy2(src, dest_file)
+
+        # If deploying to Unity, attempt to trigger live asset database refresh
+        if target_engine in ["unity", "unity-engine", "unity6", "unity2022"]:
+            try:
+                unity_status = check_unity_connection(timeout=0.5)
+                if unity_status.get("online"):
+                    send_unity_command("refresh_assets")
+            except Exception:
+                pass
+
         return {
             "status": "success",
             "message": f"Successfully deployed {src.name} to {target_engine.upper()}",

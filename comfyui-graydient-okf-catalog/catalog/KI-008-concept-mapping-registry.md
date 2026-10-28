@@ -197,3 +197,13 @@ Four files staged into standard ComfyUI directories and confirmed by a real Gray
 
 Mirrored in `concept_db.json` under `turbo-moss`. Total staging size is ~16.7 GB. Tested and confirmed on Graydient RTX 4090 with `LoraLoaderModelOnly` and `SkipLayerGuidanceDiTSimple` (single_layers="22").
 
+## Fish Audio Drama 3 (ComfyUI-Drama3 pack) -- confirmed live 2026-10-22/23
+
+| URL | Destination | Size |
+|---|---|---|
+| `https://huggingface.co/PedroMarinhoDev/Drama-3-ComfyUI/resolve/main/drama3_w4a8experts_bf16.safetensors` | `diffusion_models/drama3_w4a8experts_bf16.safetensors` | 24.6 GB |
+| `https://huggingface.co/PedroMarinhoDev/Drama-3-ComfyUI/resolve/main/drama3_codec.safetensors` | `vae/drama3_codec.safetensors` | 1.57 GB |
+
+Mirrored in `concept_db.json` under `drama3-w4a8`. Ungated (HTTP 200 on 2026-10-23). The W4A8 file "falls silent more often" than the 32.7 GB W6A8 / 38.6 GB FP8 files per the pack's notes (not compared here); it ran on 24 GB 4090 and 32 GB 5090 runners with `experts: in RAM`. The FP8/INT8/W6A8 variants are in the same repo.
+
+`qwen3-asr-0.6b` (`https://huggingface.co/PedroMarinhoDev/Qwen3-ASR-ComfyUI/resolve/main/qwen3_asr_0.6b_bf16.safetensors` -> `asr/qwen3_asr_0.6b_bf16.safetensors`, 1.56 GB, HTTP 200) staged and loaded on a runner where the Drama 3 pack's ASR node won the name collision (section 43 of KI-007); only stage it for a glue node that calls the pack's functions, never for the colliding node classes.

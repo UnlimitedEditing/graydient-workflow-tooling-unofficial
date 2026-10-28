@@ -281,14 +281,100 @@ class GraydientLinter:
         # Mapping init_image_filename to the same widget and submitting with `--init-image <url>`
         # delivered the image. Mapping both is the existing pinkcherry-ltx25 pattern.
         _locals = {fm.get("local_field") for fm in field_mappings}
+
+        # Confirmed live 2026-10-23 (archive-submit-audio, first run): a workflow whose only output was a SaveAudio ran
+        # and saved its FLAC, but the render stayed `rendered: no` and nothing was delivered until supports_txt2wav was ON
+        # (then render oKAblO delivered an .ogg). KI-007 section 43. WARNING, not ERROR: other audio workflows in this
+        # project were written with the flag off and were not re-tested here.
+        _classes = {v.get("class_type") for v in api_wf.values()}
+        if "SaveAudio" in _classes and not gw.get("supports_txt2wav"):
+            self.issues.append(LintIssue(
+                "WARNING", "AUDIO_OUTPUT_WITHOUT_TXT2WAV",
+                "Workflow saves audio (SaveAudio) but supports_txt2wav is off. The first archive-submit-audio run executed "
+                "and saved a FLAC yet was never delivered until supports_txt2wav was on (KI-007 section 43)."))
+        # Confirmed live 2026-10-23: Graydient's image ships Comfyui_SynVow_Qwen3ASR, which shadows ComfyUI-Drama3's
+        # Qwen3ASRLoader/Qwen3ASRTranscribe on some runners (render gGMgVl failed validation; ez1qMv, same version, ran
+        # fine on another runner). KI-007 section 43.
+        if _classes & {"Qwen3ASRLoader", "Qwen3ASRTranscribe"}:
+            self.issues.append(LintIssue(
+                "WARNING", "QWEN3ASR_CLASS_COLLISION",
+                "Qwen3ASRLoader/Qwen3ASRTranscribe exist twice on Graydient (ComfyUI-Drama3 and the preinstalled "
+                "Comfyui_SynVow_Qwen3ASR); which one loads varies by runner and the wrong one fails validation. Call the "
+                "pack's python functions from a uniquely named glue node instead (KI-007 section 43)."))
+
+        # Resolution belongs in the platform's `width` / `height` fields (users prompt it with /size:WxH),
+        # NOT in a generic slot. Stated by Jacob 2026-10-22 after reshoot-anything shipped resolution as slot4;
+        # KI-003 had wrongly listed `size` as a generic-slot control.
+        _visual = {v.get("class_type") for v in api_wf.values()} & {
+            "SaveImage", "SaveVideo", "VHS_VideoCombine", "SaveAnimatedWEBP", "SaveAnimatedPNG", "CreateVideo"}
+        if _visual and not ({"width", "height"} & _locals):
+            self.issues.append(LintIssue(
+                "WARNING", "NO_WIDTH_HEIGHT_FIELDS",
+                "Workflow outputs image/video but field_mapping has no `width`/`height` mapping. Every visual-output "
+                "workflow should expose resolution through the platform `width`/`height` fields (0 = auto) so users can "
+                "prompt /size:WxH (CLAUDE.md: width and height are mandatory)."))
+        _size_names = {"width", "height", "long_side", "max_side", "size", "resolution", "target_size", "megapixels"}
+        for fm in field_mappings:
+            if re.match(r"slot\d+$", str(fm.get("local_field", ""))) and str(fm.get("node_input_name", "")).lower() in _size_names:
+                self.issues.append(LintIssue(
+                    "WARNING", "SIZE_IN_SLOT",
+                    f"'{fm.get('local_field')}' is mapped to the size-like input '{fm.get('node_input_name')}'. Use the platform "
+                    "`width`/`height` fields for resolution, not a generic slot.", fm.get("node_id")))
+        # Confirmed live 2026-10-24 (audio2animate-chain-h3 and voicechain-test): Telegram users got
+        # "width is below minimum 640 for <workflow> (wf-limits)" because the width/height mappings carried a
+        # minimum_value above the size Telegram supplies when the user gives no /size (an image's own size is irrelevant).
+        # voicechain-test v4 dropped min/max from the mappings and clamped in the graph instead. KI-007 section 44.
+        # WARNING, not ERROR: workflows that ship min/max were written to the older "set min/max" guidance.
+        for fm in field_mappings:
+            try:
+                _min = float(fm.get("minimum_value") or 0)  # stored as a string in the backup JSON ('640')
+            except (TypeError, ValueError):
+                _min = 0
+            if fm.get("local_field") in ("width", "height") and _min > 0:
+                self.issues.append(LintIssue(
+                    "WARNING", "WIDTH_HEIGHT_MIN_REJECTS_DEFAULT_SIZE",
+                    f"'{fm.get('local_field')}' has minimum_value={fm.get('minimum_value')}. Telegram injects its own default size "
+                    "when the user gives no /size, and a default below the minimum is rejected with 'width is below minimum N "
+                    "(wf-limits)'. Leave min/max off the mapping and clamp inside the graph (KI-007 section 44).",
+                    fm.get("node_id")))
         if "init_image_url" in _locals and "init_image_filename" not in _locals:
             self.issues.append(LintIssue(
-                "WARN",
+                "WARNING",
                 "INIT_IMAGE_URL_WITHOUT_FILENAME",
                 "field_mapping has init_image_url but no init_image_filename. Graydient may stage the "
                 "image and fill only the filename (upscale-vosr2, 2026-10-13: init_image_url alone "
                 "gave a silent blank-white input). Map init_image_filename to the same widget too "
                 "(KI-007 section 29).",
+                None))
+
+        # Confirmed live (2026-10-20, hash-probe v1, job 1yOOW5): ComfyUI v0.42 ships a CORE node
+        # named ConcatStrings (required inputs string_a/string_b) that shadows ComfyUI-TripoSG's
+        # ConcatStrings (part1..part8). A graph built with the TripoSG keys died in prompt
+        # validation ("Required input is missing: string_a"). Joining strings with the core
+        # StringConcatenate (string_a, string_b, delimiter) worked (jobs Y8ddm9, RxyyAG). KI-007 section 38.
+        for _nid, _node in api_wf.items():
+            if isinstance(_node, dict) and _node.get("class_type") == "ConcatStrings":
+                _keys = set((_node.get("inputs") or {}).keys())
+                if any(k.startswith("part") for k in _keys) and not {"string_a", "string_b"} <= _keys:
+                    self.issues.append(LintIssue(
+                        "ERROR",
+                        "CONCATSTRINGS_SHADOWED_BY_CORE",
+                        "class_type 'ConcatStrings' with part1..part8 inputs resolves to ComfyUI's core node "
+                        "(string_a/string_b) on current ComfyUI and fails validation (hash-probe v1, 2026-10-20). "
+                        "Use 'StringConcatenate' (string_a, string_b, delimiter) instead (KI-007 section 38).",
+                        _nid))
+
+        # Confirmed live (2026-10-20, beat-compile q6mRVp): replying to an audio file in Telegram delivers it
+        # as init_audio (init_audio_filename / init_audio_url), NOT audio1. A workflow that maps only audio1
+        # cannot be driven by "reply to audio". Also, /audio1:R<hash> fails for renders whose first output is
+        # not audio (KI-007 sections 35-36), so audio1 alone is the narrower route.
+        if "audio1" in _locals and not ({"init_audio_filename", "init_audio_url"} & _locals):
+            self.issues.append(LintIssue(
+                "WARNING",
+                "AUDIO1_WITHOUT_INIT_AUDIO",
+                "field_mapping has audio1 but no init_audio_filename/init_audio_url. Telegram 'reply to an audio "
+                "file' arrives as init_audio_*; map one of them to the same node too (beat-compile does). "
+                "(KI-007 section 36)",
                 None))
 
         # Confirmed live (2026-10-07, ripple-ltx25): concept_mapping's field_mapping /
@@ -322,7 +408,7 @@ class GraydientLinter:
                         m.group(1)))
                 elif "-" in title:
                     self.issues.append(LintIssue(
-                        "WARN",
+                        "WARNING",
                         "CONCEPT_MAPPING_TITLE_HAS_HYPHEN",
                         f"concept_mapping {key} '{fm_str}' references a node titled '{title}' with a "
                         f"'-'. Unconfirmed either way on its own: a title with BOTH '-' and '.' failed "

@@ -303,7 +303,8 @@
     "inputs": {
       "expression": "STRING (widget)",
       "values.a": "FLOAT (Autogrow group field, NOT bare 'a')",
-      "values.b": "FLOAT (Autogrow group field, NOT bare 'b')"
+      "values.b": "FLOAT (Autogrow group field, NOT bare 'b')",
+      "values.c": "FLOAT/INT/BOOLEAN (Autogrow TemplateNames: names are ALL of string.ascii_lowercase, so values.c ... values.z exist; read from nodes_math.py 2026-10-29)"
     },
     "outputs": [
       "FLOAT",
@@ -1879,5 +1880,494 @@
     "outputs": [
       "IMAGE"
     ]
+  },
+  "StringConcatenate": {
+    "source": "comfy-core node (nodes_string.py); keys as used in gen_hash_probe.py v2, 25-node graph",
+    "inputs": {
+      "string_a": "STRING (widget)",
+      "string_b": "STRING (widget)",
+      "delimiter": "STRING (widget, default empty)"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Confirmed by real Graydient jobs on ComfyUI v0.42: hash-probe v2 (workflow WFXGgeBX v3) ran Y8ddm9 and RxyyAG and returned a decoded 12-line report, so all three keys are real and accepted; chained 11 deep (string_a/string_b linked from earlier nodes). Use THIS instead of 'ConcatStrings' to join strings: see ConcatStrings below and KI-007 section 38. A field_mapping can target string_b (node_input_index 1 in widgets_values order string_a, string_b, delimiter)."
+  },
+  "ConcatStrings": {
+    "source": "comfy-core node on ComfyUI >= v0.42 (shadows ComfyUI-TripoSG's ConcatStrings of the same name); required keys read from a real validation error, not source",
+    "inputs": {
+      "string_a": "STRING (widget, required)",
+      "string_b": "STRING (widget, required)"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Live job 1yOOW5 (hash-probe v1, 2026-10-20) died in ComfyUI prompt validation: 'ConcatStrings N: Required input is missing: string_a / string_b' for every node built with ComfyUI-TripoSG's part1..part8 keys. The TripoSG node of the same name is shadowed by the core one (alphabetical load order + NODE_CLASS_MAPPINGS key collision, KI-007 section 38). Only string_a and string_b are proven required; any optional extras are unverified. Do not use part1..part8 with this class_type: use StringConcatenate."
+  },
+  "EncodeStringAsImage": {
+    "source": "ComfyUI-TripoSG nodes.py (read directly this session, class EncodeStringAsImage + _encode_string_as_image); live jobs Y8ddm9 and RxyyAG",
+    "inputs": {
+      "text": "STRING (widget, multiline)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Encodes the string as a lossless RGB data image: 4-byte big-endian length header + UTF-8 bytes, 3 bytes per pixel, padded to a square. Decode: Image.open(url).convert('RGB').tobytes(); n = struct.unpack('>I', b[:4])[0]; b[4:4+n].decode('utf-8'). Confirmed round-trip on real renders (gen_hash_probe.py report, 12 echoed field values). Pair with SaveImage; Graydient returns it as an image item that has NO media entry (KI-007 section 39)."
+  },
+  "BeatCompile": {
+    "source": "UnlimitedEditing/ComfyUI-BeatCompile nodes.py (our own node, read this session); live jobs q6mRVp, ZVlBkQ, mOmmYP, y94Rg8",
+    "inputs": {
+      "audio_file": "STRING (widget) - the song: local filename Graydient stages for audio1, or a path/URL",
+      "manifest": "STRING (widget, multiline) - the entry lines (roles/flags/rules + descriptions)",
+      "height": "INT (widget, 240-1080)",
+      "aspect": "INT (widget, 0=16:9 1=9:16 2=1:1 3=4:3)",
+      "fps": "INT (widget, 12-60)",
+      "max_frames": "INT (widget, 48-7200)",
+      "cut_density": "FLOAT (widget, 0.25-4)",
+      "shuffle_seed": "INT (widget) - deliberately NOT named 'seed' so ComfyUI adds no control_after_generate entry to widgets_values",
+      "overedit": "FLOAT (widget, 0-1)",
+      "use_all": "INT (widget, 0/1)",
+      "video1": "STRING (widget) - local filename of clip i (Graydient field video1)",
+      "video2": "STRING (widget) - local filename of clip i (Graydient field video2)",
+      "video3": "STRING (widget) - local filename of clip i (Graydient field video3)",
+      "video4": "STRING (widget) - local filename of clip i (Graydient field video4)",
+      "video5": "STRING (widget) - local filename of clip i (Graydient field video5)",
+      "video6": "STRING (widget) - local filename of clip i (Graydient field video6)",
+      "video7": "STRING (widget) - local filename of clip i (Graydient field video7)",
+      "video8": "STRING (widget) - local filename of clip i (Graydient field video8)",
+      "image1": "STRING (widget) - local filename of still i (Graydient field image1)",
+      "image2": "STRING (widget) - local filename of still i (Graydient field image2)",
+      "image3": "STRING (widget) - local filename of still i (Graydient field image3)",
+      "image4": "STRING (widget) - local filename of still i (Graydient field image4)",
+      "image5": "STRING (widget) - local filename of still i (Graydient field image5)",
+      "image6": "STRING (widget) - local filename of still i (Graydient field image6)",
+      "image7": "STRING (widget) - local filename of still i (Graydient field image7)",
+      "image8": "STRING (widget) - local filename of still i (Graydient field image8)",
+      "audio_init_filename": "STRING (widget) - song fallback: Graydient init_audio_filename (Telegram reply-to-audio)",
+      "audio_init_url": "STRING (widget) - song fallback: Graydient init_audio_url (Telegram reply-to-audio)"
+    },
+    "outputs": [
+      "VIDEO",
+      "STRING",
+      "IMAGE"
+    ],
+    "note": "28 widgets in this exact widgets_values order (node_input_index 0..27): audio_file, manifest, height, aspect, fps, max_frames, cut_density, shuffle_seed, overedit, use_all, video1-8 (10-17), image1-8 (18-25), audio_init_filename (26), audio_init_url (27). Outputs: video (-> SaveVideo), report JSON string, report_image (pixel data image of the plan -> SaveImage). Confirmed by real jobs: 120 s song + 9 clips ran in ~15-25 s of ComfyUI time on a 4090/5090 (beat-compile WFaPN8lX v6, e.g. q6mRVp 17.1 s, ZVlBkQ). Audio source priority inside the node: audio_file, then audio_init_filename, then audio_init_url."
+  },
+  "RigStudioPuppetPack": {
+    "source": "UnlimitedEditing/ComfyUI-RigStudio nodes_puppet.py + rigstudio/puppet_job.py (written and read this session, commit b7f7ea5) -- confirmed by a real completed Graydient job: render D8gveG, workflow rig-puppet-pack (gen_rigstudio_puppet_pack.py v1, id WFXxkD17), 2026-10-21, RTX 5090, py 3.12.3, Logs row success, Prompt executed in 5.21 s (elapsed 156 s on the workflow's first run, including the repo clone and machine start).",
+    "inputs": {
+      "sheet_mouth": "STRING widget (index 0). field_mapping image1. A rig-puppet-parts 3x3 sheet: URL, Graydient-staged input/ filename, or mangled Telegram reference (rigstudio/media.resolve).",
+      "sheet_idle": "STRING widget (index 1). field_mapping image2.",
+      "sheet_eyes": "STRING widget (index 2). field_mapping image3.",
+      "sheet_brows": "STRING widget (index 3). field_mapping image4.",
+      "name": "STRING widget (index 4, default 'puppet'). field_mapping prompt_positive (NOT 'prompt'). Sanitised to [A-Za-z0-9_-], 40 chars; becomes the puppet's name inside the bundle."
+    },
+    "outputs": [
+      "card",
+      "summary"
+    ],
+    "note": "OUTPUT_NODE returning {'ui': {'images': [...]}, 'result': (card IMAGE, summary STRING)}: the node writes the puppet itself as an M3DS PNG (rigstudio.puppet v2, ~2.5 MB) and a stock SaveImage (node 2) saves the preview card (~200 KB), so the render has TWO items; here the puppet was item 0 and the card item 1 -- identify the data PNG by decoding the M3DS header, not by index (KI-007 section 39). The four sheets are POSITIONAL (mouth, idle, eyes, brows). Confirmed live with requirements.pip [] and install_detected_nodes false: numpy, scipy and Pillow in the base image were enough (the packer imports scipy.ndimage). The live result's 49 layers were pixel-identical to the same sheets packed locally (only PNG compression differed)."
+  },
+  "StringReplace": {
+    "source": "comfy-core node (nodes_string.py); keys as used in gen_drama3_tts_v1.py",
+    "inputs": {
+      "string": "STRING (widget; linked from the previous StringReplace when chained)",
+      "find": "STRING (widget)",
+      "replace": "STRING (widget)"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Confirmed live: drama3-tts v1 (render lwOrVW, WF7LG02a) chained four of them to turn the Graydient-safe script syntax into Drama 3's ({ -> '<|speaker:', } -> '|>', ( -> '[', ) -> ']'). Needed because Graydient's prompt parser eats [ ] < > | but lets { } ( ) through (KI-007 section 43). Widget order for field_mapping node_input_index is string(0), find(1), replace(2)."
+  },
+  "Drama3Loader": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22",
+    "inputs": {
+      "model_name": "COMBO (diffusion_models), e.g. drama3_w4a8experts_bf16.safetensors",
+      "experts": "COMBO: 'in RAM' | 'in VRAM' (use 'in RAM': the 24.6 GB W4A8 file then fits a 24 GB card)",
+      "expert_cache_gb": "FLOAT (0 = all free VRAM)",
+      "second_gpu": "COMBO ('none' or cuda:N, advanced)",
+      "split_layer": "INT (advanced)"
+    },
+    "outputs": [
+      "DRAMA3_MODEL"
+    ],
+    "note": "Confirmed live on Graydient 2026-10-22/23: drama3-tts v1 (render lwOrVW, exec 45.81 s), drama3-voicebank multi-speaker (1yO6Qo, 100.45 s), drama3-tts v2 cloning from audio1/audio2 (dOA8KZ, 79.56 s). Weights: PedroMarinhoDev/Drama-3-ComfyUI via concept_mapping. The runner needs the file size in system RAM (runners had 128-327 GB)."
+  },
+  "Drama3CodecLoader": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22",
+    "inputs": {
+      "codec_name": "COMBO (vae folder), drama3_codec.safetensors"
+    },
+    "outputs": [
+      "DRAMA3_CODEC"
+    ],
+    "note": "Confirmed live on Graydient 2026-10-22/23: drama3-tts v1 (render lwOrVW, exec 45.81 s), drama3-voicebank multi-speaker (1yO6Qo, 100.45 s), drama3-tts v2 cloning from audio1/audio2 (dOA8KZ, 79.56 s)."
+  },
+  "Drama3EncodeVoice": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22",
+    "inputs": {
+      "codec": "DRAMA3_CODEC",
+      "audio": "AUDIO",
+      "transcript": "STRING (widget; exact words of the clip; a leading <|speaker:N|> tag picks the speaker, else the Generate slot number does)"
+    },
+    "outputs": [
+      "DRAMA3_VOICE"
+    ],
+    "note": "Executed live through ComfyUI-VoiceBank's VoiceCast (it calls Drama3EncodeVoice.execute directly). The clip is mono-mixed, silence-trimmed and peak-normalised inside; reference clips of 4-22 s worked."
+  },
+  "Drama3Generate": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22",
+    "inputs": {
+      "model": "DRAMA3_MODEL",
+      "text": "STRING (widget; <|speaker:N|> tags switch speakers, [sighs]-style cues)",
+      "voices.voice1": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice2": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice3": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice4": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice5": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice6": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice7": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "voices.voice8": "DRAMA3_VOICE (Autogrow prefix 'voice', min 0 max 16; voiceN speaks for <|speaker:N|> unless the transcript carries its own tag). None entries are skipped",
+      "seed": "INT (widget; chunk k runs on seed+k; there is NO per-speaker seed)",
+      "temperature": "FLOAT (default 1.0)",
+      "top_p": "FLOAT (default 0.9)",
+      "top_k": "INT (default 0 = no cap; 30 makes takes fall silent)",
+      "max_frames": "INT (21.5 frames per second of audio)",
+      "split_long_text": "BOOLEAN",
+      "speakers": "COMBO ('one take per line' default)"
+    },
+    "outputs": [
+      "DRAMA3_CODES"
+    ],
+    "note": "Confirmed live on Graydient 2026-10-22/23: drama3-tts v1 (render lwOrVW, exec 45.81 s), drama3-voicebank multi-speaker (1yO6Qo, 100.45 s), drama3-tts v2 cloning from audio1/audio2 (dOA8KZ, 79.56 s). Dotted voices.voiceN keys are the API-format names of the Autogrow inputs (same pattern as ComfyMathExpression values.a); only voice1-voice8 are listed although the node allows 16. Widget order for field_mapping: text(0), seed(1), control_after_generate(2), temperature(3), top_p(4), top_k(5), max_frames(6), split_long_text(7), speakers(8)."
+  },
+  "Drama3Decode": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22",
+    "inputs": {
+      "codec": "DRAMA3_CODEC",
+      "codes": "DRAMA3_CODES",
+      "shorten_long_pauses": "BOOLEAN (default true)"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
+    "note": "Confirmed live on Graydient 2026-10-22/23: drama3-tts v1 (render lwOrVW, exec 45.81 s), drama3-voicebank multi-speaker (1yO6Qo, 100.45 s), drama3-tts v2 cloning from audio1/audio2 (dOA8KZ, 79.56 s). Decodes at 44.1 kHz; Graydient delivered an .ogg at 48 kHz."
+  },
+  "Qwen3ASRLoader": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22 (the pack's own class)",
+    "inputs": {
+      "model_name": "COMBO (asr folder), qwen3_asr_0.6b_bf16.safetensors"
+    },
+    "outputs": [
+      "QWEN3_ASR_MODEL"
+    ],
+    "note": "DO NOT USE AS A NODE ON GRAYDIENT: the base image ships Comfyui_SynVow_Qwen3ASR, whose Qwen3ASRLoader/Qwen3ASRTranscribe share these class names with different options (model_name in ['Qwen3-ASR-1.7B','Qwen3-ASR-0.6B']). Which pack wins varies by runner: render gGMgVl failed validation on ny2-g1 while ez1qMv (same workflow version) ran fine on ny2-g0. See KI-007 section 43. The signature here is the Drama 3 pack's, from source."
+  },
+  "Qwen3ASRTranscribe": {
+    "source": "PedroMarinhoDev/ComfyUI-Drama3 nodes.py, read directly 2026-10-22 (the pack's own class)",
+    "inputs": {
+      "model": "QWEN3_ASR_MODEL",
+      "audio": "AUDIO",
+      "language": "COMBO ('auto' + 30 languages)",
+      "context": "STRING (widget, optional hint)",
+      "max_new_tokens": "INT (advanced)"
+    },
+    "outputs": [
+      "STRING (text)",
+      "STRING (language)"
+    ],
+    "note": "Same collision as Qwen3ASRLoader: where the platform pack wins, 'language auto' fails validation. Call the pack's python functions (nodes.load_qwen3_asr / nodes.transcribe) from a uniquely named glue node instead, as VoiceCast does."
+  },
+  "VoiceBankLookup": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceBank nodes.py (our own glue node)",
+    "inputs": {
+      "prompt": "STRING (widget; '<voice description> :: <text>')",
+      "pick": "INT (0 = best match)",
+      "semantic": "INT 0/1 (optional; adds bge-large embedding similarity)"
+    },
+    "outputs": [
+      "AUDIO (reference_audio)",
+      "STRING (text)",
+      "STRING (voice_name)",
+      "STRING (voice_id)",
+      "STRING (transcript)"
+    ],
+    "note": "Live: probe w9m0pR (0.63 s exec; the clip was fetched from the dataset repo and decoded with PyAV inside ComfyUI). Matches a description against the TTS-AGI moss-character-reference-voices dataset (BM25 + timbre + age); transcripts are bundled Whisper large-v3 output because the dataset has none."
+  },
+  "VoiceCast": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceBank cast.py (our own glue node)",
+    "inputs": {
+      "codec": "DRAMA3_CODEC",
+      "prompt": "STRING (widget; {N} / {N:description} speaker tags, (cue) for sound cues)",
+      "pick": "INT",
+      "semantic": "INT 0/1",
+      "audio1": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio2": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio3": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio4": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio5": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio6": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio7": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "audio8": "STRING (optional widget; staged filename or URL; speaker i's clone source)",
+      "init_audio": "STRING (optional; Telegram replied-to audio = speaker 1)",
+      "init_audio_filename": "STRING (optional)",
+      "init_audio_url": "STRING (optional)",
+      "asr_model": "STRING (optional; models/asr file, only used for clips without a bundled transcript)"
+    },
+    "outputs": [
+      "STRING (text, Drama 3 syntax)",
+      "DRAMA3_VOICE (voice1; None when unused)",
+      "DRAMA3_VOICE (voice2; None when unused)",
+      "DRAMA3_VOICE (voice3; None when unused)",
+      "DRAMA3_VOICE (voice4; None when unused)",
+      "DRAMA3_VOICE (voice5; None when unused)",
+      "DRAMA3_VOICE (voice6; None when unused)",
+      "DRAMA3_VOICE (voice7; None when unused)",
+      "DRAMA3_VOICE (voice8; None when unused)"
+    ],
+    "note": "Live: drama3-voicebank v2 (1yO6Qo, Myz90J) and drama3-tts v2 (dOA8KZ, 391Zz8). Widget order for field_mapping: prompt(0), pick(1), semantic(2), audio1..audio8 (3-10), init_audio(11), init_audio_filename(12), init_audio_url(13), asr_model(14). Outputs feed Drama3Generate voices.voice1..8 directly; unused ones are None and Generate skips them. Uses the Drama 3 pack's python functions, not its Qwen3ASR classes (KI-007 section 43)."
+  },
+  "VoiceBankAudioEcho": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceBank echo.py (our own glue node)",
+    "inputs": {
+      "init_audio": "STRING (optional)",
+      "init_audio_url": "STRING (optional)",
+      "init_audio_filename": "STRING (optional)",
+      "audio1": "STRING (optional)"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
+    "note": "Superseded by VoiceBankArchiveEcho but confirmed live first: render oKAblO returned the input clip unchanged. The workflow needed supports_txt2wav ON before the audio was delivered (KI-007 section 43)."
+  },
+  "VoiceBankArchiveEcho": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceBank echo.py (our own glue node)",
+    "inputs": {
+      "init_video": "STRING (optional)",
+      "init_video_url": "STRING (optional)",
+      "init_video_filename": "STRING (optional)",
+      "video1": "STRING (optional)",
+      "init_audio": "STRING (optional)",
+      "init_audio_url": "STRING (optional)",
+      "init_audio_filename": "STRING (optional)",
+      "audio1": "STRING (optional)"
+    },
+    "outputs": [
+      "VIDEO",
+      "AUDIO"
+    ],
+    "note": "ONE workflow for video and audio: returns whichever kind arrived on its own output and an ExecutionBlocker(None) on the other, so the SaveVideo / SaveAudio wired to the blocked output silently does not run. Confirmed live on archive-submit v4 (WFE9LggX): audio -> OBwO55 (.ogg), video -> D8geK9 (.mp4; within 0.5% of the source size, same codec, resolution, duration and audio track). Field order = INPUT_TYPES order. Video wins if both arrive."
+  },
+  "VoiceChainLoad": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceChain nodes.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "prev_video": "STRING (default=)",
+      "image1": "STRING (default=)",
+      "image2": "STRING (default=)",
+      "image3": "STRING (default=)",
+      "image4": "STRING (default=)",
+      "image5": "STRING (default=)",
+      "image6": "STRING (default=)",
+      "image7": "STRING (default=)",
+      "image8": "STRING (default=)",
+      "audio": "STRING (default=)",
+      "prompt": "STRING (default=, multiline=True)",
+      "max_chunk_frames": "INT (default=124, min=22, max=124, step=1)",
+      "anchor": "INT (default=1, min=0, max=1)"
+    },
+    "outputs": [
+      "IMAGE (ref_image)",
+      "IMAGE (first_frame)",
+      "AUDIO (audio_slice)",
+      "INT (frames)",
+      "STRING (prompt)",
+      "STRING (ctx)",
+      "INT (anchor_on)"
+    ],
+    "note": "Live: voicechain-test WFEjOOAa (confirmed 2026-10-23, 72.6 s step 1 / 59.9 s step 2 on a 9.4 s note; widget order for field_mapping = prev_video(0), image1..image8(1-8), audio(9), prompt(10), max_chunk_frames(11), anchor(12)). prev_video/image*/audio are STRING widgets holding staged filenames (video1/image1../audio1 arrive as local filenames, KI-007 section 35). Outputs: ref_image, first_frame, audio_slice, frames, prompt, ctx (JSON string that MUST be wired to VoiceChainFinish), anchor_on. Step 1 needs image1+audio; later steps need only prev_video (the mp4 carries images, audio, prompt and cursor). Raises if the chain already has done=true."
+  },
+  "VoiceChainFinish": {
+    "source": "UnlimitedEditing/ComfyUI-VoiceChain nodes.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "images": "IMAGE",
+      "ctx": "STRING (forceInput=True)",
+      "fps": "INT (default=24, min=8, max=60)",
+      "filename_prefix": "STRING (default=video/VoiceChain)"
+    },
+    "outputs": [],
+    "note": "Live with VoiceChainLoad (voicechain-test WFEjOOAa). Stitches the decoded clip after the previous video by stream copy and saves the self-contained voicechain mp4 (state in the file: attached_pic reference images, full source audio, `comment` metadata JSON {prompt, cursor, total, done, step}). No outputs; it is an output node. ctx is forceInput (a link from VoiceChainLoad.ctx), not a literal."
+  },
+  "NewsVoiceScript": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "script": "STRING (default=, multiline=True)"
+    },
+    "outputs": [
+      "STRING (cast_text)",
+      "STRING (plan_json)"
+    ],
+    "note": "Live: story-voice v2 WFEVAAZX (confirmed 2026-10-23). Story script -> cast_text (Drama 3 prompt for VoiceCast) + plan_json (feed NewsDramaGaps/NewsDramaTimes)."
+  },
+  "NewsDramaGaps": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "audio": "AUDIO",
+      "codes": "DRAMA3_CODES"
+    },
+    "outputs": [
+      "AUDIO (audio)"
+    ],
+    "note": "Live: story-voice v2 WFEVAAZX. Inserts exact-zero 0.3 s gaps between every line so story-assemble can split narration at digital silence."
+  },
+  "NewsDramaTimes": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "codes": "DRAMA3_CODES",
+      "plan_json": "STRING (forceInput=True)"
+    },
+    "outputs": [
+      "STRING (timing_json)",
+      "IMAGE (timing_data)"
+    ],
+    "note": "Live: story-voice v2 WFEVAAZX. Emits the per-line timing as a data PNG (timing_data) next to timing_json."
+  },
+  "NewsAssemble": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "script": "STRING (default=, multiline=True)",
+      "audio_file": "STRING (default=)",
+      "caption": "INT (default=1, min=0, max=3)",
+      "seed": "INT (default=0, min=0, max=2147483647)",
+      "image1": "STRING (default=) [optional]",
+      "image2": "STRING (default=) [optional]",
+      "image3": "STRING (default=) [optional]",
+      "image4": "STRING (default=) [optional]",
+      "image5": "STRING (default=) [optional]",
+      "image6": "STRING (default=) [optional]",
+      "image7": "STRING (default=) [optional]",
+      "image8": "STRING (default=) [optional]",
+      "audio_init_filename": "STRING (default=) [optional]",
+      "audio_init_url": "STRING (default=) [optional]"
+    },
+    "outputs": [
+      "VIDEO (video)",
+      "STRING (report)"
+    ],
+    "note": "Live: story-assemble WFEk11l7 (confirmed 2026-10-23, 4 s run for 4 shots). audio_file + up to 8 image slots + script; splits narration at digital silence, proportional fallback. image1..image8, audio_init_filename and audio_init_url are optional STRING widgets."
+  },
+  "NewsParseScript": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "script": "STRING (default=, multiline=True)",
+      "speaker": "STRING (default=Ryan)",
+      "width": "INT (default=0, min=0, max=1280)",
+      "height": "INT (default=0, min=0, max=1280)",
+      "seed": "INT (default=0, min=0, max=2147483647)",
+      "caption": "INT (default=1, min=0, max=3)",
+      "energy": "INT (default=1, min=0, max=2)"
+    },
+    "outputs": [
+      "STRING (ref_prompts)",
+      "INT (ref_seeds)",
+      "STRING (shot_prompts)",
+      "INT (shot_seeds)",
+      "STRING (lines)",
+      "STRING (plan_json)",
+      "INT (width)",
+      "INT (height)",
+      "STRING (instructs)",
+      "STRING (speakers)",
+      "STRING (layout_prompts)",
+      "STRING (asset_prompts)",
+      "INT (asset_seeds)",
+      "INT (asset_widths)",
+      "INT (asset_heights)"
+    ],
+    "note": "Live: story-video WFEmxxDX / story-video-moss WFaQ22Y7 (confirmed 2026-10-22). 15 outputs: use the NAMES (ref_prompts, ref_seeds, shot_prompts, shot_seeds, lines, plan_json, width, height, instructs, speakers, layout_prompts, asset_prompts, asset_seeds, asset_widths, asset_heights) when wiring; their order is not intuitive."
+  },
+  "NewsShotRefs": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "plan_json": "STRING (forceInput=True)",
+      "refs": "IMAGE"
+    },
+    "outputs": [
+      "IMAGE (location_refs)",
+      "IMAGE (cast_refs)"
+    ],
+    "note": "Live: story-video WFEmxxDX. Builds location plate + cast board for the Qwen 2.1 edit step."
+  },
+  "NewsQwenTTS": {
+    "source": "UnlimitedEditing/ComfyUI-NewsFeed nodes.py / qwentts.py, read directly 2026-10-29 (our own repo)",
+    "inputs": {
+      "texts": "STRING (forceInput=True)",
+      "instructs": "STRING (forceInput=True)",
+      "speaker": "STRING (default=Ryan)",
+      "model_size": "COMBO[1.7B,0.6B] (default=1.7B)",
+      "language": "STRING (default=English)",
+      "seed": "INT (default=0, min=0, max=2147483647)",
+      "speakers": "STRING (forceInput=True) [optional]"
+    },
+    "outputs": [
+      "AUDIO (audio)"
+    ],
+    "note": "Live: story-video chain (2026-10-22). `speakers` is optional; Qwen voice names map to default bank descriptions and DELIVERY is ignored (project-story-video)."
+  },
+  "MiniMaxH3AddGuide": {
+    "source": "ComfyUI core comfy_extras/nodes_minimax_h3.py (V3 io.Schema), read directly 2026-10-29 from D:/ComfyUI-local; key names cross-checked against the API graphs of the live workflows",
+    "inputs": {
+      "positive": "CONDITIONING",
+      "latent": "LATENT",
+      "vae": "VAE [optional] (video VAE; needed when an image is connected)",
+      "audio_vae": "VAE [optional] (needed when an audio is connected)",
+      "image": "IMAGE [optional] (a batch of >=5 frames is anchored as a clip, cropped to 17k+5 lengths 5/22/39...; <5 frames uses only the first image)",
+      "audio": "AUDIO [optional] (soundtrack anchored from the same frame index)",
+      "frame_idx": "INT (default 0, -9999..9999; negative counts from the end)"
+    },
+    "outputs": [
+      "CONDITIONING (positive)"
+    ],
+    "note": "Live in voicechain-test WFEjOOAa and audioturbo-h3-test WF7JAA5a (2026-10-23). Chain several to anchor several frames. Audio anchor at frame 0 gives mouth motion that loosely follows speech (corr ~0.5 over 3 s) but music with a neutral prompt does not drive motion."
+  },
+  "MiniMaxH3ReferenceToVideo": {
+    "source": "ComfyUI core comfy_extras/nodes_minimax_h3.py (V3 io.Schema), read directly 2026-10-29 from D:/ComfyUI-local; key names cross-checked against the API graphs of the live workflows",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "audio_vae": "VAE",
+      "prompt": "STRING (multiline; refer to refs as <Picture i> / <Video k> / <Audio j>)",
+      "width": "INT (default 1344, step 32)",
+      "height": "INT (default 768, step 32)",
+      "length": "INT (default 124, 5..3600, step 17; 17k+5 grid, trained range ~124-362 frames at 24 fps)",
+      "ref_image_size": "COMBO[match,max] (max = 2048 px short edge: best identity, several times slower)",
+      "ref_images.ref_image_0": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_videos.ref_video_0": "IMAGE [optional] (Autogrow prefix 'ref_video_', max 3; 2-15 s at 24 fps)",
+      "ref_video_audios.ref_video_audio_0": "AUDIO [optional] (Autogrow prefix 'ref_video_audio_', max 3)",
+      "ref_audios.ref_audio_0": "AUDIO [optional] (Autogrow prefix 'ref_audio_', max 3; standalone timbre reference)"
+    },
+    "outputs": [
+      "CONDITIONING (positive)",
+      "LATENT"
+    ],
+    "note": "Live: reference-turbo-h3-test WFa499q7 (124 frames at 640x640 = 63 s on a 4090) and voicechain-test WFEjOOAa (2026-10-23). Autogrow sub-fields are dotted in the API graph and numbered FROM 0 (ref_images.ref_image_0, ref_audios.ref_audio_0 as used by the live graphs; the source schema alone does not show this)."
+  },
+  "MiniMaxH3ImageToVideo": {
+    "source": "ComfyUI core comfy_extras/nodes_minimax_h3.py (V3 io.Schema), read directly 2026-10-29 from D:/ComfyUI-local; key names cross-checked against the API graphs of the live workflows",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING (multiline)",
+      "width": "INT (default 1344, step 32)",
+      "height": "INT (default 768, step 32)",
+      "length": "INT (default 124, 5..3600, step 17)",
+      "first_frame": "IMAGE [optional]",
+      "last_frame": "IMAGE [optional]"
+    },
+    "outputs": [
+      "CONDITIONING (positive)",
+      "LATENT"
+    ],
+    "note": "Live in audioturbo-h3-test WF7JAA5a (first frame + audio anchor, v5; length ladder 124f 46 s, 243f 91 s, 361f 163 s at 640x640 on 5090/4090)."
   }
 }

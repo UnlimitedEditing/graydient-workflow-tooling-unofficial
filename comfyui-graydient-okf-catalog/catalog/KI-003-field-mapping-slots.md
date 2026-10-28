@@ -62,7 +62,7 @@ fields a given submission path populates) against a real job before depending on
 
 ### 3.1 Generic instruction slots — `slot1` through `slot9`
 Text/numeric/dropdown controls that don't fit one of the premapped fields below
-(`length`, `fps`, `size`, `cfg`, `controlguidance`, `strength`, `guidance`, and a few
+(`cfg`, `controlguidance`, `strength`, `guidance`, and a few
 more rarely used) all go here. **All nine work**, not just slot1-3 — the KI-003 v1.0.0
 table undersold this and caused unnecessary hedging in at least one session (the
 subtitle-burn-in workflow avoided slot4/slot5 out of caution that turned out to be
@@ -108,6 +108,7 @@ scripts are actually affected.
 - `seed`: Random seed integer.
 - `length`: Output length budget (duration in seconds or token limit).
 - `steps`: Step count.
-- `fps`, `size`, `cfg`, `controlguidance`, `strength`, `guidance`: premapped fields for
+- `width`, `height`: output resolution. **Mandatory on every image/video-output workflow, never a generic slot** (there is no `size` field; users prompt /size:WxH, 0 = auto). Corrected 2026-10-22: this entry previously listed `size` here and in 3.1, which led builders to put resolution in slot4+ (reshoot-anything).
+- `fps`, `cfg`, `controlguidance`, `strength`, `guidance`: premapped fields for
   their obvious purposes — use these instead of a generic slot when the control
   genuinely is one of these, so Graydient's own UI can render the right widget type.

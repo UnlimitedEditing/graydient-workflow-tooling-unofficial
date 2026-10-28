@@ -405,5 +405,21 @@
       "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/umt5-xxl-enc-fp8_e4m3fn.safetensors",
       "destination": "text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors"
     }
+  ],
+  "drama3-w4a8": [
+    {
+      "url": "https://huggingface.co/PedroMarinhoDev/Drama-3-ComfyUI/resolve/main/drama3_w4a8experts_bf16.safetensors",
+      "destination": "diffusion_models/drama3_w4a8experts_bf16.safetensors"
+    },
+    {
+      "url": "https://huggingface.co/PedroMarinhoDev/Drama-3-ComfyUI/resolve/main/drama3_codec.safetensors",
+      "destination": "vae/drama3_codec.safetensors"
+    }
+  ],
+  "qwen3-asr-0.6b": [
+    {
+      "url": "https://huggingface.co/PedroMarinhoDev/Qwen3-ASR-ComfyUI/resolve/main/qwen3_asr_0.6b_bf16.safetensors",
+      "destination": "asr/qwen3_asr_0.6b_bf16.safetensors"
+    }
   ]
 }

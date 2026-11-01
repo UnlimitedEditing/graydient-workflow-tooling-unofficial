@@ -1,0 +1,136 @@
+{
+  "graydient_workflow": {
+    "author": "UnlimitedEditing / Graydient Pipeline",
+    "avg_elapsed": 25,
+    "concept_mapping": [],
+    "description": "Media Metadata Report - describes the file Graydient attached to the job.\n\nAttach (or reply with) a video, an image or an audio file and this workflow\nreturns ONE image: a metadata card for that file.\n\nVIDEO cards carry: container format, duration, bit rate, stream count,\ncreation time, codec + profile + level, resolution (and coded resolution),\ndisplay/sample aspect ratio, average and real frame rate, TOTAL FRAMES,\npixel format, bit depth, colour space/primaries/transfer, chroma location,\nfield order, rotation, time base, per-stream tags, the audio stream's\ncodec/sample rate/channels/bit rate, file size and modification time.\n\nIMAGE cards carry: format, resolution, colour mode, frame count, animation,\nDPI and the EXIF block (DateTimeOriginal, make, model, software, GPS...).\nAUDIO cards carry: codec, sample rate, channels, channel layout, duration,\nbit rate and sample format.\n\nSETTINGS:\n  - prompt_positive: optional caption printed on the card's header line\n  - width / height: card size in pixels (the card grows taller if the\n    report needs it; text is never shrunk below legibility)\n\nNo model, no GPU, no quota burn: it only reads the attached file.",
+    "field_mapping": [
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_video_url) - URL or platform-staged filename",
+        "local_field": "init_video_url",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 0,
+        "node_input_name": "video_url",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_video_filename) - URL or platform-staged filename",
+        "local_field": "init_video_filename",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 1,
+        "node_input_name": "video_filename",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_image_url) - URL or platform-staged filename",
+        "local_field": "init_image_url",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 2,
+        "node_input_name": "image_url",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_image_filename) - URL or platform-staged filename",
+        "local_field": "init_image_filename",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 3,
+        "node_input_name": "image_filename",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_audio_url) - URL or platform-staged filename",
+        "local_field": "init_audio_url",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 4,
+        "node_input_name": "audio_url",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Attached media reference (init_audio_filename) - URL or platform-staged filename",
+        "local_field": "init_audio_filename",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 5,
+        "node_input_name": "audio_filename",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "",
+        "help_text": "Optional caption printed on the metadata card",
+        "local_field": "prompt_positive",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 6,
+        "node_input_name": "caption",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "1600",
+        "help_text": "Metadata card width in pixels (0 = auto)",
+        "local_field": "width",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 7,
+        "node_input_name": "card_width",
+        "node_name": "Media Metadata Probe"
+      },
+      {
+        "default_value": "1000",
+        "help_text": "Metadata card height in pixels (0 = auto)",
+        "local_field": "height",
+        "maximum_value": null,
+        "minimum_value": null,
+        "node_id": 1,
+        "node_input_index": 8,
+        "node_input_name": "card_height",
+        "node_name": "Media Metadata Probe"
+      }
+    ],
+    "name": "media-metadata-report",
+    "requirements": {
+      "github": [
+        "https://github.com/UnlimitedEditing/UnlimitedEditing-ComfyUI-MediaMetadata"
+      ],
+      "pip": [
+        "pillow"
+      ]
+    },
+    "workflow": "{\n  \"last_node_id\": 2,\n  \"last_link_id\": 1,\n  \"nodes\": [\n    {\n      \"id\": 1,\n      \"type\": \"MediaMetadataProbe\",\n      \"pos\": [\n        60,\n        120\n      ],\n      \"size\": [\n        440,\n        340\n      ],\n      \"order\": 0,\n      \"mode\": 0,\n      \"inputs\": [],\n      \"outputs\": [\n        {\n          \"name\": \"report\",\n          \"type\": \"STRING\",\n          \"links\": null,\n          \"slot_index\": 0\n        },\n        {\n          \"name\": \"report_json\",\n          \"type\": \"STRING\",\n          \"links\": null,\n          \"slot_index\": 1\n        },\n        {\n          \"name\": \"card\",\n          \"type\": \"IMAGE\",\n          \"links\": [\n            1\n          ],\n          \"slot_index\": 2\n        }\n      ],\n      \"title\": \"Media Metadata Probe\",\n      \"widgets_values\": [\n        \"\",\n        \"\",\n        \"\",\n        \"\",\n        \"\",\n        \"\",\n        \"\",\n        1600,\n        1000,\n        true\n      ]\n    },\n    {\n      \"id\": 2,\n      \"type\": \"SaveImage\",\n      \"pos\": [\n        580,\n        120\n      ],\n      \"size\": [\n        360,\n        120\n      ],\n      \"order\": 1,\n      \"mode\": 0,\n      \"inputs\": [\n        {\n          \"name\": \"images\",\n          \"type\": \"IMAGE\",\n          \"link\": 1,\n          \"slot_index\": 0\n        }\n      ],\n      \"outputs\": [],\n      \"title\": \"Save Metadata Card\",\n      \"widgets_values\": [\n        \"media_metadata/card\"\n      ]\n    }\n  ],\n  \"links\": [\n    [\n      1,\n      1,\n      2,\n      2,\n      0,\n      \"IMAGE\"\n    ]\n  ],\n  \"groups\": [],\n  \"config\": {},\n  \"extra\": {\n    \"ds\": {\n      \"scale\": 0.75,\n      \"offset\": [\n        0,\n        0\n      ]\n    },\n    \"frontendVersion\": \"1.43.18\"\n  },\n  \"version\": 0.4\n}",
+    "workflow_2": "{\n  \"1\": {\n    \"inputs\": {\n      \"video_url\": \"\",\n      \"video_filename\": \"\",\n      \"image_url\": \"\",\n      \"image_filename\": \"\",\n      \"audio_url\": \"\",\n      \"audio_filename\": \"\",\n      \"caption\": \"\",\n      \"card_width\": 1600,\n      \"card_height\": 1000,\n      \"include_thumbnail\": true\n    },\n    \"class_type\": \"MediaMetadataProbe\",\n    \"_meta\": {\n      \"title\": \"Media Metadata Probe\"\n    }\n  },\n  \"2\": {\n    \"inputs\": {\n      \"images\": [\n        \"1\",\n        2\n      ],\n      \"filename_prefix\": \"media_metadata/card\"\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Save Metadata Card\"\n    }\n  }\n}",
+    "version": 1,
+    "platform": "comfyui",
+    "peak_vram_usage": 512,
+    "supports_txt2img": false,
+    "supports_img2img": true,
+    "supports_txt2vid": false,
+    "supports_img2vid": false,
+    "supports_vid2vid": false,
+    "supports_txt2wav": false,
+    "supports_vid2wav": false,
+    "supports_wav2txt": false,
+    "supports_low_memory": true,
+    "supports_dynamic_concepts": false,
+    "install_detected_nodes": true,
+    "split_prompt_pos_neg": false,
+    "is_public": true
+  }
+}

@@ -89,6 +89,17 @@ class GraydientWorkflow:
         self.metadata[flag_name] = value
         return self
 
+    def set_extra(self, extra: Dict[str, Any]):
+        """
+        Merges a dict of archive/workflow extras into the metadata (e.g. the
+        VHS_MetadataImage / VHS_KeepIntermediate flags, which are read from the
+        standard workflow's top-level 'extra' dict by VideoHelperSuite).
+        """
+        if not isinstance(extra, dict):
+            raise TypeError(f"set_extra expects a dict, got {type(extra).__name__}")
+        self.metadata.update(extra)
+        return self
+
     def to_dict(self) -> Dict[str, Any]:
         """Serializes to the complete Graydient Backup/Restore JSON dictionary."""
         gw = {

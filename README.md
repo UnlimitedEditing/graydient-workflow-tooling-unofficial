@@ -117,6 +117,28 @@ Turnkey skill packages for AI pair programmers:
 - `gen_fastwan13_720p_t2v.py`: 2-Stage Latent Upscale Video Generation (FastWan 1.3B 720p 3+1 step + TAEHV).
 - `gen_audio_synced_video.py`: Audio-duration-synchronized video generator (`Load Audio Any` + `ComfyMathExpression`).
 - `gen_higgs_tts.py`: Higgs Audio v3 Text-to-Speech / Voice Cloning.
+- `gen_media_metadata_report.py`: **Media Metadata Report** — attaches media (`init_video` / `init_image` / `init_audio`) and returns ONE image: a metadata card for that file (resolution, duration, frame rate, total frames, bit rate, codec, creation time, EXIF, …). No model, no GPU.
+
+### 8. Media Metadata Probe (`custom_nodes/ComfyUI-MediaMetadata/`)
+A small ComfyUI node pack that answers "what file is this, exactly?" for media
+attached to a Graydient job. It resolves the `init_<type>_*` triplet (URL,
+mangled Telegram reference, or a platform-staged filename), reads the file with
+`ffprobe` (containers, video/audio streams, tags) and PIL/EXIF (stills), and
+returns the report three ways: a text report, a JSON report, and the report
+rendered as a **metadata card image**.
+
+- Node: `MediaMetadataProbe` → `report` (STRING), `report_json` (STRING), `card` (IMAGE).
+- Used by `templates/gen_media_metadata_report.py`; the pack is published to
+  <https://github.com/UnlimitedEditing/UnlimitedEditing-ComfyUI-MediaMetadata>
+  because Graydient installs custom nodes from a GitHub URL.
+- Publish (or re-publish) it with:
+  ```bash
+  ./tools/publish_media_metadata_pack.sh
+  ```
+- Why a custom node at all: nothing in ComfyUI core — or in any pack this
+  project uses — surfaces *file-level* metadata as text. VHS's `video_info` is
+  an unprintable dict socket and TripoSG's `LoadVideoFromURLMatched` returns the
+  resolved *target* width/height/length/fps, not the source file's own values.
 
 ---
 

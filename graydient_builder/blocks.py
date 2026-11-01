@@ -76,3 +76,126 @@ def add_audio_duration_sync_block(
             "widgets_values": [f"round(a * {fps})"]
         }
     }
+
+
+# ── Media metadata probe ──────────────────────────────────────────────────────
+# The custom node that reads the media Graydient attached to the job and reports
+# what that file actually is. The URL is a parameter so a workflow can point at
+# a fork if the host repo moves.
+MEDIA_METADATA_REPO = "https://github.com/UnlimitedEditing/UnlimitedEditing-ComfyUI-MediaMetadata"
+
+# The six init_<type>_* inputs of the probe node, in the node's widget order.
+MEDIA_METADATA_SLOTS = [
+    ("init_video_url", "video_url", 0),
+    ("init_video_filename", "video_filename", 1),
+    ("init_image_url", "image_url", 2),
+    ("init_image_filename", "image_filename", 3),
+    ("init_audio_url", "audio_url", 4),
+    ("init_audio_filename", "audio_filename", 5),
+]
+
+
+def add_media_metadata_probe_block(
+    wf: GraydientWorkflow,
+    probe_id: int = 1,
+    save_id: int = 2,
+    card_width: int = 1600,
+    card_height: int = 1000,
+    caption_field: str = "prompt_positive",
+    map_size_fields: bool = True,
+    github_url: str = MEDIA_METADATA_REPO
+) -> Dict[str, Any]:
+    """
+    Injects the media metadata block:
+    'Media Metadata Probe' -> 'SaveImage'
+
+    The probe resolves the init_video / init_image / init_audio triplet (both
+    the _url and the _filename flavour, because which one a given submission
+    path populates is architecturally unpredictable -- KI-007 section 7), reads
+    the file's real metadata with ffprobe/PIL, and returns it as a rendered
+    metadata card image.
+
+    All six media fields are mapped so a job cannot silently lose its media
+    (KI-007 sections 7 and 29). `prompt_positive` becomes the card's caption
+    (KI-007 section 15: 'prompt' is NOT delivered to the node).
+    """
+    wf.add_github_requirement(github_url)
+    wf.add_pip_requirement("pillow")
+
+    for local_field, input_name, index in MEDIA_METADATA_SLOTS:
+        wf.add_field_mapping(
+            node_id=probe_id,
+            node_input_name=input_name,
+            local_field=local_field,
+            node_name="Media Metadata Probe",
+            node_input_index=index,
+            default_value="",
+            help_text=f"Attached media reference ({local_field}) - URL or platform-staged filename"
+        )
+
+    wf.add_field_mapping(
+        node_id=probe_id,
+        node_input_name="caption",
+        local_field=caption_field,
+        node_name="Media Metadata Probe",
+        node_input_index=6,
+        default_value="",
+        help_text="Optional caption printed on the metadata card"
+    )
+
+    if map_size_fields:
+        # width/height drive the card size. No min/max: the platform injects its
+        # own default size when the user gives no /size, and a minimum above
+        # that default is rejected with 'width is below minimum N' (KI-007 s44).
+        wf.add_field_mapping(
+            node_id=probe_id,
+            node_input_name="card_width",
+            local_field="width",
+            node_name="Media Metadata Probe",
+            node_input_index=7,
+            default_value=str(card_width),
+            help_text="Metadata card width in pixels (0 = auto)"
+        )
+        wf.add_field_mapping(
+            node_id=probe_id,
+            node_input_name="card_height",
+            local_field="height",
+            node_name="Media Metadata Probe",
+            node_input_index=8,
+            default_value=str(card_height),
+            help_text="Metadata card height in pixels (0 = auto)"
+        )
+
+    probe_widgets = ["", "", "", "", "", "", "", card_width, card_height, True]
+
+    return {
+        "probe_node": {
+            "id": probe_id,
+            "type": "MediaMetadataProbe",
+            "pos": [60, 120],
+            "size": [440, 340],
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {"name": "report", "type": "STRING", "links": None, "slot_index": 0},
+                {"name": "report_json", "type": "STRING", "links": None, "slot_index": 1},
+                {"name": "card", "type": "IMAGE", "links": [1], "slot_index": 2},
+            ],
+            "title": "Media Metadata Probe",
+            "widgets_values": probe_widgets,
+        },
+        "save_node": {
+            "id": save_id,
+            "type": "SaveImage",
+            "pos": [580, 120],
+            "size": [360, 120],
+            "order": 1,
+            "mode": 0,
+            "inputs": [{"name": "images", "type": "IMAGE", "link": 1, "slot_index": 0}],
+            "outputs": [],
+            "title": "Save Metadata Card",
+            "widgets_values": ["media_metadata/card"],
+        },
+        "links": [[1, probe_id, 2, save_id, 0, "IMAGE"]],
+    }

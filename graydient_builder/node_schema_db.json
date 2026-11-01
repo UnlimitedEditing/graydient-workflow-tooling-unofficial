@@ -1658,141 +1658,6 @@
     "note": "TeaCache (Timestep Embedding Aware Cache) skips redundant transformer steps based on L1 difference threshold. 0.25-0.35 yields ~1.8x-2.5x speedup with virtually no quality degradation."
   },
   "LoadWanVideoT5TextEncoder": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of LoadWanVideoT5TextEncoder)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders)",
-      "precision": "COMBO: fp32|fp16|bf16 (widget, default bf16)",
-      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
-      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e5m2 (widget, default disabled)"
-    },
-    "outputs": [
-      "WANTEXTENCODER"
-    ]
-  },
-  "WanVideoModelLoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoModelLoader)",
-    "inputs": {
-      "model": "COMBO STRING (widget, loaded from ComfyUI/models/diffusion_models)",
-      "base_precision": "COMBO: fp32|bf16|fp16|fp16_fast (widget, default bf16)",
-      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e4m3fn_fast|fp8_e4m3fn_scaled|fp8_e4m3fn_scaled_fast|fp8_e5m2|fp8_e5m2_fast|fp8_e5m2_scaled|fp8_e5m2_scaled_fast (widget, default disabled)",
-      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
-      "attention_mode": "COMBO: sdpa|flash_attn|sageattn|sageattn_varlen (widget, default sdpa)"
-    },
-    "outputs": [
-      "WANVIDEOMODEL"
-    ]
-  },
-  "WanVideoTextEncode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoTextEncode)",
-    "inputs": {
-      "t5": "WANTEXTENCODER (link)",
-      "positive_prompt": "STRING (widget, multiline)",
-      "negative_prompt": "STRING (widget, multiline)",
-      "force_offload": "BOOLEAN (widget, default True)"
-    },
-    "outputs": [
-      "WANVIDEOTEXTEMBEDS"
-    ]
-  },
-  "WanVideoEmptyEmbeds": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoEmptyEmbeds)",
-    "inputs": {
-      "width": "INT (widget, default 832)",
-      "height": "INT (widget, default 480)",
-      "num_frames": "INT (widget, default 81)",
-      "control_embeds": "WANVIDIMAGE_EMBEDS (link, optional)",
-      "extra_latents": "LATENT (link, optional)"
-    },
-    "outputs": [
-      "WANVIDIMAGE_EMBEDS"
-    ]
-  },
-  "WanVideoSampler": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_sampler.py -- confirmed from source (INPUT_TYPES of WanVideoSampler)",
-    "inputs": {
-      "model": "WANVIDEOMODEL (link)",
-      "image_embeds": "WANVIDIMAGE_EMBEDS (link)",
-      "steps": "INT (widget, default 30, min 1)",
-      "cfg": "FLOAT (widget, default 6.0)",
-      "shift": "FLOAT (widget, default 5.0)",
-      "seed": "INT (widget, default 0)",
-      "force_offload": "BOOLEAN (widget, default True)",
-      "scheduler": "COMBO STRING (widget, e.g. flowmatch_pusa, unipc, euler, dpm++)",
-      "riflex_freq_index": "INT (widget, default 0)",
-      "text_embeds": "WANVIDEOTEXTEMBEDS (link, optional)",
-      "samples": "LATENT (link, optional, init latents for video2video or multi-stage refining)",
-      "denoise_strength": "FLOAT (widget, default 1.0, 0.0-1.0)",
-      "start_step": "INT (widget, default 0)",
-      "end_step": "INT (widget, default -1)",
-      "add_noise_to_samples": "BOOLEAN (widget, default False)"
-    },
-    "outputs": [
-      "LATENT",
-      "LATENT"
-    ]
-  },
-  "WanVideoVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py (verified against upstream source)",
-    "inputs": {
-      "model_name": "STRING (widget, loads from ComfyUI/models/vae)",
-      "precision": "COMBO: fp16|fp32|bf16 (widget, default bf16)"
-    },
-    "outputs": [
-      "vae"
-    ],
-    "note": "Loads Wan video VAE from models/vae."
-  },
-  "WanVideoDecode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoDecode)",
-    "inputs": {
-      "vae": "WANVAE (link, supports standard Wan VAE and TAEHV)",
-      "samples": "LATENT (link)",
-      "enable_vae_tiling": "BOOLEAN (widget, default False)",
-      "tile_x": "INT (widget, default 272)",
-      "tile_y": "INT (widget, default 272)",
-      "tile_stride_x": "INT (widget, default 144)",
-      "tile_stride_y": "INT (widget, default 128)",
-      "normalization": "COMBO STRING (widget, optional, default default)"
-    },
-    "outputs": [
-      "IMAGE"
-    ]
-  },
-  "LatentUpscale": {
-    "source": "ComfyUI core nodes.py (comfyanonymous/ComfyUI) -- confirmed from source",
-    "inputs": {
-      "samples": "LATENT (link)",
-      "upscale_method": "COMBO: nearest-exact|bilinear|area|bicubic|bislerp (widget)",
-      "width": "INT (widget, default 512, target width in pixels, common_upscale divides by 8)",
-      "height": "INT (widget, default 512, target height in pixels, common_upscale divides by 8)",
-      "crop": "COMBO: disabled|center (widget)"
-    },
-    "outputs": [
-      "LATENT"
-    ]
-  },
-  "WanVideoTinyVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoTinyVAELoader)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae_approx, e.g. taew2_1.safetensors)",
-      "precision": "COMBO: fp16|fp32|bf16 (widget, default fp16)",
-      "parallel": "BOOLEAN (widget, default False)"
-    },
-    "outputs": [
-      "WANVAE"
-    ]
-  },
-  "WanVideoVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoVAELoader)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae, e.g. Wan2_1_VAE_bf16.safetensors)",
-      "precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)"
-    },
-    "outputs": [
-      "WANVAE"
-    ]
-  },
-  "LoadWanVideoT5TextEncoder": {
     "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source",
     "inputs": {
       "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders, e.g. umt5-xxl-enc-fp8_e4m3fn.safetensors)",
@@ -1802,18 +1667,6 @@
     },
     "outputs": [
       "WANTEXTENCODER"
-    ]
-  },
-  "WanVideoTextEncode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_text_encode.py -- confirmed from source",
-    "inputs": {
-      "t5": "WANTEXTENCODER (link)",
-      "positive_prompt": "STRING (widget, multiline)",
-      "negative_prompt": "STRING (widget, multiline)",
-      "force_offload": "BOOLEAN (widget, default True)"
-    },
-    "outputs": [
-      "WANVIDEOTEXTEMBEDS"
     ]
   },
   "WanVideoModelLoader": {
@@ -1829,12 +1682,26 @@
       "WANVIDEOMODEL"
     ]
   },
+  "WanVideoTextEncode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_text_encode.py -- confirmed from source",
+    "inputs": {
+      "t5": "WANTEXTENCODER (link)",
+      "positive_prompt": "STRING (widget, multiline)",
+      "negative_prompt": "STRING (widget, multiline)",
+      "force_offload": "BOOLEAN (widget, default True)"
+    },
+    "outputs": [
+      "WANVIDEOTEXTEMBEDS"
+    ]
+  },
   "WanVideoEmptyEmbeds": {
     "source": "kijai/ComfyUI-WanVideoWrapper nodes_empty_embeds.py -- confirmed from source",
     "inputs": {
       "width": "INT (widget, default 832, step 16)",
       "height": "INT (widget, default 480, step 16)",
-      "num_frames": "INT (widget, default 81, step 4)"
+      "num_frames": "INT (widget, default 81, step 4)",
+      "control_embeds": "WANVIDIMAGE_EMBEDS (link, optional) [merged from an earlier duplicate entry of this class_type in this file]",
+      "extra_latents": "LATENT (link, optional) [merged from an earlier duplicate entry of this class_type in this file]"
     },
     "outputs": [
       "WANVIDIMAGE_EMBEDS"
@@ -1866,6 +1733,17 @@
       "denoised_samples"
     ]
   },
+  "WanVideoVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae, e.g. Wan2_1_VAE_bf16.safetensors)",
+      "precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)"
+    },
+    "outputs": [
+      "WANVAE"
+    ],
+    "note": " | [earlier duplicate entry of this class_type in this file] kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py (verified against upstream source) :: Loads Wan video VAE from models/vae."
+  },
   "WanVideoDecode": {
     "source": "kijai/ComfyUI-WanVideoWrapper nodes_decode.py -- confirmed from source",
     "inputs": {
@@ -1875,10 +1753,35 @@
       "tile_x": "INT (widget, default 512)",
       "tile_y": "INT (widget, default 512)",
       "tile_stride_x": "INT (widget, default 256)",
-      "tile_stride_y": "INT (widget, default 256)"
+      "tile_stride_y": "INT (widget, default 256)",
+      "normalization": "COMBO STRING (widget, optional, default default) [merged from an earlier duplicate entry of this class_type in this file]"
     },
     "outputs": [
       "IMAGE"
+    ]
+  },
+  "LatentUpscale": {
+    "source": "ComfyUI core nodes.py (comfyanonymous/ComfyUI) -- confirmed from source",
+    "inputs": {
+      "samples": "LATENT (link)",
+      "upscale_method": "COMBO: nearest-exact|bilinear|area|bicubic|bislerp (widget)",
+      "width": "INT (widget, default 512, target width in pixels, common_upscale divides by 8)",
+      "height": "INT (widget, default 512, target height in pixels, common_upscale divides by 8)",
+      "crop": "COMBO: disabled|center (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ]
+  },
+  "WanVideoTinyVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoTinyVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae_approx, e.g. taew2_1.safetensors)",
+      "precision": "COMBO: fp16|fp32|bf16 (widget, default fp16)",
+      "parallel": "BOOLEAN (widget, default False)"
+    },
+    "outputs": [
+      "WANVAE"
     ]
   },
   "StringConcatenate": {
@@ -2369,5 +2272,93 @@
       "LATENT"
     ],
     "note": "Live in audioturbo-h3-test WF7JAA5a (first frame + audio anchor, v5; length ladder 124f 46 s, 243f 91 s, 361f 163 s at 640x640 on 5090/4090)."
+  },
+  "MediaMetadataProbe": {
+    "source": "UnlimitedEditing/UnlimitedEditing-ComfyUI-MediaMetadata (media_metadata.py + media_card.py), written and source-read this session (2026-11-01) for the media-metadata-report workflow. NOT yet run on a live Graydient job -- the signature is taken from the node's own INPUT_TYPES, not from a job log. The node source is vendored in this repo at custom_nodes/ComfyUI-MediaMetadata/ so it can be published as a ComfyUI pack.",
+    "inputs": {
+      "video_url": "STRING (widget) -- init_video_url",
+      "video_filename": "STRING (widget) -- init_video_filename",
+      "image_url": "STRING (widget) -- init_image_url",
+      "image_filename": "STRING (widget) -- init_image_filename",
+      "audio_url": "STRING (widget) -- init_audio_url",
+      "audio_filename": "STRING (widget) -- init_audio_filename",
+      "caption": "STRING (widget, multiline) -- card header line (map prompt_positive here, NOT 'prompt': KI-007 section 15)",
+      "card_width": "INT (widget) -- card width in px, 0 = 1600",
+      "card_height": "INT (widget) -- card height in px, 0 = 1000 (the card grows taller if the report needs it; text is never shrunk below legibility)",
+      "include_thumbnail": "BOOLEAN (widget)"
+    },
+    "outputs": [
+      "report (STRING, slot 0)",
+      "report_json (STRING, slot 1)",
+      "card (IMAGE, slot 2)"
+    ],
+    "note": "The six media inputs are resolved first-non-empty-wins in the order video -> image -> audio, each one trying: real http(s) URL -> download; mangled Telegram file reference -> reconstruct then download; bare filename -> ComfyUI input/ dir then literal path (KI-007 sections 2, 7 and 8). Every failure is REPORTED, never raised: a missing file, an unreachable URL, an unreadable container or no media at all still produce a card saying what went wrong. Metadata comes from ffprobe (container format/duration/bit_rate, per-stream codec/profile/resolution/fps/nb_frames/pix_fmt/colour/rotation/tags incl. creation_time) with PIL+EXIF for stills. card is the only file written by the media-metadata-report workflow -- deliberately ONE output, because a second output file re-opens the output-picker race in KI-007 section 10. The same data is available machine-readably on the report_json socket for chaining."
+  },
+  "VHS_LoadVideo": {
+    "source": "Kosinkadink/ComfyUI-VideoHelperSuite, videohelpersuite/load_video_nodes.py (class LoadVideoUpload) + videohelpersuite/nodes.py NODE_CLASS_MAPPINGS, read 2026-11-01 via codeload tarball of main.",
+    "inputs": {
+      "video": "COMBO (widget, filename from ComfyUI's input/ dir)",
+      "force_rate": "FLOAT/INT (widget)",
+      "custom_width": "INT (widget)",
+      "custom_height": "INT (widget)",
+      "frame_load_cap": "INT (widget)",
+      "skip_first_frames": "INT (widget)",
+      "select_every_nth": "INT (widget)",
+      "meta_batch": "VHS_BatchManager (optional)",
+      "vae": "VAE (optional)",
+      "format": "COMBO (optional, load format)"
+    },
+    "outputs": [
+      "IMAGE (or LATENT when a vae is supplied)",
+      "frame_count (INT)",
+      "audio (AUDIO)",
+      "video_info (VHS_VIDEOINFO -- a DICT, not printable text)"
+    ],
+    "note": "The video_info dict carries source_fps / source_frame_count / source_duration / source_width / source_height plus the loaded_* equivalents -- the closest thing in ComfyUI to video metadata, but it is an unprintable socket: nothing in core formats it into a report. It also has no container format, bit rate, codec or creation_time. That gap is why the media-metadata-report workflow uses its own ffprobe node instead. VHS_LoadVideoPath is the same node with a path/URL string instead of the upload combo, and it DOES accept a URL (try_download_video)."
+  },
+  "LoadVideoFromURLMatched": {
+    "source": "UnlimitedEditing/ComfyUI-TripoSG nodes.py (class LoadVideoFromURLMatched), read 2026-11-01 via codeload tarball of main.",
+    "inputs": {
+      "url": "STRING (widget)",
+      "width": "INT (widget)",
+      "height": "INT (widget)",
+      "length": "INT (widget)",
+      "fps": "FLOAT (widget)",
+      "filename": "STRING (optional widget)",
+      "target_pixels": "INT (optional widget)",
+      "max_length": "INT (optional widget)",
+      "min_side": "INT (optional widget)",
+      "max_side": "INT (optional widget)"
+    },
+    "outputs": [
+      "frames (IMAGE)",
+      "width (INT)",
+      "height (INT)",
+      "length (INT)",
+      "fps (FLOAT)"
+    ],
+    "note": "Reads the source with ffprobe, but its OUTPUTS are the RESOLVED TARGET values (snapped width/height, 8k+1 frame count, target fps), not the source file's own metadata -- the source's real width/height/fps/duration are consumed internally to compute them. Do not read it as a metadata reporter."
+  },
+  "AudioAnalyze": {
+    "source": "UnlimitedEditing/ComfyUI-TripoSG nodes.py (class AudioAnalyze), read 2026-11-01 via codeload tarball of main.",
+    "inputs": {
+      "url": "STRING (widget)"
+    },
+    "outputs": [
+      "analysis_json (STRING)",
+      "spectrogram (IMAGE)",
+      "analysis_data (IMAGE)"
+    ],
+    "note": "Music analysis (BPM, beat times, RMS energy timeline, MFCC section boundaries), not file metadata: no codec, sample rate, bit rate or channel layout. Needs librosa + matplotlib in requirements.pip. The analysis_data output is a lossless data image (the ForgeExpress pixel convention)."
+  },
+  "LoadVideoFromURLAsVideo": {
+    "source": "UnlimitedEditing/ComfyUI-TripoSG nodes.py (class LoadVideoFromURLAsVideo), read 2026-11-01 via codeload tarball of main.",
+    "inputs": {
+      "url": "STRING (widget)"
+    },
+    "outputs": [
+      "video (VIDEO -- ComfyUI's native VIDEO type)"
+    ],
+    "note": "Wraps a downloaded/local video as the native VIDEO type (preserving the container's real audio track and fps) via comfy_api.latest InputImpl.VideoFromFile, so downstream VIDEO consumers work. Requires a ComfyUI new enough to have comfy_api.latest -- older runners will fail to import it. The tmp file is deliberately NOT cleaned up because VideoFromFile streams from it lazily."
   }
 }

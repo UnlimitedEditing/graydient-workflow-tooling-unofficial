@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+
+# test artefacts (generated media + the ffprobe test double)
+tests/fixtures/
+tests/bin/

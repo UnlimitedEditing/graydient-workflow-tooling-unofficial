@@ -5,6 +5,15 @@ from a user-uploaded audio track (`init_audio_url` / `init_audio`).
 """
 
 import json
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(BASE_DIR)
+for _p in (REPO_ROOT, BASE_DIR):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 from graydient_builder import GraydientWorkflow, stage_model, add_audio_duration_sync_block
 
 wf = GraydientWorkflow(

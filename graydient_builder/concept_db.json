@@ -421,5 +421,32 @@
       "url": "https://huggingface.co/PedroMarinhoDev/Qwen3-ASR-ComfyUI/resolve/main/qwen3_asr_0.6b_bf16.safetensors",
       "destination": "asr/qwen3_asr_0.6b_bf16.safetensors"
     }
+  ],
+  "anima-role-ref-kv": [
+    {
+      "_note": "Anima Base v1.0 (CircleStone Labs x Comfy Org, 2B DiT finetuned from nvidia/Cosmos-Predict2-2B-Text2Image) + the AnticPan/Anima-Role-Ref-KV v1.0 reference-KV adapter. ~6.16 GB across 4 files. All ungated, verified 2026-11-01 from the HF API '?blobs=true' listing (exact rfilename/size/sha256 per file -- stronger than a HEAD check: it proves existence, byte size and content digest). circlestone-labs/Anima sha f973fc41ec7545364ac9776c2440285f43ff2a30, AnticPan/Anima-Role-Ref-KV sha 259a0dce876ed70fc8835b888139756e23fb8a9f. NOT YET CONFIRMED BY A LIVE GRAYDIENT JOB -- staged URLs and sizes only. MUST stay BF16/FP32: the AnimaRoleRefKV node raises on any dtype other than torch.bfloat16/torch.float32, so UNETLoader.weight_dtype='default' and there is NO fp8/GGUF/NF4 route and no ZeroGPU quantization step for this family (preflight Step 2b does not apply, and applying it would break the node). The adapter goes under loras/ because the node resolves it with folder_paths.get_filename_list('loras'), but it must NEVER be wired to a LoraLoader -- the node loads it internally and raises on an already-patched MODEL. Loader widget values cross-checked against ComfyUI's own official blueprints/Text to Image (Anima Base 1.0).json. Native Anima support landed in ComfyUI commit abe2ec26a61f ('Support the Anima model.', PR #12012, 2026-01-22); confirmed present in v0.32.0..v0.40.0 via the compare API. Reference build: gen_anima_role_ref_kv.py -> nodes in UnlimitedEditing/AnticPan-Anima-Role-Ref-KV.",
+      "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors",
+      "destination": "diffusion_models/anima-base-v1.0.safetensors",
+      "_bytes": 4182218328,
+      "_sha256": "bd43b7cffe1ed1153d9c41e7beb2f18cb1273eafbaa3af3edd6a173dc90a006e"
+    },
+    {
+      "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors",
+      "destination": "text_encoders/qwen_3_06b_base.safetensors",
+      "_bytes": 1192135096,
+      "_sha256": "cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba"
+    },
+    {
+      "url": "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+      "destination": "vae/qwen_image_vae.safetensors",
+      "_bytes": 253806246,
+      "_sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+    },
+    {
+      "url": "https://huggingface.co/AnticPan/Anima-Role-Ref-KV/resolve/main/comfy/anima-role-ref-kv-v1.0.safetensors",
+      "destination": "loras/anima-role-ref-kv-v1.0.safetensors",
+      "_bytes": 528546184,
+      "_sha256": "102dcc38b48f984844305fff5c04730a857603f8796f47e92b67c61baef124bb"
+    }
   ]
 }

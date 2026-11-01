@@ -21,11 +21,40 @@ class GraydientWorkflow:
         self.avg_elapsed: int = 120
         self.author: str = "Graydient Pipeline"
         self.metadata: Dict[str, Any] = {}
+        self.extra: Dict[str, Any] = {}
+
+    def set_extra(self, extra: Dict[str, Any]):
+        """
+        Merges keys into the STANDARD graph's top-level `extra` dict.
+
+        This is where the output-picker suppression flags live -- the linter's
+        VHS_NONDETERMINISTIC_OUTPUT_PICK check reads `standard_wf["extra"]["VHS_MetadataImage"]`
+        and `["VHS_KeepIntermediate"]` (KI-007 sec 28), and it is also the conventional home for
+        the canvas view state (`ds`).
+
+        Stored separately and merged, so it works whether it is called BEFORE set_workflows (as
+        templates/gen_audio_synced_video.py does) or after -- a plain
+        `self.standard_workflow["extra"] = ...` would be silently discarded by the next
+        set_workflows call. Fixed 2026-11-01: the method was referenced by that canonical
+        template but never implemented, so the template died with
+        `AttributeError: 'GraydientWorkflow' object has no attribute 'set_extra'`.
+        """
+        self.extra.update(extra or {})
+        self._apply_extra()
+        return self
+
+    def _apply_extra(self):
+        if not self.extra:
+            return
+        merged = dict(self.standard_workflow.get("extra") or {})
+        merged.update(self.extra)
+        self.standard_workflow["extra"] = merged
 
     def set_workflows(self, standard: Dict[str, Any], api: Dict[str, Any]):
         """Sets the standard UI graph dict and API prompt graph dict."""
         self.standard_workflow = standard
         self.api_workflow = api
+        self._apply_extra()
         return self
 
     def add_concept_mapping(self, url: str, destination: str, allow_dynamic: bool = False):

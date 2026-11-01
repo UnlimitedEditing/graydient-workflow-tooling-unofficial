@@ -3,7 +3,7 @@
 Anima Role Ref KV -- reference-guided anime illustration (text + 1 character reference -> image).
 
 Model      : AnticPan/Anima-Role-Ref-KV v1.0 (adapter) on circlestone-labs/Anima Base v1.0 (2B DiT)
-Node pack  : https://github.com/UnlimitedEditing/ComfyUI-AnimaRoleRefKV  (GPL-3.0 mirror of the
+Node pack  : https://github.com/UnlimitedEditing/AnticPan-Anima-Role-Ref-KV  (GPL-3.0 mirror of the
              upstream `comfyui/` folder + one Graydient glue node)
 Modality   : Text-to-Image / Image-to-Image (the reference image is mandatory, not optional)
 
@@ -118,7 +118,7 @@ from graydient_builder import GraydientWorkflow, load_concept_db, stage_model
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-NODE_REPO = "https://github.com/UnlimitedEditing/ComfyUI-AnimaRoleRefKV"
+NODE_REPO = "https://github.com/UnlimitedEditing/AnticPan-Anima-Role-Ref-KV"
 
 # ----------------------------------------------------------------------------------------------
 # Weight staging (KI-008 format) comes from graydient_builder/concept_db.json under the key
@@ -180,7 +180,7 @@ Model weights: AnticPan/Anima-Role-Ref-KV (adapter) on circlestone-labs/Anima (b
 NOTE_PLAIN = """\
 Anima Role Ref KV v1.0  (plain ComfyUI)
 
-1. Clone UnlimitedEditing/ComfyUI-AnimaRoleRefKV into
+1. Clone UnlimitedEditing/AnticPan-Anima-Role-Ref-KV into
    ComfyUI/custom_nodes/ and restart.
 2. anima-base-v1.0.safetensors  -> models/diffusion_models/
    qwen_3_06b_base.safetensors  -> models/text_encoders/

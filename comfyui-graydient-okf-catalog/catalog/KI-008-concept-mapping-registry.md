@@ -233,7 +233,7 @@ Repo revisions at check time: `circlestone-labs/Anima` `f973fc41ec7545364ac9776c
 Mirrored in `concept_db.json` under `anima-role-ref-kv` (with the byte sizes and digests kept as
 `_bytes`/`_sha256` keys, which `stage_model()` ignores). Reference build:
 `gen_anima_role_ref_kv.py` -> `GraydientWorkflow-anima-role-ref-kv-v1.json`; node pack in
-`UnlimitedEditing/ComfyUI-AnimaRoleRefKV`.
+`UnlimitedEditing/AnticPan-Anima-Role-Ref-KV`.
 
 Three rules that are specific to this stack and are not obvious from the table:
 

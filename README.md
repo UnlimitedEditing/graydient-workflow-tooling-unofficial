@@ -135,6 +135,8 @@ rendered as a **metadata card image**.
   ```bash
   ./tools/publish_media_metadata_pack.sh
   ```
+- What the output looks like: `docs/preview-media-metadata-card-video.png` (video job),
+  `docs/preview-media-metadata-card-audio.png` (audio job).
 - Why a custom node at all: nothing in ComfyUI core — or in any pack this
   project uses — surfaces *file-level* metadata as text. VHS's `video_info` is
   an unprintable dict socket and TripoSG's `LoadVideoFromURLMatched` returns the

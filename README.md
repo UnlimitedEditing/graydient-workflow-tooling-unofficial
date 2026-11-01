@@ -63,8 +63,9 @@ This repository covers the entire Graydient workflow lifecycle — from the mome
   - Redundant flow-matching shift detection (e.g. MOSS-Image native shift 5.0 vs `ModelSamplingSD3`).
   - Partial denoise img2img verification (flagging models with dormant vision towers).
   - Safe output-picker flags (`VHS_MetadataImage: false`, `VHS_KeepIntermediate: false`).
+  - **Standard↔API cross-validation** (`_check_standard_graph`, step 6b): the canvas JSON and the API JSON are checked against *each other*, not just individually — duplicate/dangling link ids, links whose endpoints disagree with the API graph, `class_type` mismatches, UI-only nodes leaking into the API graph, and missing `control_after_generate` after a seed widget. Added 2026-11-01 after a real false negative: a graph whose every `outputs[].links` producer back-reference was empty linted **0 errors / 0 warnings** while opening in ComfyUI with no wires out of the loaders (`STD_OUTPUT_LINK_BACKREF_MISSING`). 16 new ERROR codes, 7 new WARN codes.
 - **`concept_db.json`**: Registry of live-tested direct model download URLs and container target paths.
-- **`node_schema_db.json`**: Exhaustive catalog of verified ComfyUI node class types, parameter keys, widget orders, and output socket signatures.
+- **`node_schema_db.json`**: Exhaustive catalog of verified ComfyUI node class types, parameter keys, widget orders, and output socket signatures. ⚠️ **Never rewrite this file with a `json.load` → modify → `json.dump` round-trip.** It contains seven duplicated top-level keys (the `WanVideo*` / `LoadWanVideoT5TextEncoder` entries), and `json.load` silently keeps only the last copy of each, so a round-trip deletes the first copies with no error and no test failure. Splice new entries in as text and run `python tools/check_schema_db.py`.
 
 ### 2. The Python Management CLI (`wf.py` & `wf.bat`)
 Single-entrypoint command-line utility for local workflow development:
@@ -94,7 +95,7 @@ Comprehensive documentation of all architectural rules and hard-won lessons:
 - **`KI-005`**: SaaS execution constraints (VRAM budgets, prompt execution timeouts $\le$ 120s).
 - **`KI-006`**: Audio generation standards (sampling rates, duration matching).
 - **`KI-007`**: Runtime constraints & Graveyard — **34 documented failure modes**, including flow-matching scheduler traps, TAEHV Wan latent upscale, residential upstream bandwidth limits, and Playwright timeouts.
-- **`KI-008`**: Concept mapping registry — **14 verified staging stacks** with live-tested URLs and byte sizes.
+- **`KI-008`**: Concept mapping registry — verified staging stacks with live-tested URLs and byte sizes, most recently **§15 Anima Base v1.0 + Role Ref KV** (source-verified 2026-11-01 against the Hugging Face blob API, not yet confirmed by a live job — labelled as such in place, since the sections above it say "confirmed live" and that distinction is the whole point of the file).
 - **`KI-009`**: Intent-vs-Vehicle Pivot Protocol — 3-step divergence protocol when a proposed technical method collides with catalog constraints.
 
 ### 5. Agent Skills (`.agents/skills/` and `.claude/skills/`)
@@ -110,6 +111,7 @@ Turnkey skill packages for AI pair programmers:
 - **`diagnose_log.py`**: Standalone failure analyzer for Graydient job error logs.
 - **`zerogpu_quantize_template.py`**: Cloud-to-cloud ZeroGPU converter template for large model weights (KI-007 §32).
 - **`graydient_client.py`**: Python SDK wrapper for the Graydient CLI with argument sanitization and media handling.
+- **`check_schema_db.py`**: Integrity guard for `node_schema_db.json` and `concept_db.json`. Fails if a duplicate top-level key was collapsed, if any key occurrence disappeared versus `git HEAD`, if an entry is missing its required `source`/`inputs`/`outputs`, or if a `concept_db` key is not the non-empty list that `stage_model()` requires. Also reports which duplicated schema entries differ, since the linter validates against the last copy.
 
 ### 7. Canonical Workflow Templates (`templates/`)
 - `gen_moss_image_t2i.py`: Text-to-Image / Layout generation with MOSS-Image 5B + Qwen3.5-9B.
@@ -117,6 +119,8 @@ Turnkey skill packages for AI pair programmers:
 - `gen_fastwan13_720p_t2v.py`: 2-Stage Latent Upscale Video Generation (FastWan 1.3B 720p 3+1 step + TAEHV).
 - `gen_audio_synced_video.py`: Audio-duration-synchronized video generator (`Load Audio Any` + `ComfyMathExpression`).
 - `gen_higgs_tts.py`: Higgs Audio v3 Text-to-Speech / Voice Cloning.
+
+Live build at the repo root (not in `templates/`): `gen_anima_role_ref_kv.py` — Anima Base v1.0 + Role Ref KV reference-guided anime illustration, the reference build for KI-008 §15. Unlike the canonical templates above it is portable: it resolves its output paths from the repo root rather than a hardcoded `D:\` path, and it imports `graydient_builder` directly, so `python wf.py lint gen_anima_role_ref_kv.py` works on any OS.
 
 ---
 

@@ -83,6 +83,10 @@ class GraydientLinter:
         if standard_wf and api_wf:
             self._check_anti_patterns(gw, standard_wf, api_wf)
 
+        # 6b. Structural integrity of the standard/UI graph and its parity with the API graph
+        if standard_wf and api_wf:
+            self._check_standard_graph(standard_wf, api_wf)
+
         # 7. Verified node-signature cross-check (KI-007/node_schema_db.json)
         if api_wf:
             self._check_node_schemas(api_wf)
@@ -270,6 +274,243 @@ class GraydientLinter:
                             f"node_input_index {input_idx} exceeds widgets_values length ({len(widgets_values)}). Check socket vs widget counting rule (KI-003).",
                             node_id
                         ))
+
+    # Classes that legitimately exist ONLY in the standard/UI graph: the frontend drops them
+    # when exporting API format (Note has no executor; PrimitiveNode/Reroute are collapsed into
+    # the literal value / direct link they stand for). COMFYUI-REFERENCE sec 1 calls a
+    # PrimitiveNode surviving into the API JSON one of the two classic conversion bugs, so the
+    # reverse direction is checked as an ERROR too.
+    UI_ONLY_CLASSES = {
+        "Note", "MarkdownNote", "Reroute", "PrimitiveNode",
+        "PrimitiveString", "PrimitiveInt", "PrimitiveFloat", "PrimitiveBoolean",
+    }
+    CONTROL_AFTER_GENERATE_VALUES = {"fixed", "randomize", "increment", "decrement"}
+    SEED_WIDGET_NAMES = {"seed", "noise_seed"}
+
+    def _check_standard_graph(self, standard_wf: Dict[str, Any], api_wf: Dict[str, Any]):
+        """
+        Structural integrity of the standard/UI graph, plus its parity with the API graph.
+
+        Added 2026-11-01 (gen_anima_role_ref_kv.py build). The linter previously parsed both
+        graphs but only ever cross-checked field_mapping indices and node class_types against
+        them -- it never validated the `links` table itself. That missed a real defect in this
+        session's first pass: the builder filled each producer's `outputs[slot]["links"]`
+        back-reference while walking nodes in id order, so every link created later by a
+        *consumer* node was absent from its producer's array. Result: 10/10 links silently
+        un-back-referenced, `wf lint` reported 0 Errors / 0 Warnings, and the exported graph
+        would open in ComfyUI with no wires drawn out of any loader. The API graph was still
+        correct, so a job would have run fine -- which is exactly why the check belongs here
+        rather than being left to "the render will tell us": the standard graph is the
+        human-facing deliverable and nothing else in the pipeline reads it back.
+        """
+        nodes = standard_wf.get("nodes") or []
+        links = standard_wf.get("links") or []
+        by_id: Dict[Any, Dict[str, Any]] = {}
+
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            nid = node.get("id")
+            if nid in by_id:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_DUPLICATE_NODE_ID",
+                    f"Node id {nid} appears more than once in 'workflow'.", nid))
+            by_id[nid] = node
+
+        # --- links table well-formedness ---------------------------------------------------
+        seen_link_ids = set()
+        for entry in links:
+            if not isinstance(entry, (list, tuple)) or len(entry) != 6:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_MALFORMED_LINK",
+                    f"Link entry {entry!r} is not [link_id, from_node, from_slot, to_node, "
+                    f"to_slot, TYPE] (COMFYUI-REFERENCE sec 1)."))
+                continue
+            lid, from_node, from_slot, to_node, to_slot, link_type = entry
+
+            if lid in seen_link_ids:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_DUPLICATE_LINK_ID", f"Link id {lid} is used twice.", lid))
+            seen_link_ids.add(lid)
+
+            src = by_id.get(from_node)
+            if src is None:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_LINK_SOURCE_NODE_MISSING",
+                    f"Link {lid} starts at node {from_node}, which is not in 'workflow'.", lid))
+            else:
+                outs = src.get("outputs") or []
+                if not isinstance(from_slot, int) or from_slot >= len(outs):
+                    self.issues.append(LintIssue(
+                        "ERROR", "STD_LINK_SOURCE_SLOT_MISSING",
+                        f"Link {lid} leaves node {from_node} ({src.get('type')}) at output slot "
+                        f"{from_slot}, but that node declares only {len(outs)} output(s).",
+                        from_node))
+                else:
+                    out = outs[from_slot]
+                    if lid not in (out.get("links") or []):
+                        self.issues.append(LintIssue(
+                            "ERROR", "STD_OUTPUT_LINK_BACKREF_MISSING",
+                            f"Link {lid} leaves node {from_node} ({src.get('type')}) output slot "
+                            f"{from_slot}, but that output's 'links' array does not list {lid}. "
+                            f"litegraph draws wires from the node's own outputs[].links, so the "
+                            f"canvas opens with this wire missing. Fill producer back-references "
+                            f"in a second pass, after every link exists.", from_node))
+                    if out.get("type") not in (None, "*", link_type):
+                        self.issues.append(LintIssue(
+                            "WARNING", "STD_LINK_TYPE_MISMATCH",
+                            f"Link {lid} is typed '{link_type}' but node {from_node} output slot "
+                            f"{from_slot} is typed '{out.get('type')}'.", from_node))
+                    if out.get("slot_index") not in (None, from_slot):
+                        self.issues.append(LintIssue(
+                            "WARNING", "STD_OUTPUT_SLOT_INDEX_MISMATCH",
+                            f"Node {from_node} output slot {from_slot} carries slot_index "
+                            f"{out.get('slot_index')}.", from_node))
+
+            dst = by_id.get(to_node)
+            if dst is None:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_LINK_TARGET_NODE_MISSING",
+                    f"Link {lid} ends at node {to_node}, which is not in 'workflow'.", lid))
+                continue
+            ins = dst.get("inputs") or []
+            if not isinstance(to_slot, int) or to_slot >= len(ins):
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_LINK_TARGET_SLOT_MISSING",
+                    f"Link {lid} enters node {to_node} ({dst.get('type')}) at input slot "
+                    f"{to_slot}, but that node declares only {len(ins)} input socket(s).",
+                    to_node))
+                continue
+            target = ins[to_slot]
+            if target.get("link") != lid:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_INPUT_LINK_MISMATCH",
+                    f"Link {lid} enters node {to_node} input slot {to_slot} "
+                    f"('{target.get('name')}'), but that input records link "
+                    f"{target.get('link')!r} instead.", to_node))
+            if target.get("type") not in (None, "*", link_type):
+                self.issues.append(LintIssue(
+                    "WARNING", "STD_LINK_TYPE_MISMATCH",
+                    f"Link {lid} is typed '{link_type}' but node {to_node} input "
+                    f"'{target.get('name')}' is typed '{target.get('type')}'.", to_node))
+
+        # --- every input back-reference points at a real link ------------------------------
+        for nid, node in by_id.items():
+            for socket in (node.get("inputs") or []):
+                lid = socket.get("link")
+                if lid is None:
+                    continue
+                if lid not in seen_link_ids:
+                    self.issues.append(LintIssue(
+                        "ERROR", "STD_INPUT_LINK_DANGLING",
+                        f"Node {nid} ({node.get('type')}) input '{socket.get('name')}' references "
+                        f"link {lid}, which is not in the 'links' table.", nid))
+
+        # --- last_node_id / last_link_id ---------------------------------------------------
+        if by_id:
+            max_id = max(i for i in by_id if isinstance(i, int))
+            declared = standard_wf.get("last_node_id")
+            if isinstance(declared, int) and declared < max_id:
+                self.issues.append(LintIssue(
+                    "WARNING", "STD_LAST_NODE_ID_TOO_LOW",
+                    f"last_node_id is {declared} but node {max_id} exists; the UI hands out "
+                    f"colliding ids when the next node is added."))
+        if seen_link_ids:
+            declared = standard_wf.get("last_link_id")
+            if isinstance(declared, int) and declared < max(seen_link_ids):
+                self.issues.append(LintIssue(
+                    "WARNING", "STD_LAST_LINK_ID_TOO_LOW",
+                    f"last_link_id is {declared} but link {max(seen_link_ids)} exists."))
+
+        # --- standard <-> API parity -------------------------------------------------------
+        std_exec = {str(nid): n for nid, n in by_id.items()
+                    if n.get("type") not in self.UI_ONLY_CLASSES}
+        for nid in std_exec.keys() - api_wf.keys():
+            self.issues.append(LintIssue(
+                "ERROR", "STD_NODE_MISSING_FROM_API",
+                f"Node {nid} ({std_exec[nid].get('type')}) is in 'workflow' but not in "
+                f"'workflow_2'. The two graphs describe the same pipeline and must not drift; "
+                f"build both from one node list (COMFYUI-REFERENCE sec 1).", nid))
+        for nid in api_wf.keys() - std_exec.keys():
+            self.issues.append(LintIssue(
+                "ERROR", "API_NODE_MISSING_FROM_STD",
+                f"Node {nid} ({api_wf[nid].get('class_type')}) is in 'workflow_2' but not in "
+                f"'workflow', so it has no canvas position and no widgets_values.", nid))
+
+        for nid in sorted(std_exec.keys() & api_wf.keys(), key=lambda x: (len(x), x)):
+            node = std_exec[nid]
+            api_node = api_wf[nid] or {}
+            class_type = api_node.get("class_type")
+            if node.get("type") != class_type:
+                self.issues.append(LintIssue(
+                    "ERROR", "STD_API_CLASS_TYPE_MISMATCH",
+                    f"Node {nid} is '{node.get('type')}' in 'workflow' but '{class_type}' in "
+                    f"'workflow_2'.", nid))
+
+            api_sockets = [(k, v) for k, v in (api_node.get("inputs") or {}).items()
+                           if isinstance(v, list)]
+            std_sockets = node.get("inputs") or []
+            if len(api_sockets) != len(std_sockets):
+                self.issues.append(LintIssue(
+                    "WARNING", "STD_API_SOCKET_COUNT_MISMATCH",
+                    f"Node {nid} ({class_type}) has {len(api_sockets)} linked socket(s) in "
+                    f"'workflow_2' but {len(std_sockets)} input socket(s) in 'workflow'.", nid))
+            for pos, ((api_name, api_link), std_socket) in enumerate(
+                    zip(api_sockets, std_sockets)):
+                if api_name != std_socket.get("name"):
+                    self.issues.append(LintIssue(
+                        "WARNING", "STD_API_SOCKET_ORDER_MISMATCH",
+                        f"Node {nid} ({class_type}) input slot {pos} is '{api_name}' in "
+                        f"'workflow_2' but '{std_socket.get('name')}' in 'workflow'.", nid))
+                    continue
+                std_link = std_socket.get("link")
+                endpoints = next((l for l in links if l[0] == std_link), None)
+                if endpoints is None:
+                    continue  # already reported as STD_INPUT_LINK_DANGLING
+                if str(endpoints[1]) != str(api_link[0]) or endpoints[2] != api_link[1]:
+                    self.issues.append(LintIssue(
+                        "ERROR", "STD_API_LINK_ENDPOINT_MISMATCH",
+                        f"Node {nid} ({class_type}) input '{api_name}' reads from node "
+                        f"{endpoints[1]} slot {endpoints[2]} in 'workflow' but from node "
+                        f"{api_link[0]} slot {api_link[1]} in 'workflow_2'.", nid))
+
+        for nid, api_node in api_wf.items():
+            if (api_node or {}).get("class_type") in self.UI_ONLY_CLASSES:
+                self.issues.append(LintIssue(
+                    "ERROR", "API_UI_ONLY_NODE",
+                    f"Node {nid} is a UI-only '{api_node.get('class_type')}'. It has no backend "
+                    f"executor and must be collapsed into the literal value it stands for before "
+                    f"it reaches 'workflow_2' (COMFYUI-REFERENCE sec 1).", nid))
+
+        # --- control_after_generate accounting (KI-003) ------------------------------------
+        # The frontend inserts a `control_after_generate` widget after any INT widget named
+        # seed/noise_seed. It has no API-format counterpart, so a widgets_values array written
+        # WITHOUT it shifts every later widget by one on load -- and every field_mapping
+        # node_input_index after it then targets the wrong widget (/steps silently landing on
+        # cfg, and so on). node_schema_db.json documents exactly this convention for KSampler.
+        for nid, api_node in api_wf.items():
+            node = std_exec.get(str(nid))
+            if node is None:
+                continue
+            widget_values = node.get("widgets_values")
+            if not isinstance(widget_values, list):
+                continue
+            api_widget_names = [k for k, v in (api_node.get("inputs") or {}).items()
+                                if not isinstance(v, list)]
+            for pos, name in enumerate(api_widget_names):
+                if name not in self.SEED_WIDGET_NAMES or pos + 1 >= len(widget_values):
+                    continue
+                following = widget_values[pos + 1]
+                if following not in self.CONTROL_AFTER_GENERATE_VALUES:
+                    self.issues.append(LintIssue(
+                        "WARNING", "STD_MISSING_CONTROL_AFTER_GENERATE",
+                        f"Node {nid} ({api_node.get('class_type')}) has a '{name}' widget at "
+                        f"widgets_values[{pos}] followed by {following!r}, not one of "
+                        f"{sorted(self.CONTROL_AFTER_GENERATE_VALUES)}. The ComfyUI frontend "
+                        f"inserts a control_after_generate widget here, which shifts every later "
+                        f"widget by one -- so every field_mapping node_input_index after it is "
+                        f"off by one (KI-003). If this node genuinely has no "
+                        f"control_after_generate widget, verify the index math by hand.", nid))
 
     def _check_anti_patterns(self, gw: Dict[str, Any], standard_wf: Dict[str, Any], api_wf: Dict[str, Any]):
         field_mappings = gw.get("field_mapping", [])

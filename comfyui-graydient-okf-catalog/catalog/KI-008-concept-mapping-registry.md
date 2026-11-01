@@ -46,6 +46,10 @@ Pre-staging model weights via `concept_mapping` ensures models are downloaded di
 | **Whisper Medium** (faster-whisper) | `model.bin`, `config.json`, `tokenizer.json`, `vocabulary.txt` (NOT .json, no preprocessor_config -- HF listing checked) | `https://huggingface.co/Systran/faster-whisper-medium/resolve/main/<file>` | `whisper/medium/<file>` -- confirmed staged live (render ZVe419, rig-direct, 2026-09-30) |
 | **Ollama qwen3:14b** (Q4_K_M, Ollama library build) | 5 registry blobs: config `78b3b822...`, model `a8cc1361...` (9.28 GB GGUF), template `ae370d88...`, license `d18a5cc7...`, params `cff3f395...` | `https://registry.ollama.ai/v2/library/qwen3/blobs/sha256:<digest>` (no auth, 200) | `ollama/blobs/sha256-<digest>` (Ollama's on-disk blob name) -- confirmed live (render ZVe419); the node writes the manifest itself (KI-007 §16) |
 | **Ollama 0.34.2 runtime** (not a model) | `ollama-linux-amd64.tar.zst` (1.43 GB; bin/ + lib/ollama/cuda_v12 used) | `https://github.com/ollama/ollama/releases/download/v0.34.2/ollama-linux-amd64.tar.zst` (302 to GitHub CDN -- concept_mapping follows it) | `rigstudio/ollama/ollama-linux-amd64-v0.34.2.tar.zst` -- confirmed live (render ZVe419) |
+| **Anima Base v1.0** (CircleStone Labs x Comfy Org, 2B DiT finetuned from `nvidia/Cosmos-Predict2-2B-Text2Image`; CircleStone Non-Commercial) | Diffusion model, BF16 | `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors` | `diffusion_models/anima-base-v1.0.safetensors` (4.18 GB) -- MUST load with `UNETLoader.weight_dtype="default"`; the `AnimaRoleRefKV` node raises on any dtype that is not BF16/FP32, so there is no fp8/GGUF/NF4 route for this family |
+| **Anima Base v1.0** | Text encoder, Qwen3 0.6B | `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors` | `text_encoders/qwen_3_06b_base.safetensors` (1.19 GB) -- loaded via `CLIPLoader` with `type="stable_diffusion"`, which looks wrong and is correct (matches ComfyUI's own `blueprints/Text to Image (Anima Base 1.0).json`) |
+| **Anima Base v1.0** | VAE, Qwen-Image | `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors` | `vae/qwen_image_vae.safetensors` (254 MB) -- the standard Qwen-Image VAE; already present if you run Qwen-Image workflows |
+| **Anima Role Ref KV v1.0** (AnticPan, independent modified derivative of Anima Base v1.0) | Reference-KV adapter, rank 128 / alpha 128, FP32 | `https://huggingface.co/AnticPan/Anima-Role-Ref-KV/resolve/main/comfy/anima-role-ref-kv-v1.0.safetensors` | `loras/anima-role-ref-kv-v1.0.safetensors` (529 MB) -- under `loras/` only because the node resolves it with `folder_paths.get_filename_list("loras")`. **Never** wire a `LoraLoader` to it: see section 15 |
 
 ---
 
@@ -207,3 +211,58 @@ Mirrored in `concept_db.json` under `turbo-moss`. Total staging size is ~16.7 GB
 Mirrored in `concept_db.json` under `drama3-w4a8`. Ungated (HTTP 200 on 2026-10-23). The W4A8 file "falls silent more often" than the 32.7 GB W6A8 / 38.6 GB FP8 files per the pack's notes (not compared here); it ran on 24 GB 4090 and 32 GB 5090 runners with `experts: in RAM`. The FP8/INT8/W6A8 variants are in the same repo.
 
 `qwen3-asr-0.6b` (`https://huggingface.co/PedroMarinhoDev/Qwen3-ASR-ComfyUI/resolve/main/qwen3_asr_0.6b_bf16.safetensors` -> `asr/qwen3_asr_0.6b_bf16.safetensors`, 1.56 GB, HTTP 200) staged and loaded on a runner where the Drama 3 pack's ASR node won the name collision (section 43 of KI-007); only stage it for a glue node that calls the pack's functions, never for the colliding node classes.
+
+## 15. Anima Base v1.0 + Role Ref KV Adapter Stack (source-verified 2026-11-01; NOT yet run live)
+
+Four files, ~6.16 GB total, from two **ungated** repos. Verification method differs from the
+sections above and is stated plainly: `curl -sI` to `huggingface.co` is blocked from this
+environment, so instead of a HEAD status code every file was confirmed through the Hugging Face
+API's `?blobs=true` listing, which returns the exact `rfilename`, `size` and LFS `sha256` per file.
+That is strictly stronger evidence than a 302 -- it proves existence, byte size and content digest
+-- but it is **not** a live staging confirmation, and no Graydient job has run this stack yet.
+Repo revisions at check time: `circlestone-labs/Anima` `f973fc41ec7545364ac9776c2440285f43ff2a30`,
+`AnticPan/Anima-Role-Ref-KV` `259a0dce876ed70fc8835b888139756e23fb8a9f`.
+
+| URL | Destination | Bytes | SHA-256 |
+|---|---|---|---|
+| `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-base-v1.0.safetensors` | `diffusion_models/anima-base-v1.0.safetensors` | 4,182,218,328 | `bd43b7cffe1ed1153d9c41e7beb2f18cb1273eafbaa3af3edd6a173dc90a006e` |
+| `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors` | `text_encoders/qwen_3_06b_base.safetensors` | 1,192,135,096 | `cd2a512003e2f9f3cd3c32a9c3573f820bb28c940f73c57b1ddaa983d9223eba` |
+| `https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors` | `vae/qwen_image_vae.safetensors` | 253,806,246 | `a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f` |
+| `https://huggingface.co/AnticPan/Anima-Role-Ref-KV/resolve/main/comfy/anima-role-ref-kv-v1.0.safetensors` | `loras/anima-role-ref-kv-v1.0.safetensors` | 528,546,184 | `102dcc38b48f984844305fff5c04730a857603f8796f47e92b67c61baef124bb` |
+
+Mirrored in `concept_db.json` under `anima-role-ref-kv` (with the byte sizes and digests kept as
+`_bytes`/`_sha256` keys, which `stage_model()` ignores). Reference build:
+`gen_anima_role_ref_kv.py` -> `GraydientWorkflow-anima-role-ref-kv-v1.json`; node pack in
+`UnlimitedEditing/ComfyUI-AnimaRoleRefKV`.
+
+Three rules that are specific to this stack and are not obvious from the table:
+
+* **The preflight quantization gate does not apply, and applying it breaks the build.** At 6.16 GB
+  this is over the 4 GB threshold that usually triggers a hunt for an FP8 release or a ZeroGPU
+  cloud-to-cloud conversion. `AnimaRoleRefKV` checks `next(net.parameters()).dtype` and raises
+  unless it is `torch.bfloat16` or `torch.float32`, because its `NativeEngine.rms` deliberately
+  reproduces the Diffusers runtime's FP32 reduction and rounding order (native `torch.rms_norm`
+  rounds differently in BF16 and the difference compounds over 28 blocks). Keep
+  `weight_dtype="default"`. Total resident weight is ~6.16 GB, far inside the KI-005 section 2
+  20 GB budget, so quantizing would buy nothing anyway.
+* **The adapter goes under `loras/` but must never be loaded as a LoRA.** Its tensor names are
+  standard ComfyUI LoRA keys (`diffusion_model.blocks.{0..27}.{self_attn.q_proj,self_attn.k_proj,
+  self_attn.v_proj,self_attn.output_proj,mlp.layer1,mlp.layer2}.{lora_down.weight,lora_up.weight,
+  alpha}`), so `LoraLoaderModelOnly` attaches them without complaint. The release only produces the
+  character when the reference image is encoded into a per-block KV cache and concatenated ahead of
+  the noisy stream's k/v. Loaded as a plain LoRA you get a structurally valid graph and a wrong
+  image -- the KI-007 silent-wrong-config class, with no error to grep for. The node therefore
+  refuses an already-patched MODEL, and the workflow sets `supports_dynamic_concepts: false`.
+  Consequence for the platform: `<concept:0.7>` tags and Anima-family Concepts do not work on this
+  workflow, and that is a property of the release, not a gap in the build.
+* **Stage all four even though only one code path runs.** `UNETLoader`, `CLIPLoader`, `VAELoader`
+  and the node's own `adapter` COMBO are all validated for the whole graph before execution, so a
+  missing file is a validation failure rather than a run-time one. `qwen_image_vae.safetensors` is
+  the ordinary Qwen-Image VAE and may already exist on the runner under that exact name -- the
+  filename has to match, since the widget validates against the staged name.
+
+Native Anima support is in ComfyUI core, not a custom pack: commit `abe2ec26a61f` ("Support the
+Anima model.", PR #12012, 2026-01-22) added `comfy/ldm/anima/model.py` and `comfy/text_encoders/
+anima.py` alongside the existing `comfy/ldm/cosmos/`. Verified present in `v0.32.0` through
+`v0.40.0` via the compare API, so no `requirements.github` entry is needed for the base model --
+only for the Role Ref KV node itself.

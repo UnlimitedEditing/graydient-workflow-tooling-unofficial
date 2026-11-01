@@ -16,3 +16,7 @@ Thumbs.db
 
 # Output Workflows (if generated locally)
 GraydientWorkflow-*.json
+
+# Plain ComfyUI workflow JSON emitted by gen_*.py alongside the Graydient backup.
+# These ship in the custom-node repo's workflows/ folder, not here.
+anima-role-ref-kv-*.json

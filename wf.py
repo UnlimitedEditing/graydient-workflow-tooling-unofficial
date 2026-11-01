@@ -143,56 +143,6 @@ def cmd_staging(args):
             print(f"     URL:  {item['url']}")
     print("\n" + "=" * 60)
 
-def cmd_lint(args):
-    target = args.target
-    if not os.path.isfile(target):
-        print(f"❌ Error: File not found: {target}")
-        sys.exit(1)
-
-    if target.endswith(".py"):
-        print(f"🚀 Running generator script: {target}")
-        json_before = {f: os.path.getmtime(f) for f in glob.glob("GraydientWorkflow-*.json")}
-        result = subprocess.run([sys.executable, target], capture_output=True, text=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-        if result.returncode != 0:
-            print(f"❌ Generator script failed with exit code {result.returncode}")
-            sys.exit(result.returncode)
-
-        # Running the .py alone doesn't lint anything -- find whichever
-        # GraydientWorkflow-*.json it just wrote/touched and lint that too,
-        # otherwise `wf lint gen_*.py` silently skips the actual check.
-        candidates = glob.glob("GraydientWorkflow-*.json")
-        written = [f for f in candidates if os.path.getmtime(f) != json_before.get(f)]
-        if not written:
-            print("⚠️  No GraydientWorkflow-*.json was created or modified by this script -- "
-                  "nothing to lint. If this script writes JSON under a different naming "
-                  "pattern, lint it directly: wf lint <output.json>")
-            return
-        target_json = max(written, key=os.path.getmtime)
-        print(f"\n🔍 Linting generated output: {target_json}")
-        with open(target_json, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        is_valid, issues = lint_workflow(data)
-        print(format_lint_report(issues))
-        if not is_valid:
-            sys.exit(1)
-        return
-
-    if target.endswith(".json"):
-        with open(target, "r", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except Exception as e:
-                print(f"❌ Failed to parse JSON: {e}")
-                sys.exit(1)
-
-        is_valid, issues = lint_workflow(data)
-        print(format_lint_report(issues))
-        if not is_valid:
-            sys.exit(1)
-
 def cmd_new(args):
     name = args.name
     template_key = args.template or "video-audio"
@@ -223,16 +173,55 @@ def cmd_lint(args):
 
     print(f"📐 Pre-Flight Linting: {target}")
     if target.endswith(".py"):
+        # Snapshot the GraydientWorkflow-*.json mtimes in BASE_DIR first, because the
+        # generator runs with cwd=BASE_DIR regardless of where wf.py was invoked from.
+        #
+        # This independent lint used to live in a SECOND `def cmd_lint` earlier in this
+        # file. Python binds the last definition, so that earlier one was dead code and
+        # `wf lint gen_*.py` only ran the generator and echoed its stdout: a generator
+        # that forgot to call the linter itself would report success having checked
+        # nothing. Every current template does lint internally, so nothing was passing
+        # vacuously by accident -- but the guarantee belonged here, not in each script.
+        json_before = {f: os.path.getmtime(f)
+                       for f in glob.glob(os.path.join(BASE_DIR, "GraydientWorkflow-*.json"))}
         res = subprocess.run([sys.executable, target], cwd=BASE_DIR, capture_output=True, text=True, encoding="utf-8")
         if res.returncode != 0:
             print(f"❌ Script execution failed (exit code {res.returncode}):")
             print(res.stderr or res.stdout)
+            if "No module named 'graydient_builder'" in (res.stderr or ""):
+                print("💡 This generator cannot import graydient_builder: Python puts the "
+                      "script's own directory on sys.path, not the repo root. Run it from "
+                      "the repo root with the root on the path, e.g.\n"
+                      "     PYTHONPATH=. python " + os.path.relpath(target, BASE_DIR) + "\n"
+                      "   or add the usual bootstrap to the top of the script:\n"
+                      "     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))")
             sys.exit(res.returncode)
         print(res.stdout)
+        if res.stderr:
+            print(res.stderr)
+
+        written = [f for f in glob.glob(os.path.join(BASE_DIR, "GraydientWorkflow-*.json"))
+                   if os.path.getmtime(f) != json_before.get(f)]
+        if not written:
+            print("⚠️  No GraydientWorkflow-*.json was created or modified by this script -- "
+                  "nothing was independently linted. If it writes JSON under a different "
+                  "naming pattern, lint that file directly: wf lint <output.json>")
+            return
+        target_json = max(written, key=os.path.getmtime)
+        print(f"\n🔍 Independently linting generated output: {os.path.relpath(target_json, BASE_DIR)}")
+        with open(target_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        is_valid, issues = lint_workflow(data)
+        print(format_lint_report(issues))
+        if not is_valid:
+            sys.exit(1)
     elif target.endswith(".json"):
         with open(target, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        from graydient_builder.linter import lint_workflow, format_lint_report
+            try:
+                data = json.load(f)
+            except Exception as e:
+                print(f"❌ Failed to parse JSON: {e}")
+                sys.exit(1)
         is_valid, issues = lint_workflow(data)
         print(format_lint_report(issues))
         if not is_valid:

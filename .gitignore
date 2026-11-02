@@ -16,3 +16,6 @@ Thumbs.db
 
 # Output Workflows (if generated locally)
 GraydientWorkflow-*.json
+
+# MiniMax H3 backups are deliverables for manual restore.
+!workflows/minimax-h3-partner-equivalents/GraydientWorkflow-*.json

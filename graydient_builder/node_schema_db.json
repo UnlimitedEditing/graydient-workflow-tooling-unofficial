@@ -1658,141 +1658,6 @@
     "note": "TeaCache (Timestep Embedding Aware Cache) skips redundant transformer steps based on L1 difference threshold. 0.25-0.35 yields ~1.8x-2.5x speedup with virtually no quality degradation."
   },
   "LoadWanVideoT5TextEncoder": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of LoadWanVideoT5TextEncoder)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders)",
-      "precision": "COMBO: fp32|fp16|bf16 (widget, default bf16)",
-      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
-      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e5m2 (widget, default disabled)"
-    },
-    "outputs": [
-      "WANTEXTENCODER"
-    ]
-  },
-  "WanVideoModelLoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoModelLoader)",
-    "inputs": {
-      "model": "COMBO STRING (widget, loaded from ComfyUI/models/diffusion_models)",
-      "base_precision": "COMBO: fp32|bf16|fp16|fp16_fast (widget, default bf16)",
-      "quantization": "COMBO: disabled|fp8_e4m3fn|fp8_e4m3fn_fast|fp8_e4m3fn_scaled|fp8_e4m3fn_scaled_fast|fp8_e5m2|fp8_e5m2_fast|fp8_e5m2_scaled|fp8_e5m2_scaled_fast (widget, default disabled)",
-      "load_device": "COMBO: main_device|offload_device (widget, default offload_device)",
-      "attention_mode": "COMBO: sdpa|flash_attn|sageattn|sageattn_varlen (widget, default sdpa)"
-    },
-    "outputs": [
-      "WANVIDEOMODEL"
-    ]
-  },
-  "WanVideoTextEncode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoTextEncode)",
-    "inputs": {
-      "t5": "WANTEXTENCODER (link)",
-      "positive_prompt": "STRING (widget, multiline)",
-      "negative_prompt": "STRING (widget, multiline)",
-      "force_offload": "BOOLEAN (widget, default True)"
-    },
-    "outputs": [
-      "WANVIDEOTEXTEMBEDS"
-    ]
-  },
-  "WanVideoEmptyEmbeds": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoEmptyEmbeds)",
-    "inputs": {
-      "width": "INT (widget, default 832)",
-      "height": "INT (widget, default 480)",
-      "num_frames": "INT (widget, default 81)",
-      "control_embeds": "WANVIDIMAGE_EMBEDS (link, optional)",
-      "extra_latents": "LATENT (link, optional)"
-    },
-    "outputs": [
-      "WANVIDIMAGE_EMBEDS"
-    ]
-  },
-  "WanVideoSampler": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_sampler.py -- confirmed from source (INPUT_TYPES of WanVideoSampler)",
-    "inputs": {
-      "model": "WANVIDEOMODEL (link)",
-      "image_embeds": "WANVIDIMAGE_EMBEDS (link)",
-      "steps": "INT (widget, default 30, min 1)",
-      "cfg": "FLOAT (widget, default 6.0)",
-      "shift": "FLOAT (widget, default 5.0)",
-      "seed": "INT (widget, default 0)",
-      "force_offload": "BOOLEAN (widget, default True)",
-      "scheduler": "COMBO STRING (widget, e.g. flowmatch_pusa, unipc, euler, dpm++)",
-      "riflex_freq_index": "INT (widget, default 0)",
-      "text_embeds": "WANVIDEOTEXTEMBEDS (link, optional)",
-      "samples": "LATENT (link, optional, init latents for video2video or multi-stage refining)",
-      "denoise_strength": "FLOAT (widget, default 1.0, 0.0-1.0)",
-      "start_step": "INT (widget, default 0)",
-      "end_step": "INT (widget, default -1)",
-      "add_noise_to_samples": "BOOLEAN (widget, default False)"
-    },
-    "outputs": [
-      "LATENT",
-      "LATENT"
-    ]
-  },
-  "WanVideoVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py (verified against upstream source)",
-    "inputs": {
-      "model_name": "STRING (widget, loads from ComfyUI/models/vae)",
-      "precision": "COMBO: fp16|fp32|bf16 (widget, default bf16)"
-    },
-    "outputs": [
-      "vae"
-    ],
-    "note": "Loads Wan video VAE from models/vae."
-  },
-  "WanVideoDecode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes.py -- confirmed from source (INPUT_TYPES of WanVideoDecode)",
-    "inputs": {
-      "vae": "WANVAE (link, supports standard Wan VAE and TAEHV)",
-      "samples": "LATENT (link)",
-      "enable_vae_tiling": "BOOLEAN (widget, default False)",
-      "tile_x": "INT (widget, default 272)",
-      "tile_y": "INT (widget, default 272)",
-      "tile_stride_x": "INT (widget, default 144)",
-      "tile_stride_y": "INT (widget, default 128)",
-      "normalization": "COMBO STRING (widget, optional, default default)"
-    },
-    "outputs": [
-      "IMAGE"
-    ]
-  },
-  "LatentUpscale": {
-    "source": "ComfyUI core nodes.py (comfyanonymous/ComfyUI) -- confirmed from source",
-    "inputs": {
-      "samples": "LATENT (link)",
-      "upscale_method": "COMBO: nearest-exact|bilinear|area|bicubic|bislerp (widget)",
-      "width": "INT (widget, default 512, target width in pixels, common_upscale divides by 8)",
-      "height": "INT (widget, default 512, target height in pixels, common_upscale divides by 8)",
-      "crop": "COMBO: disabled|center (widget)"
-    },
-    "outputs": [
-      "LATENT"
-    ]
-  },
-  "WanVideoTinyVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoTinyVAELoader)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae_approx, e.g. taew2_1.safetensors)",
-      "precision": "COMBO: fp16|fp32|bf16 (widget, default fp16)",
-      "parallel": "BOOLEAN (widget, default False)"
-    },
-    "outputs": [
-      "WANVAE"
-    ]
-  },
-  "WanVideoVAELoader": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoVAELoader)",
-    "inputs": {
-      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae, e.g. Wan2_1_VAE_bf16.safetensors)",
-      "precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)"
-    },
-    "outputs": [
-      "WANVAE"
-    ]
-  },
-  "LoadWanVideoT5TextEncoder": {
     "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source",
     "inputs": {
       "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/text_encoders, e.g. umt5-xxl-enc-fp8_e4m3fn.safetensors)",
@@ -1802,18 +1667,6 @@
     },
     "outputs": [
       "WANTEXTENCODER"
-    ]
-  },
-  "WanVideoTextEncode": {
-    "source": "kijai/ComfyUI-WanVideoWrapper nodes_text_encode.py -- confirmed from source",
-    "inputs": {
-      "t5": "WANTEXTENCODER (link)",
-      "positive_prompt": "STRING (widget, multiline)",
-      "negative_prompt": "STRING (widget, multiline)",
-      "force_offload": "BOOLEAN (widget, default True)"
-    },
-    "outputs": [
-      "WANVIDEOTEXTEMBEDS"
     ]
   },
   "WanVideoModelLoader": {
@@ -1827,6 +1680,18 @@
     },
     "outputs": [
       "WANVIDEOMODEL"
+    ]
+  },
+  "WanVideoTextEncode": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_text_encode.py -- confirmed from source",
+    "inputs": {
+      "t5": "WANTEXTENCODER (link)",
+      "positive_prompt": "STRING (widget, multiline)",
+      "negative_prompt": "STRING (widget, multiline)",
+      "force_offload": "BOOLEAN (widget, default True)"
+    },
+    "outputs": [
+      "WANVIDEOTEXTEMBEDS"
     ]
   },
   "WanVideoEmptyEmbeds": {
@@ -1866,6 +1731,16 @@
       "denoised_samples"
     ]
   },
+  "WanVideoVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae, e.g. Wan2_1_VAE_bf16.safetensors)",
+      "precision": "COMBO: bf16|fp16|fp32 (widget, default bf16)"
+    },
+    "outputs": [
+      "WANVAE"
+    ]
+  },
   "WanVideoDecode": {
     "source": "kijai/ComfyUI-WanVideoWrapper nodes_decode.py -- confirmed from source",
     "inputs": {
@@ -1879,6 +1754,30 @@
     },
     "outputs": [
       "IMAGE"
+    ]
+  },
+  "LatentUpscale": {
+    "source": "ComfyUI core nodes.py (comfyanonymous/ComfyUI) -- confirmed from source",
+    "inputs": {
+      "samples": "LATENT (link)",
+      "upscale_method": "COMBO: nearest-exact|bilinear|area|bicubic|bislerp (widget)",
+      "width": "INT (widget, default 512, target width in pixels, common_upscale divides by 8)",
+      "height": "INT (widget, default 512, target height in pixels, common_upscale divides by 8)",
+      "crop": "COMBO: disabled|center (widget)"
+    },
+    "outputs": [
+      "LATENT"
+    ]
+  },
+  "WanVideoTinyVAELoader": {
+    "source": "kijai/ComfyUI-WanVideoWrapper nodes_model_loading.py -- confirmed from source (INPUT_TYPES of WanVideoTinyVAELoader)",
+    "inputs": {
+      "model_name": "COMBO STRING (widget, loaded from ComfyUI/models/vae_approx, e.g. taew2_1.safetensors)",
+      "precision": "COMBO: fp16|fp32|bf16 (widget, default fp16)",
+      "parallel": "BOOLEAN (widget, default False)"
+    },
+    "outputs": [
+      "WANVAE"
     ]
   },
   "StringConcatenate": {
@@ -2344,13 +2243,27 @@
       "ref_images.ref_image_0": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
       "ref_videos.ref_video_0": "IMAGE [optional] (Autogrow prefix 'ref_video_', max 3; 2-15 s at 24 fps)",
       "ref_video_audios.ref_video_audio_0": "AUDIO [optional] (Autogrow prefix 'ref_video_audio_', max 3)",
-      "ref_audios.ref_audio_0": "AUDIO [optional] (Autogrow prefix 'ref_audio_', max 3; standalone timbre reference)"
+      "ref_audios.ref_audio_0": "AUDIO [optional] (Autogrow prefix 'ref_audio_', max 3; standalone timbre reference)",
+      "ref_images.ref_image_1": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_2": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_3": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_4": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_5": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_6": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_7": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_images.ref_image_8": "IMAGE [optional] (Autogrow prefix 'ref_image_', max 9)",
+      "ref_videos.ref_video_1": "IMAGE [optional] (Autogrow prefix 'ref_video_', max 3)",
+      "ref_video_audios.ref_video_audio_1": "AUDIO [optional] (Autogrow prefix 'ref_video_audio_', max 3)",
+      "ref_audios.ref_audio_1": "AUDIO [optional] (Autogrow prefix 'ref_audio_', max 3)",
+      "ref_videos.ref_video_2": "IMAGE [optional] (Autogrow prefix 'ref_video_', max 3)",
+      "ref_video_audios.ref_video_audio_2": "AUDIO [optional] (Autogrow prefix 'ref_video_audio_', max 3)",
+      "ref_audios.ref_audio_2": "AUDIO [optional] (Autogrow prefix 'ref_audio_', max 3)"
     },
     "outputs": [
       "CONDITIONING (positive)",
       "LATENT"
     ],
-    "note": "Live: reference-turbo-h3-test WFa499q7 (124 frames at 640x640 = 63 s on a 4090) and voicechain-test WFEjOOAa (2026-10-23). Autogrow sub-fields are dotted in the API graph and numbered FROM 0 (ref_images.ref_image_0, ref_audios.ref_audio_0 as used by the live graphs; the source schema alone does not show this)."
+    "note": "Live: reference-turbo-h3-test WFa499q7 (124 frames at 640x640 = 63 s on a 4090) and voicechain-test WFEjOOAa (2026-10-23). Autogrow sub-fields are dotted in the API graph and numbered FROM 0 (ref_images.ref_image_0, ref_audios.ref_audio_0 as used by the live graphs; the source schema alone does not show this). | Autogrow slot ranges re-verified against master 2026-11-01: ref_image_0..8, ref_video_0..2, ref_video_audio_0..2, ref_audio_0..2. None-valued refs are skipped, so an unwired/absent optional slot is safe."
   },
   "MiniMaxH3ImageToVideo": {
     "source": "ComfyUI core comfy_extras/nodes_minimax_h3.py (V3 io.Schema), read directly 2026-10-29 from D:/ComfyUI-local; key names cross-checked against the API graphs of the live workflows",
@@ -2369,5 +2282,348 @@
       "LATENT"
     ],
     "note": "Live in audioturbo-h3-test WF7JAA5a (first frame + audio anchor, v5; length ladder 124f 46 s, 243f 91 s, 361f 163 s at 640x640 on 5090/4090)."
+  },
+  "LoraLoader": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). nodes.py LoraLoader.INPUT_TYPES.",
+    "inputs": {
+      "model": "MODEL",
+      "clip": "CLIP",
+      "lora_name": "COMBO (widget)",
+      "strength_model": "FLOAT (widget, default 1.0, -100..100)",
+      "strength_clip": "FLOAT (widget, default 1.0, -100..100)"
+    },
+    "outputs": [
+      "MODEL",
+      "CLIP"
+    ],
+    "note": "Stock LoRA loader. strength 0.0 on both makes it a no-op passthrough, which is the safe way to A/B a turbo LoRA against its base model's own step schedule."
+  },
+  "BasicGuider": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). comfy_extras/nodes_custom_sampler.py.",
+    "inputs": {
+      "model": "MODEL",
+      "conditioning": "CONDITIONING"
+    },
+    "outputs": [
+      "GUIDER"
+    ],
+    "note": "No CFG input -- CFG-1 / distilled guidance only. Correct for turbo/distilled video models (H3, LTX distill); do not look for a cfg socket here."
+  },
+  "VAEDecodeAudio": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). comfy_extras/nodes_audio.py.",
+    "inputs": {
+      "samples": "LATENT",
+      "vae": "VAE"
+    },
+    "outputs": [
+      "AUDIO"
+    ],
+    "note": "Decodes the audio half of an AV latent. For H3 route the audio VAE through MiniMaxH3AudioVAECompatibility first."
+  },
+  "MiniMaxH3SigmaShift": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). comfy_extras/nodes_minimax_h3.py.",
+    "inputs": {
+      "model": "MODEL",
+      "shift_video": "FLOAT (widget, default 12.0, 0.01..100)",
+      "shift_audio": "FLOAT (widget, default 3.0, 0.01..100)"
+    },
+    "outputs": [
+      "MODEL"
+    ],
+    "note": "display_name is 'ModelSamplingMiniMaxH3'. Sets the video/audio flow shifts; 12/3 are the H3 defaults."
+  },
+  "MiniMaxH3AudioVAECompatibility": {
+    "source": "seitanism/ComfyUI-H3-Motion-Context-MultiRef, read directly from the main tarball 2026-11-01. h3_audio_vae_compat.py.",
+    "inputs": {
+      "audio_vae": "VAE"
+    },
+    "outputs": [
+      "audio_vae (VAE)"
+    ],
+    "note": "Route the H3 audio VAE through this before stock H3 audio-reference nodes; disables generic PCM handling that otherwise corrupts H3 audio latents."
+  },
+  "MiniMaxH3ExistingVideoMaskedContext": {
+    "source": "seitanism/ComfyUI-H3-Motion-Context-MultiRef, read directly from the main tarball 2026-11-01. existing_video_extension.py.",
+    "inputs": {
+      "latent": "LATENT (target H3 AV latent)",
+      "vae": "VAE (video)",
+      "audio_vae": "VAE (audio)",
+      "source_frames": "IMAGE",
+      "source_audio": "AUDIO",
+      "source_fps": "FLOAT (widget, locked 24.0)",
+      "context_length": "INT (widget, default 39; snaps to 39/90/141/192)",
+      "crop": "COMBO['disabled','center'] (widget)",
+      "audio_feather_ticks": "INT (widget, default 8; 0 = hard audio mask)",
+      "insert_frame": "INT (optional widget, default 0; snaps DOWN to a multiple of 17)"
+    },
+    "outputs": [
+      "latent (LATENT)",
+      "trim_frames (INT)",
+      "insert_frame (INT)",
+      "preserved_frames (INT)"
+    ],
+    "note": "Writes the preserved source segment into the target latent and applies the denoise mask. insert_frame=0 preserves a prefix (extension); insert_frame>0 preserves an interior window (insert). Mask convention is 0=preserve, 1=generate. Sources MUST be constant 24 fps."
+  },
+  "MiniMaxH3AssembleExtension": {
+    "source": "seitanism/ComfyUI-H3-Motion-Context-MultiRef, read directly from the main tarball 2026-11-01. existing_video_extension.py.",
+    "inputs": {
+      "source_frames": "IMAGE",
+      "source_audio": "AUDIO",
+      "source_fps": "FLOAT (widget, locked 24.0)",
+      "continuation_images": "IMAGE (already trimmed of the pinned prefix)",
+      "continuation_audio": "AUDIO (already trimmed)",
+      "fps": "FLOAT (widget, locked 24.0)",
+      "crop": "COMBO['disabled','center'] (widget)"
+    },
+    "outputs": [
+      "images (IMAGE)",
+      "audio (AUDIO)"
+    ],
+    "note": "Hard-splices resized source pixels + PCM in front of the continuation and forces exact integer-sample audio durations, so AV drift is 0 by construction. Feed it the TRIMMED continuation (via MiniMaxH3MotionContextTrim), not the raw decode, or the pinned prefix is duplicated."
+  },
+  "MiniMaxH3AssembleInterior": {
+    "source": "seitanism/ComfyUI-H3-Motion-Context-MultiRef, read directly from the main tarball 2026-11-01. existing_video_extension.py.",
+    "inputs": {
+      "continuation_images": "IMAGE (FULL decoded timeline)",
+      "continuation_audio": "AUDIO (FULL decoded timeline)",
+      "source_frames": "IMAGE",
+      "source_audio": "AUDIO",
+      "source_fps": "FLOAT (widget, locked 24.0)",
+      "insert_frame": "INT (wire from context node output 2)",
+      "preserved_frames": "INT (wire from context node output 3)",
+      "fps": "FLOAT (widget, locked 24.0)",
+      "crop": "COMBO['disabled','center'] (widget)"
+    },
+    "outputs": [
+      "images (IMAGE)",
+      "audio (AUDIO)"
+    ],
+    "note": "REQUIRED output path for interior inserts: because the H3 video VAE is causal, the decoded output around a preserved interior region does not pixel-match the source, so this node splices the original pixels/PCM back in. Total frame count is unchanged. Takes the FULL timeline (do NOT trim first, unlike AssembleExtension)."
+  },
+  "MiniMaxH3MotionContextTrim": {
+    "source": "seitanism/ComfyUI-H3-Motion-Context-MultiRef, read directly from the main tarball 2026-11-01. nodes.py.",
+    "inputs": {
+      "images": "IMAGE",
+      "trim_frames": "INT (wire from a context node's trim_frames output)",
+      "audio": "AUDIO (optional)",
+      "fps": "FLOAT (widget, locked 24.0)",
+      "match_tail": "BOOLEAN (widget, default True)",
+      "video_crossfade_frames": "INT (widget, default 39)"
+    },
+    "outputs": [
+      "images (IMAGE)",
+      "audio (AUDIO)",
+      "crossfade_images (IMAGE)",
+      "crossfade_frames (INT)"
+    ],
+    "note": "Drops the pinned head from picture AND sound together. Trimming only images leaves audio a full trim_frames long and shifts the whole soundtrack out of sync. match_tail time-conforms audio to frames/fps exactly so drift does not accumulate across chained clips."
+  },
+  "VHS_LoadVideoPath": {
+    "source": "Kosinkadink/ComfyUI-VideoHelperSuite, read directly from the main tarball 2026-11-01. load_video_nodes.py LoadVideoPath.",
+    "inputs": {
+      "video": "STRING (widget; absolute path, cwd-relative path OR http(s) URL)",
+      "force_rate": "FLOAT/INT (widget, 0=source rate, 0..60)",
+      "custom_width": "INT (widget, 0=keep)",
+      "custom_height": "INT (widget, 0=keep)",
+      "frame_load_cap": "INT (widget, 0=unlimited)",
+      "skip_first_frames": "INT (widget)",
+      "select_every_nth": "INT (widget, default 1)",
+      "meta_batch": "VHS_BatchManager (optional)",
+      "vae": "VAE (optional)",
+      "format": "COMBO (optional)"
+    },
+    "outputs": [
+      "IMAGE",
+      "frame_count (INT)",
+      "audio (AUDIO)",
+      "video_info (VHS_VIDEOINFO)"
+    ],
+    "note": "URL-capable: validate_path(allow_url=True) accepts http(s) and try_download_video fetches it, unlike BitVectorApp's optional-asset-loader which only resolves local files. Set force_rate=24 to guarantee the constant 24 fps the H3 context nodes require. Empty string FAILS validation -- there is no first-non-empty-wins filename/url input pair here, so map exactly one Graydient field to 'video'."
+  },
+  "VHS_LoadAudio": {
+    "source": "Kosinkadink/ComfyUI-VideoHelperSuite, read directly from the main tarball 2026-11-01. nodes.py LoadAudio.",
+    "inputs": {
+      "audio_file": "STRING (widget; local path OR http(s) URL)",
+      "seek_seconds": "FLOAT (optional widget, default 0)",
+      "duration": "FLOAT (optional widget, default 0 = to end)"
+    },
+    "outputs": [
+      "audio (AUDIO)",
+      "duration (FLOAT)"
+    ],
+    "note": "Eagerly decodes. Output slot 1 is the ACTUAL loaded duration in seconds (FLOAT) -- feed that, not slot 0, into a frame-count math node. VALIDATE_INPUTS uses allow_none=True so an unset path does not hard-fail validation, but load_audio still raises on an invalid path."
+  },
+  "LoadImageOptional": {
+    "source": "BitVectorApp/comfyui-optional-asset-loader nodes.py, read directly 2026-11-01.",
+    "inputs": {
+      "image_path": "STRING (widget; local path only -- NO URL support)",
+      "fallback_patterns": "STRING (optional widget, comma-separated placeholder names)",
+      "missing_behavior": "COMBO['Return None','Return Blank Tensor','Raise Error'] (optional widget)",
+      "blank_width": "INT (optional widget)",
+      "blank_height": "INT (optional widget)",
+      "blank_color": "COMBO['black','white','gray'] (optional widget)"
+    },
+    "outputs": [
+      "IMAGE",
+      "MASK",
+      "has_image (BOOLEAN)",
+      "resolved_path (STRING)"
+    ],
+    "note": "resolve_file_path checks absolute path, ComfyUI input dir, cwd-relative, then models_dir -- it never downloads, so do NOT route a URL-bearing Graydient field here. 'Return None' emits Python None so downstream optional inputs are simply skipped; use 'Raise Error' for an input the workflow cannot meaningfully run without, otherwise a missing upload silently degrades to text-to-video (the KI-007 sec 25 blank-input trap)."
+  },
+  "ResizeAndPadImage": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). comfy_extras/nodes_images.py.",
+    "inputs": {
+      "image": "IMAGE",
+      "target_width": "INT (widget)",
+      "target_height": "INT (widget)",
+      "padding_color": "COMBO['white','black'] (widget)",
+      "interpolation": "COMBO['area','bicubic','nearest-exact','bilinear','lanczos'] (widget)"
+    },
+    "outputs": [
+      "IMAGE"
+    ],
+    "note": "Fits the image inside the target box keeping aspect, then pads. Returns IMAGE only -- there is NO mask output, so it cannot by itself produce an outpaint border mask. Note ImagePadForOutpaint no longer exists in current ComfyUI master, and PadImageNode also returns IMAGE only."
+  },
+  "StringFormat": {
+    "source": "ComfyUI core, read directly from GitHub Comfy-Org/ComfyUI master 2026-11-01 (V3 io.Schema unless noted). comfy_extras/nodes_string.py.",
+    "inputs": {
+      "values.a": "FLOAT/INT/STRING/BOOLEAN (Autogrow group field, NOT bare 'a')",
+      "values.b": "Autogrow group field",
+      "values.c": "Autogrow group field (names are all of string.ascii_lowercase, so values.c .. values.z exist)",
+      "f_string": "STRING (widget, multiline; Python str.format template, default '{a}')"
+    },
+    "outputs": [
+      "STRING"
+    ],
+    "note": "Same Autogrow 'values.' prefix rule as ComfyMathExpression -- a bare 'a' key is the classic quota-burning typo. Template is evaluated with Python str.format, so {a}/{b}/{c} and format specs work."
+  },
+  "FluxdonH3Recast": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "audio_vae": "VAE",
+      "identity": "IMAGE",
+      "source_frames": "IMAGE",
+      "ref_image_size": "['match', 'max']",
+      "identity_2": "IMAGE",
+      "source_audio": "AUDIO"
+    },
+    "outputs": [
+      "positive",
+      "latent"
+    ]
+  },
+  "FluxdonH3Extend": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "audio_vae": "VAE",
+      "source_frames": "IMAGE",
+      "source_audio": "AUDIO",
+      "source_fps": "FLOAT",
+      "context_length": "INT",
+      "crop": "['disabled', 'center']",
+      "audio_feather_ticks": "INT",
+      "insert_frame": "INT"
+    },
+    "outputs": [
+      "positive",
+      "latent",
+      "trim_frames",
+      "insert_frame",
+      "preserved_frames"
+    ]
+  },
+  "FluxdonH3Reframe": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "audio_vae": "VAE",
+      "guide_frames": "IMAGE",
+      "source_audio": "AUDIO"
+    },
+    "outputs": [
+      "positive",
+      "latent"
+    ]
+  },
+  "FluxdonH3Insert": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "audio_vae": "VAE",
+      "source_frames": "IMAGE",
+      "source_audio": "AUDIO",
+      "source_fps": "FLOAT",
+      "context_length": "INT",
+      "crop": "['disabled', 'center']",
+      "audio_feather_ticks": "INT",
+      "insert_frame": "INT"
+    },
+    "outputs": [
+      "positive",
+      "latent",
+      "trim_frames",
+      "insert_frame",
+      "preserved_frames"
+    ]
+  },
+  "FluxdonH3LipSync": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "audio_vae": "VAE",
+      "portrait": "IMAGE",
+      "speech": "AUDIO"
+    },
+    "outputs": [
+      "positive",
+      "latent"
+    ]
+  },
+  "FluxdonH3CameraControl": {
+    "source": "UnlimitedEditing/fluxdon-local-h3, nodes.py (local implementation; no live render yet)",
+    "inputs": {
+      "clip": "CLIP",
+      "vae": "VAE",
+      "prompt": "STRING",
+      "width": "INT",
+      "height": "INT",
+      "length": "INT",
+      "first_frame": "IMAGE",
+      "azimuth": "INT",
+      "elevation": "INT",
+      "dolly": "FLOAT"
+    },
+    "outputs": [
+      "positive",
+      "latent"
+    ]
   }
 }

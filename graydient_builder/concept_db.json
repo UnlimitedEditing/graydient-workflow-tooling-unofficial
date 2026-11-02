@@ -448,5 +448,94 @@
       "_bytes": 528546184,
       "_sha256": "102dcc38b48f984844305fff5c04730a857603f8796f47e92b67c61baef124bb"
     }
+  ],
+  "h3-regen2k": [
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "destination": "diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "_status": "url from the node metadata inside the user's 2026-10-28 workflow; NOT fetched (HF blocked in authoring sandbox)"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "destination": "diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "_status": "UNVERIFIED path: filename taken from ComfyUI-Open-H3-Regenerate README, directory assumed to match the fl2va sibling. Only its 32 KB adaln_t_table is read (OpenH3RegenLora curve_table)."
+    },
+    {
+      "url": "https://huggingface.co/Efficient-Large-Model/Open-H3-Regenerate-2K/resolve/main/lora/open_h3_regenerate_2k_lora.safetensors",
+      "destination": "loras/open_h3_regenerate_2k_lora.safetensors",
+      "_status": "UNVERIFIED: path per ComfyUI-Open-H3-Regenerate README (12.4 GB, FP32, Diffusers keys); gated flag not checked - check https://huggingface.co/api/models/Efficient-Large-Model/Open-H3-Regenerate-2K (KI-008 sec 4)"
+    },
+    {
+      "url": "https://huggingface.co/Efficient-Large-Model/Open-H3-Regenerate-2K/resolve/main/lora/sharp_curve_branches.safetensors",
+      "destination": "loras/sharp_curve_branches.safetensors",
+      "_status": "UNVERIFIED: path per README (1.2 GB)"
+    },
+    {
+      "url": "https://huggingface.co/Efficient-Large-Model/Open-H3-Regenerate-2K/resolve/main/vae_fast/fast_h3_vae_noncausal_24l.safetensors",
+      "destination": "vae/fast_h3_vae_noncausal_24l.safetensors",
+      "_status": "UNVERIFIED: path per README (6.5 GB)"
+    },
+    {
+      "url": "https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler/resolve/main/minimax_h3_latent_upscaler_3d_conv_v1/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors",
+      "destination": "latent_upscale_models/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors",
+      "_status": "UNVERIFIED: folder from the Note in the user's workflow, filename from its MMH3LatentUpscaleWithModelParams widget"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "destination": "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+      "destination": "vae/minimax_h3_video_vae_fp16.safetensors",
+      "_status": "URL from the node metadata inside the user's 2026-10-28 workflow"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+      "destination": "vae/minimax_h3_audio_vae_fp32.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    }
+  ],
+  "h3-ref-draft": [
+    {
+      "url": "https://huggingface.co/OliviaRossi/Minimax-h3_Singularity-x-10Eros-Max_PRISM/resolve/main/10Eros_Max_h3_8stepTURBO_beta7_SingularityV2_int8HQ.safetensors",
+      "destination": "diffusion_models/10Eros_Max_h3_8stepTURBO_beta7_SingularityV2_int8HQ.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "destination": "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_int8_convrot.safetensors",
+      "destination": "vae/minimax_h3_video_vae_int8_convrot.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    },
+    {
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+      "destination": "vae/minimax_h3_audio_vae_fp32.safetensors",
+      "_status": "URL from the user's pasted singularity2b7-h3 model list (live Graydient workflow 4035)"
+    },
+    {
+      "url": "https://huggingface.co/buckets/Jacob121294/RMBG-2.0-bucket/resolve/config.json",
+      "destination": "RMBG/RMBG-2.0/config.json",
+      "_status": "UNVERIFIED: HF *bucket* resolve-URL form assumed; confirm with curl -sI. Node checks models/RMBG/RMBG-2.0/ for exactly these 4 files (ComfyUI-RMBG py/AILab_RMBG.py) and only then skips its own hf_hub_download"
+    },
+    {
+      "url": "https://huggingface.co/buckets/Jacob121294/RMBG-2.0-bucket/resolve/model.safetensors",
+      "destination": "RMBG/RMBG-2.0/model.safetensors",
+      "_status": "UNVERIFIED bucket URL form (885 MB per the user's screenshot)"
+    },
+    {
+      "url": "https://huggingface.co/buckets/Jacob121294/RMBG-2.0-bucket/resolve/birefnet.py",
+      "destination": "RMBG/RMBG-2.0/birefnet.py",
+      "_status": "UNVERIFIED bucket URL form (91.4 kB per the user's screenshot)"
+    },
+    {
+      "url": "https://huggingface.co/buckets/Jacob121294/RMBG-2.0-bucket/resolve/BiRefNet_config.py",
+      "destination": "RMBG/RMBG-2.0/BiRefNet_config.py",
+      "_status": "UNVERIFIED bucket URL form (298 B per the user's screenshot)"
+    }
   ]
 }

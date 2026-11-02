@@ -1,0 +1,310 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "10Eros_Max_h3_8stepTURBO_beta7_SingularityV2_int8HQ.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Load H3 (Singularity x 10Eros 8-step)"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Load Qwen3-VL text encoder"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "_meta": {
+      "title": "Load H3 video VAE"
+    }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "_meta": {
+      "title": "Load H3 audio VAE"
+    }
+  },
+  "5": {
+    "class_type": "MiniMaxChunkFeedForward",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "chunks": 2,
+      "seq_threshold": 4096
+    },
+    "_meta": {
+      "title": "Chunk feed-forward"
+    }
+  },
+  "6": {
+    "class_type": "BlockSparseAttention",
+    "inputs": {
+      "model": [
+        "5",
+        0
+      ],
+      "selection": "sol-attn",
+      "selection.tau": 1.3,
+      "start_percent": 0.2,
+      "end_percent": 1.0,
+      "dense_blocks": "",
+      "min_tokens": 12288,
+      "extra_tokens": 256,
+      "sink_conditioning": "exact_kv_and_rows",
+      "verbose": false
+    },
+    "_meta": {
+      "title": "Sol-Attn (sparse attention)"
+    }
+  },
+  "7": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "model": [
+        "6",
+        0
+      ],
+      "shift_video": 12,
+      "shift_audio": 3
+    },
+    "_meta": {
+      "title": "Sigma shift"
+    }
+  },
+  "8": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Character reference"
+    }
+  },
+  "9": {
+    "class_type": "RMBG",
+    "inputs": {
+      "image": [
+        "8",
+        0
+      ],
+      "model": "RMBG-2.0",
+      "sensitivity": 1.0,
+      "process_res": 1024,
+      "mask_blur": 0,
+      "mask_offset": 0,
+      "invert_output": false,
+      "refine_foreground": false,
+      "background": "Color",
+      "background_color": "#c7c7c7"
+    },
+    "_meta": {
+      "title": "Remove background (RMBG-2.0)"
+    }
+  },
+  "14": {
+    "class_type": "ImageResizeKJv2",
+    "inputs": {
+      "image": [
+        "9",
+        0
+      ],
+      "width": 864,
+      "height": 480,
+      "upscale_method": "nearest-exact",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu"
+    },
+    "_meta": {
+      "title": "Resize reference (crop)"
+    }
+  },
+  "18": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "audio_vae": [
+        "4",
+        0
+      ],
+      "ref_images.ref_image_0": [
+        "14",
+        0
+      ],
+      "prompt": "subject_definitions:\n<Subject 1> is the young woman whose appearance comes from <Picture 1>, with long, straight powder-blue hair with blunt bangs falling past her waist, a thin silver necklace, a white off-shoulder bandeau top, black high-waisted wide-leg trousers with a slim black belt, and white low-top sneakers.\n\nsummary:\n[reference generation] The target video is a warm lifestyle short of <Subject 1> spending an off-duty afternoon in the city: pulling a record from a crate in a vinyl shop, walking a tree-lined street in dappled light, and settling at a cafe window with a warm cup, all shot in soft natural light with gentle camera drift.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2], [Shot 3]): fully_preserved - her powder-blue straight hair with blunt bangs, thin silver necklace, white off-shoulder bandeau top, black wide-leg trousers with slim belt, and white sneakers are retained across all shots.\n\ndetailed_description:\nThe target video uses a natural-light lifestyle film style with warm cream tones, soft window glow and a shallow, breathing depth of field.\n[Shot 1] A close shot at a record shop crate. <Subject 1>'s fingers walk slowly along the inner sleeves of vinyl records, the powder-blue hair falling forward past her cheek, blunt bangs brushing her lashes as she leans in to read a spine. The camera pushes in with small amplitude at slow speed; her fingertips stop, hook one sleeve, and draw a record halfway out of the crate, her thin necklace swinging a little as she straightens. Warm tungsten shop light rims the blue of her hair.\n[Shot 2] At 00:03.000, the shot cuts to a full-body street view. <Subject 1> walks toward the camera down a quiet tree-lined lane, the wide legs of her black trousers swaying over the white sneakers with each unhurried step, sunlight dappling through the leaves in slow-moving patches across the fabric. She lifts one hand and tucks the long blue hair behind her ear, then lets it fall again, and the camera tracks backward at a steady walking pace, keeping her centered as a soft lens flare drifts past her shoulder.\n[Shot 3] At 00:05.500, the shot cuts to an intimate close framing by a cafe window. <Subject 1> sits sideways on a wooden stool, both feet flat on the floor, knees together, her weight easy on the stool's edge, the record from the first shot resting on the small table beside a warm cup. She wraps both hands around the cup, lifts it an inch, and turns her gaze from the window to the lens with a small, unhurried smile; dust motes drift through the shaft of afternoon light across her bare shoulders and the white bandeau top. The camera arcs gently around her at slow speed and settles as she lowers the cup back to the saucer with a soft click.\nThe whole clip breathes at a lazy afternoon pace, cuts soft and late on the beat.\n\noverall_soundscape:\nThe dry slide of record sleeves in a crate, muffled street ambience with distant bicycle bells and leaf rustle, a cup settling onto a saucer, and low cafe chatter through warm room tone.\n\nnon_diegetic_music:\nA mellow lo-fi chill beat at 82 BPM: soft piano chords, brushed snare, warm vinyl crackle, holding one gentle level from first frame to last.",
+      "width": 864,
+      "height": 480,
+      "length": 121,
+      "ref_image_size": "match"
+    },
+    "_meta": {
+      "title": "Reference to video"
+    }
+  },
+  "19": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "7",
+        0
+      ],
+      "conditioning": [
+        "18",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Guider"
+    }
+  },
+  "20": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Sampler"
+    }
+  },
+  "21": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "7",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1.0
+    },
+    "_meta": {
+      "title": "Scheduler"
+    }
+  },
+  "22": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 43
+    },
+    "_meta": {
+      "title": "Noise"
+    }
+  },
+  "23": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "22",
+        0
+      ],
+      "guider": [
+        "19",
+        0
+      ],
+      "sampler": [
+        "20",
+        0
+      ],
+      "sigmas": [
+        "21",
+        0
+      ],
+      "latent_image": [
+        "18",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Sampler"
+    }
+  },
+  "24": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "23",
+        1
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Decode video"
+    }
+  },
+  "25": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "23",
+        1
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Decode audio"
+    }
+  },
+  "26": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "24",
+        0
+      ],
+      "audio": [
+        "25",
+        0
+      ],
+      "fps": 24.0
+    },
+    "_meta": {
+      "title": "Create video"
+    }
+  },
+  "27": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "26",
+        0
+      ],
+      "filename_prefix": "video/h3_ref_draft",
+      "codec": "auto",
+      "format": "auto"
+    },
+    "_meta": {
+      "title": "Save video"
+    }
+  }
+}

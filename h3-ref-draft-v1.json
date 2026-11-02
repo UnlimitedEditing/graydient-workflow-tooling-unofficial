@@ -1,0 +1,1169 @@
+{
+  "last_node_id": 28,
+  "last_link_id": 24,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [
+        30,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Load H3 (Singularity x 10Eros 8-step)",
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "10Eros_Max_h3_8stepTURBO_beta7_SingularityV2_int8HQ.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "pos": [
+        30,
+        240
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Load Qwen3-VL text encoder",
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "minimax",
+        "default"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [
+        30,
+        420
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            7,
+            19
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Load H3 video VAE",
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "minimax_h3_video_vae_int8_convrot.safetensors"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "VAELoader",
+      "pos": [
+        30,
+        540
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            8,
+            21
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Load H3 audio VAE",
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "minimax_h3_audio_vae_fp32.safetensors"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "MiniMaxChunkFeedForward",
+      "pos": [
+        420,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Chunk feed-forward",
+      "properties": {
+        "Node name for S&R": "MiniMaxChunkFeedForward"
+      },
+      "widgets_values": [
+        2,
+        4096
+      ]
+    },
+    {
+      "id": 6,
+      "type": "BlockSparseAttention",
+      "pos": [
+        420,
+        220
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            3
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Sol-Attn (sparse attention)",
+      "properties": {
+        "Node name for S&R": "BlockSparseAttention"
+      },
+      "widgets_values": [
+        "sol-attn",
+        1.3,
+        0.2,
+        1.0,
+        "",
+        12288,
+        256,
+        "exact_kv_and_rows",
+        false
+      ]
+    },
+    {
+      "id": 7,
+      "type": "MiniMaxH3SigmaShift",
+      "pos": [
+        420,
+        460
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            10,
+            12
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Sigma shift",
+      "properties": {
+        "Node name for S&R": "MiniMaxH3SigmaShift"
+      },
+      "widgets_values": [
+        12,
+        3
+      ]
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [
+        800,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "title": "Character reference",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "RMBG",
+      "pos": [
+        800,
+        260
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "MASK_IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 2
+        }
+      ],
+      "title": "Remove background (RMBG-2.0)",
+      "properties": {
+        "Node name for S&R": "RMBG"
+      },
+      "widgets_values": [
+        "RMBG-2.0",
+        1.0,
+        1024,
+        0,
+        0,
+        false,
+        false,
+        "Color",
+        "#c7c7c7"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "ImageResizeKJv2",
+      "pos": [
+        1180,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 3
+        }
+      ],
+      "title": "Resize reference (crop)",
+      "properties": {
+        "Node name for S&R": "ImageResizeKJv2"
+      },
+      "widgets_values": [
+        864,
+        480,
+        "nearest-exact",
+        "crop",
+        "0, 0, 0",
+        "center",
+        2,
+        "cpu"
+      ]
+    },
+    {
+      "id": 18,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "pos": [
+        1560,
+        420
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 6
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 7
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 8
+        },
+        {
+          "name": "ref_images.ref_image_0",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            11
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            17
+          ],
+          "slot_index": 1
+        }
+      ],
+      "title": "Reference to video",
+      "properties": {
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "subject_definitions:\n<Subject 1> is the young woman whose appearance comes from <Picture 1>, with long, straight powder-blue hair with blunt bangs falling past her waist, a thin silver necklace, a white off-shoulder bandeau top, black high-waisted wide-leg trousers with a slim black belt, and white low-top sneakers.\n\nsummary:\n[reference generation] The target video is a warm lifestyle short of <Subject 1> spending an off-duty afternoon in the city: pulling a record from a crate in a vinyl shop, walking a tree-lined street in dappled light, and settling at a cafe window with a warm cup, all shot in soft natural light with gentle camera drift.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2], [Shot 3]): fully_preserved - her powder-blue straight hair with blunt bangs, thin silver necklace, white off-shoulder bandeau top, black wide-leg trousers with slim belt, and white sneakers are retained across all shots.\n\ndetailed_description:\nThe target video uses a natural-light lifestyle film style with warm cream tones, soft window glow and a shallow, breathing depth of field.\n[Shot 1] A close shot at a record shop crate. <Subject 1>'s fingers walk slowly along the inner sleeves of vinyl records, the powder-blue hair falling forward past her cheek, blunt bangs brushing her lashes as she leans in to read a spine. The camera pushes in with small amplitude at slow speed; her fingertips stop, hook one sleeve, and draw a record halfway out of the crate, her thin necklace swinging a little as she straightens. Warm tungsten shop light rims the blue of her hair.\n[Shot 2] At 00:03.000, the shot cuts to a full-body street view. <Subject 1> walks toward the camera down a quiet tree-lined lane, the wide legs of her black trousers swaying over the white sneakers with each unhurried step, sunlight dappling through the leaves in slow-moving patches across the fabric. She lifts one hand and tucks the long blue hair behind her ear, then lets it fall again, and the camera tracks backward at a steady walking pace, keeping her centered as a soft lens flare drifts past her shoulder.\n[Shot 3] At 00:05.500, the shot cuts to an intimate close framing by a cafe window. <Subject 1> sits sideways on a wooden stool, both feet flat on the floor, knees together, her weight easy on the stool's edge, the record from the first shot resting on the small table beside a warm cup. She wraps both hands around the cup, lifts it an inch, and turns her gaze from the window to the lens with a small, unhurried smile; dust motes drift through the shaft of afternoon light across her bare shoulders and the white bandeau top. The camera arcs gently around her at slow speed and settles as she lowers the cup back to the saucer with a soft click.\nThe whole clip breathes at a lazy afternoon pace, cuts soft and late on the beat.\n\noverall_soundscape:\nThe dry slide of record sleeves in a crate, muffled street ambience with distant bicycle bells and leaf rustle, a cup settling onto a saucer, and low cafe chatter through warm room tone.\n\nnon_diegetic_music:\nA mellow lo-fi chill beat at 82 BPM: soft piano chords, brushed snare, warm vinyl crackle, holding one gentle level from first frame to last.",
+        864,
+        480,
+        121,
+        "match"
+      ]
+    },
+    {
+      "id": 19,
+      "type": "BasicGuider",
+      "pos": [
+        2200,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 10
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            14
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Guider",
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 20,
+      "type": "KSamplerSelect",
+      "pos": [
+        2200,
+        200
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            15
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Sampler",
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "BasicScheduler",
+      "pos": [
+        2200,
+        320
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            16
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Scheduler",
+      "properties": {
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": [
+        "simple",
+        8,
+        1.0
+      ]
+    },
+    {
+      "id": 22,
+      "type": "RandomNoise",
+      "pos": [
+        2200,
+        500
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            13
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Noise",
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        43,
+        "fixed"
+      ]
+    },
+    {
+      "id": 23,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        2580,
+        60
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 13
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 14
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 15
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 16
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": [
+            18,
+            20
+          ],
+          "slot_index": 1
+        }
+      ],
+      "title": "Sampler",
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 24,
+      "type": "VAEDecode",
+      "pos": [
+        2580,
+        240
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 18
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            22
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Decode video",
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 25,
+      "type": "VAEDecodeAudio",
+      "pos": [
+        2580,
+        360
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 20
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            23
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Decode audio",
+      "properties": {
+        "Node name for S&R": "VAEDecodeAudio"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 26,
+      "type": "CreateVideo",
+      "pos": [
+        2580,
+        480
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 22
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            24
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Create video",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        24.0
+      ]
+    },
+    {
+      "id": 27,
+      "type": "SaveVideo",
+      "pos": [
+        2580,
+        640
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 24
+        }
+      ],
+      "outputs": [],
+      "title": "Save video",
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/h3_ref_draft",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 28,
+      "type": "Note",
+      "pos": [
+        30,
+        -260
+      ],
+      "size": [
+        760,
+        220
+      ],
+      "flags": {},
+      "order": 99,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "H3 Ref Draft (stage 1). Custom nodes: kijai/ComfyUI-KJNodes, 1038lab/ComfyUI-RMBG. RMBG-2.0 files go in models/RMBG/RMBG-2.0/ (config.json, model.safetensors, birefnet.py, BiRefNet_config.py). Output feeds h3-regen2k."
+      ],
+      "color": "#232b3c",
+      "bgcolor": "#343b4d"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      5,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      5,
+      0,
+      6,
+      0,
+      "MODEL"
+    ],
+    [
+      3,
+      6,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      4,
+      8,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      9,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      2,
+      0,
+      18,
+      0,
+      "CLIP"
+    ],
+    [
+      7,
+      3,
+      0,
+      18,
+      1,
+      "VAE"
+    ],
+    [
+      8,
+      4,
+      0,
+      18,
+      2,
+      "VAE"
+    ],
+    [
+      9,
+      14,
+      0,
+      18,
+      3,
+      "IMAGE"
+    ],
+    [
+      10,
+      7,
+      0,
+      19,
+      0,
+      "MODEL"
+    ],
+    [
+      11,
+      18,
+      0,
+      19,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      12,
+      7,
+      0,
+      21,
+      0,
+      "MODEL"
+    ],
+    [
+      13,
+      22,
+      0,
+      23,
+      0,
+      "NOISE"
+    ],
+    [
+      14,
+      19,
+      0,
+      23,
+      1,
+      "GUIDER"
+    ],
+    [
+      15,
+      20,
+      0,
+      23,
+      2,
+      "SAMPLER"
+    ],
+    [
+      16,
+      21,
+      0,
+      23,
+      3,
+      "SIGMAS"
+    ],
+    [
+      17,
+      18,
+      1,
+      23,
+      4,
+      "LATENT"
+    ],
+    [
+      18,
+      23,
+      1,
+      24,
+      0,
+      "LATENT"
+    ],
+    [
+      19,
+      3,
+      0,
+      24,
+      1,
+      "VAE"
+    ],
+    [
+      20,
+      23,
+      1,
+      25,
+      0,
+      "LATENT"
+    ],
+    [
+      21,
+      4,
+      0,
+      25,
+      1,
+      "VAE"
+    ],
+    [
+      22,
+      24,
+      0,
+      26,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      25,
+      0,
+      26,
+      1,
+      "AUDIO"
+    ],
+    [
+      24,
+      26,
+      0,
+      27,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "1. Models",
+      "bounding": [
+        16,
+        -10,
+        380,
+        640
+      ],
+      "color": "#3f789e",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "2. Patches (chunk FF, Sol-Attn, sigma shift)",
+      "bounding": [
+        406,
+        -10,
+        370,
+        640
+      ],
+      "color": "#b58b2a",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "3. Reference + RMBG + size",
+      "bounding": [
+        786,
+        -10,
+        1000,
+        840
+      ],
+      "color": "#8A8",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "4. Prompt + reference conditioning",
+      "bounding": [
+        1546,
+        -10,
+        640,
+        700
+      ],
+      "color": "#a1309b",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "5. Sample + decode + save",
+      "bounding": [
+        2186,
+        -10,
+        780,
+        760
+      ],
+      "color": "#88A",
+      "font_size": 22,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [
+        60,
+        300
+      ]
+    }
+  },
+  "version": 0.4
+}

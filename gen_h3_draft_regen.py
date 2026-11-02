@@ -58,7 +58,8 @@ Telegram / API:
 /size:864x480 - DRAFT size, multiples of 32 (not snapped)
 /slot4:56 - frames at 24 fps, on H3's 17k+5 grid: 22, 39, 56, 73, 90, 107, 124 ...
 /slot5:0 - regen start sigma (0 = NVIDIA release recipe; 0.8 stays closer to the draft)
-/steps:8 - draft steps (staged base is an 8-step turbo)
+/steps:8 - draft steps, min 3 (staged base is an 8-step turbo)
+/slot6:3 - regenerate refine steps (default 3 = NVIDIA recipe, min 1)
 /seed:43 - draft seed
 
 Known limits: very heavy. Both stages share one render clock; if it times out lower /slot4, or use the separate h3-ref-draft + h3-regen2k workflows. Weights: Comfy-Org/MiniMax-H3, OliviaRossi/Minimax-h3_Singularity-x-10Eros-Max_PRISM, Efficient-Large-Model/Open-H3-Regenerate-2K (NVIDIA), LBH-123-AI latent upscaler, RMBG-2.0 - each under its own license. Not an official MiniMax or NVIDIA product.
@@ -129,6 +130,8 @@ fields = []
 for f in s1.wf.field_mapping:                      # stage-1 fields, unchanged node ids
     if f["local_field"] == "slot4":
         f = dict(f); f["default_value"] = str(TEST_FRAMES)
+    if f["local_field"] == "steps":
+        f = dict(f); f["minimum_value"] = "3"   # parent capped at 4; 3 must be reachable
     fields.append(f)
 fields += [
     fm("slot4", 109, "max_frames", 1, "Prepare draft", default_value=TEST_FRAMES, minimum_value=5,
@@ -136,6 +139,8 @@ fields += [
     fm("slot5", 113, "start_sigma", 1, "Regen sigmas", default_value=0.0, minimum_value=0.0,
        maximum_value=0.95, help_text="0 = NVIDIA release recipe (start sigma 0.909). 0.8 stays closer to the draft."),
 ]
+fields.append(fm("slot6", 113, "steps", 0, "Regen sigmas", default_value=3, minimum_value=1, maximum_value=8,
+                 help_text="Regenerate refine steps. 3 = NVIDIA's release recipe (sub-minute on consumer GPUs)."))
 wf.field_mapping = fields
 wf.avg_elapsed = None
 wf.metadata.update(FLAGS_OFF)
